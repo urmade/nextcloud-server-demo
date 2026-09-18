@@ -34,6 +34,7 @@ export interface ShareCreateBody {
 	label?: string;
 	attributes?: string;
 	sendMail?: string;
+	hideDownload?: string;
 }
 
 export interface ShareUpdateBody {

@@ -78,6 +78,7 @@ export function createShareRecord(input: {
 	status?: number;
 	mailSend?: boolean;
 	sendPasswordByTalk?: boolean;
+	hideDownload?: boolean;
 }): ShareRecord {
 	const share: ShareRecord = {
 		id: nextShareId++,
@@ -101,7 +102,7 @@ export function createShareRecord(input: {
 		),
 		shareTime: Math.floor(Date.now() / 1000),
 		expiration: null,
-		hideDownload: false,
+		hideDownload: input.hideDownload ?? false,
 		mailSend: input.mailSend ?? false,
 		sendPasswordByTalk: input.sendPasswordByTalk ?? false,
 		deletedFromSelf: [],

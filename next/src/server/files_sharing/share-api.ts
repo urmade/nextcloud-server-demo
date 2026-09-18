@@ -243,6 +243,7 @@ export async function handleCreateShare(request: Request): Promise<Response> {
 			note: body?.note ?? '',
 			sendPasswordByTalk: body?.sendPasswordByTalk === 'true',
 			mailSend: body?.sendMail === 'true',
+			hideDownload: body?.hideDownload === 'true',
 		});
 
 		const formatted = formatShare(share, auth, origin);

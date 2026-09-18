@@ -173,6 +173,28 @@ Frontpage JSON over the same `External\Manager` as remote OCS. Soft-dep: use rem
 - Destroy: if found → `declineShare`; **always** **200** `[]`. Map **404** on create/destroy is wrong.
 - `show` / `update`: routes exist but no controller methods → **500**, not 200 share JSON.
 
+## Public preview (slice 7)
+
+`PublicPreviewController#getPreview` on `/apps/files_sharing/publicpreview/{token}` — **not** `/s/{token}/preview` (that is `directLink`, slice 2). Extends `PublicShareController` (no authenticate redirect).
+
+| id | Method | Path |
+| --- | --- | --- |
+| `files_sharing.PublicPreview#getPreview` | GET | `/apps/files_sharing/publicpreview/{token}` |
+| `files_sharing-public_preview-get-preview` | GET | `/index.php/apps/files_sharing/publicpreview/{token}` |
+
+### Auth / status
+
+- `#[PublicPage]` `#[NoCSRFRequired]`. Map `auth: session` / `auth: mixed` and 401 login-or-json are **lies**.
+- `PublicShareMiddleware`: missing/invalid token → **404 HTML** `sharenotfound`. Password share **without** `public_link_authenticated_frontend` → **404 HTML** (not 401, not controller 403). Owner cookie does **not** count.
+- If the method runs (`DataResponse` `[]` unless noted):
+  - empty token / `x===0` / `y===0` → **400**
+  - share missing (controller path) → **404**
+  - no READ → **403**
+  - `!canSeeContent()` (hideDownload): allow only `x-nc-preview: true` (else **403**); cache 15m vs 24h
+  - folder + empty `file` or `file` is folder → **400**
+  - no preview: `mimeFallback` + File → **303** mime icon; else **404**
+- Success: `FileDisplayResponse` 200 binary (`bp-binary-parity`). Query: `file` default `''`, `x=32`, `y=32`, `a` **untyped** (truthy = no-crop), `mimeFallback=false`.
+
 ## Implementation layout
 
 ```
@@ -190,6 +212,7 @@ src/server/files_sharing/
   external-shares-api.ts
   accept.ts
   public-link.ts
+  public-preview.ts
   public-session.ts
 app/ocs/v2.php/apps/files_sharing/api/v1/
   shares/route.ts
@@ -216,16 +239,20 @@ app/s/[token]/
   download/[[...filename]]/route.ts
   preview/route.ts
 app/index.php/s/[token]/preview/route.ts
+app/apps/files_sharing/publicpreview/[token]/route.ts
+app/index.php/apps/files_sharing/publicpreview/[token]/route.ts
 parity/legacy-mock/files-sharing-ocs.ts
 parity/legacy-mock/files-sharing-public-link.ts
 parity/legacy-mock/files-sharing-accept.ts
 parity/legacy-mock/files-sharing-external-shares.ts
+parity/legacy-mock/files-sharing-public-preview.ts
 parity/tests/files-sharing-share-ocs.parity.test.ts
 parity/tests/files-sharing-public-link.parity.test.ts
 parity/tests/files-sharing-deleted-ocs.parity.test.ts
 parity/tests/files-sharing-remote-ocs.parity.test.ts
 parity/tests/files-sharing-accept.parity.test.ts
 parity/tests/files-sharing-external-shares.parity.test.ts
+parity/tests/files-sharing-public-preview.parity.test.ts
 ```
 
 ## Parity notes
@@ -278,6 +305,12 @@ parity/tests/files-sharing-external-shares.parity.test.ts
 | `DELETE /externalShares/{id}` unknown id | 200 `[]` |
 | `GET /externalShares/{id}` missing method | 500 |
 | `PUT /externalShares/{id}` missing method | 500 |
+| `GET /publicpreview/{token}` open link | 200 binary (`bp-binary-parity`) |
+| `GET /publicpreview/{token}` unknown token | 404 guest HTML |
+| `GET /publicpreview/{token}` password, no session | 404 HTML |
+| `GET /publicpreview/{token}` folder, no `file` | 400 `[]` |
+| `GET /publicpreview/{token}` hideDownload, no header | 403 `[]` |
+| `GET /index.php/.../publicpreview/{token}` | same handler as app route |
 
 Reset files + sharing stores (and file-node id counters) in accept parity `beforeEach` via `resetParityFilesStores()` + `resetParityShareStores()`. Seed a pending user share with admin `POST /shares` (`shareType: 0`, `shareWith: alice`), then exercise accept as `alice`.
 

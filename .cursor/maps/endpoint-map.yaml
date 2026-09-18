@@ -10861,29 +10861,49 @@ endpoints:
   method: GET
   legacy_path: /apps/files_sharing/publicpreview/{token}
   legacy_source: apps/files_sharing/appinfo/routes.php PublicPreview#getPreview
-  auth: session
+  auth: public-share
   request:
     params:
       token: string
-    query: {}
-    headers: {}
+    query:
+      file: string
+      x: integer
+      y: integer
+      a: boolean
+      mimeFallback: boolean
+    headers:
+      x-nc-preview: string
     body: null
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: binary
+      content_type: image/png
     errors:
-    - status: 401
-      shape: login-or-json
+    - status: 303
+      shape: Redirect to the mime icon url if mimeFallback is true
+    - status: 400
+      shape: any
+      content_type: application/json
+    - status: 403
+      shape: any
+      content_type: application/json
     - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: guest-share-not-found-html
+      content_type: text/html
+  status: parity
+  parity: tested
+  next_path: /apps/files_sharing/publicpreview/{token}
+  next_handler: src/server/files_sharing/public-preview.ts
+  parity_test: next/parity/tests/files-sharing-public-preview.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: >-
+    PublicPage PublicShareController, not AuthPublicShareController. Routes.php
+    auth session and 401 login-or-json were wrong. Password share without
+    public_link_authenticated_frontend is middleware 404 HTML. hideDownload
+    without x-nc-preview is 403 []. Folder share without file is 400 [].
+    Success is FileDisplayResponse binary; compare size class not bytes.
 - id: files_sharing.ShareInfo#info.post
   feature_ids:
   - files_sharing
@@ -10920,7 +10940,7 @@ endpoints:
   method: GET
   legacy_path: /index.php/apps/files_sharing/publicpreview/{token}
   legacy_source: openapi.json operationId=files_sharing-public_preview-get-preview
-  auth: mixed
+  auth: public-share
   request:
     params:
       token: string
@@ -10937,7 +10957,7 @@ endpoints:
     success:
       status: 200
       shape: binary
-      content_type: '*/*'
+      content_type: image/png
     errors:
     - status: 303
       shape: Redirect to the mime icon url if mimeFallback is true
@@ -10948,15 +10968,20 @@ endpoints:
       shape: any
       content_type: application/json
     - status: 404
-      shape: any
-      content_type: application/json
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: guest-share-not-found-html
+      content_type: text/html
+  status: parity
+  parity: tested
+  next_path: /index.php/apps/files_sharing/publicpreview/{token}
+  next_handler: src/server/files_sharing/public-preview.ts
+  parity_test: next/parity/tests/files-sharing-public-preview.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: >-
+    OpenAPI twin of files_sharing.PublicPreview#getPreview; same getPreview
+    handler. OpenAPI auth mixed was wrong (PublicPage). Middleware missing or
+    invalid token and password share without frontend session are 404 HTML, not
+    JSON 404. Controller 404 JSON is only when the method runs.
 - id: files_sharing-share_info-info
   feature_ids:
   - files_sharing

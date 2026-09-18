@@ -139,12 +139,12 @@ function enforceCsrf(request: Request, resolved: ResolvedSession, body: URLSearc
 }
 
 interface MiddlewareOptions {
-	methodName: 'showShare' | 'showAuthenticate' | 'authenticate' | 'downloadShare' | 'directLink';
+	methodName: 'showShare' | 'showAuthenticate' | 'authenticate' | 'downloadShare' | 'directLink' | 'getPreview';
 	requireAuthPageBypass?: boolean;
 	isAuthController?: boolean;
 }
 
-function runPublicShareMiddleware(
+export function runPublicShareMiddleware(
 	request: Request,
 	token: string,
 	resolved: ResolvedSession,

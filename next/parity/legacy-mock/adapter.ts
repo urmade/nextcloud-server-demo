@@ -34,6 +34,7 @@ import { handleFilesSharingAcceptMock, isFilesSharingAcceptMockPath } from './fi
 import { handleFilesSharingExternalSharesMock, isFilesSharingExternalSharesMockPath } from './files-sharing-external-shares';
 import { handleFilesSharingOcsMock, isFilesSharingOcsMockPath } from './files-sharing-ocs';
 import { handleFilesSharingPublicLinkMock, isFilesSharingPublicLinkMockPath } from './files-sharing-public-link';
+import { handleFilesSharingPublicPreviewMock, isFilesSharingPublicPreviewMockPath } from './files-sharing-public-preview';
 import { handleFilesTemplatesMock, isFilesTemplatesMockPath } from './files-templates';
 import { handleFilesViewMock, isFilesViewMockPath } from './files-view';
 import { snapshotResponse } from '../compare';
@@ -449,6 +450,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return filesSharingPublicLink;
 	}
 
+	const filesSharingPublicPreview = await handleFilesSharingPublicPreviewMock(pathname, search, options);
+
+	if (filesSharingPublicPreview) {
+		return filesSharingPublicPreview;
+	}
+
 	const filesSharingAccept = await handleFilesSharingAcceptMock(pathname, search, options);
 
 	if (filesSharingAccept) {
@@ -746,6 +753,10 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (isFilesSharingPublicLinkMockPath(pathname, normalizedMethod)) {
+		return true;
+	}
+
+	if (isFilesSharingPublicPreviewMockPath(pathname, normalizedMethod)) {
 		return true;
 	}
 

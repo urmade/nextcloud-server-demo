@@ -135,7 +135,7 @@ export function handleLegacyMockAuth(pathname: string, options: ParityRequestOpt
 		setCookies.push(...buildSameSiteCookieHeaders());
 	}
 
-	if (pathname === '/csrftoken' && method === 'GET') {
+	if ((pathname === '/csrftoken' || pathname === '/index.php/csrftoken') && method === 'GET') {
 		const session = getMockSession(requestCookies[SESSION_COOKIE]);
 		const ocsApiRequest = Boolean(options.headers?.['ocs-apirequest'] ?? options.headers?.['OCS-APIRequest']);
 
@@ -230,6 +230,57 @@ export function handleLegacyMockAuth(pathname: string, options: ParityRequestOpt
 		}
 
 		return redirectResponse('http://127.0.0.1:3100/index.php/apps/dashboard/', [...setCookies, ...loginCookies]);
+	}
+
+	if ((pathname === '/login/confirm' || pathname === '/index.php/login/confirm') && method === 'POST') {
+		const session = getMockSession(requestCookies[SESSION_COOKIE]);
+		const accept = options.headers?.accept ?? options.headers?.Accept ?? '';
+		const acceptsHtml = accept.toLowerCase().includes('html');
+
+		if (!session.userId) {
+			if (acceptsHtml) {
+				const redirectUrl = encodeURIComponent(pathname);
+				return redirectResponse(`http://127.0.0.1:3100/login?redirect_url=${redirectUrl}`, setCookies);
+			}
+
+			return jsonResponse(401, { message: 'Current user is not logged in' }, {}, setCookies);
+		}
+
+		const contentType = options.headers?.['content-type'] ?? options.headers?.['Content-Type'] ?? '';
+		let password: string | null = null;
+
+		if (contentType.includes('application/json')) {
+			try {
+				const parsed = JSON.parse(typeof options.body === 'string' ? options.body : '{}') as { password?: unknown };
+
+				if (parsed.password === undefined || parsed.password === null) {
+					return snapshotResponse(new Response(null, { status: 400 }), '');
+				}
+
+				password = String(parsed.password);
+			} catch {
+				return snapshotResponse(new Response(null, { status: 400 }), '');
+			}
+		} else {
+			const params = new URLSearchParams(typeof options.body === 'string' ? options.body : '');
+			password = params.get('password');
+
+			if (password === null) {
+				return snapshotResponse(new Response(null, { status: 400 }), '');
+			}
+		}
+
+		const loginName = session.loginName ?? session.userId!;
+
+		if (!checkPassword(loginName, password)) {
+			return jsonResponse(403, [], {}, setCookies);
+		}
+
+		const confirmTimestamp = Math.floor(Date.now() / 1000);
+		session.lastPasswordConfirm = confirmTimestamp;
+		updateSession(session);
+
+		return jsonResponse(200, { lastLogin: confirmTimestamp }, {}, setCookies);
 	}
 
 	if (pathname === '/logout' && method === 'GET') {

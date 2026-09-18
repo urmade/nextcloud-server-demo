@@ -27,12 +27,15 @@ description: Core session login, logout, CSRF token, and client login flow v2 en
 - `POST /login/challenge/{challengeProviderId}` — submit challenge code (form `challenge`)
 - `POST /login/webauthn/start` — begin WebAuthn login (JSON `{ loginName }`)
 - `POST /login/webauthn/finish` — complete WebAuthn login (JSON `{ data }`)
+- `POST /login/confirm` — sudo password confirmation (JSON `{ password }`)
 
 `/index.php/login/v2` and `/index.php/login/v2/poll` are twins rewritten to `/login/v2*`.
+`/index.php/login/confirm` rewrites to `/login/confirm`.
+`/index.php/csrftoken` rewrites to `/csrftoken` (same handler as `core.CSRFToken#index`).
 
 ## Non-scope (same feature, later slices)
 
-- Settings WebAuthn registration (`/settings/api/personal/webauthn/*`), `POST /login/confirm`
+- Settings WebAuthn registration (`/settings/api/personal/webauthn/*`)
 - Lost password, heartbeat
 - `POST /login/v2/apptoken` (app-token redirect path)
 - LDAP, SAML, OIDC, alternative login providers
@@ -58,6 +61,8 @@ Map ids with `feature_ids: [core-login]` and `parity: tested`:
 - `core.TwoFactorChallenge#solve`
 - `core.WebAuthn#start`
 - `core.WebAuthn#finish`
+- `core-csrf_token-index` (twin of `core.CSRFToken#index`)
+- `core-login-confirm-password`
 
 ## Auth model
 
@@ -78,6 +83,7 @@ Map ids with `feature_ids: [core-login]` and `parity: tested`:
 | `POST /login/challenge/{id}` | same; form field `challenge` (NoCSRFRequired on legacy) |
 | `POST /login/webauthn/start` | `none` (public); JSON `{ loginName }`; stores challenge in session |
 | `POST /login/webauthn/finish` | `none` (public); JSON `{ data }` where `data` is stringified assertion; requires prior start session |
+| `POST /login/confirm` | `session` (logged-in user); `NoCSRFRequired`; JSON `{ password }` |
 
 Credentials: env `NC_ADMIN_USER` / `NC_ADMIN_PASSWORD` (defaults `admin` / `parity-test-password`).
 
@@ -97,6 +103,7 @@ src/server/auth/
   two-factor-challenge.ts  # select/show/solve + pending-session state
   webauthn-store.ts        # in-memory fixture credentials
   webauthn.ts              # start/finish handlers
+  confirm-password.ts      # sudo confirm handler
 app/
   csrftoken/route.ts
   login/route.ts
@@ -110,7 +117,22 @@ app/
   login/challenge/[challengeProviderId]/route.ts
   login/webauthn/start/route.ts
   login/webauthn/finish/route.ts
+  login/confirm/route.ts
 ```
+
+## Password confirmation (`POST /login/confirm`)
+
+`LoginController::confirmPassword`. Not `PublicPage`. `NoCSRFRequired`. Brute-force action `sudo` (status only in parity).
+
+| Condition | HTTP | Body |
+| --- | --- | --- |
+| Valid password | 200 | `{ lastLogin: <unix seconds> }` — **confirm timestamp** (`session last-password-confirm`), not `IUser::getLastLogin()` |
+| Wrong password | 403 | `[]` |
+| Not logged in (JSON Accept) | 401 | `{ message: "Current user is not logged in" }` |
+| Not logged in (HTML Accept) | 303 | login form with `redirect_url` |
+| Missing `password` field | 400 | empty body |
+
+Success refreshes `lastPasswordConfirm` in session (used by grant and `PasswordConfirmationRequired` routes).
 
 ## Login-time WebAuthn
 
@@ -200,6 +222,9 @@ Failed login sets session flash `loginMessages: [[errorCode], []]`.
 - WebAuthn start/finish are **JSON POST**, not form-encoded; phase-0 map 303/login-failed is wrong — PHP returns JSONResponse.
 - WebAuthn finish missing session returns **400** `[]`, not 401 JSON.
 - `defaultRedirectUrl` is absolute URL from `linkToDefaultPageUrl()`; compare pathname in parity.
+- Confirm `lastLogin` field name is a **confirm timestamp**, not user last-login.
+- Confirm 403 body is `[]`, not an error object. Missing password is 400 empty, not 403.
+- `core-csrf_token-index` is the same handler as `core.CSRFToken#index`; map `auth: mixed` was wrong.
 
 ## Parity extras
 
@@ -234,5 +259,10 @@ Failed login sets session flash `loginMessages: [[errorCode], []]`.
 | Missing session | `POST /login/webauthn/finish` | 400, `[]` |
 | Invalid assertion | `POST /login/webauthn/finish` | 400, `[]` |
 | Happy finish | `POST /login/webauthn/finish` | 200 `{ defaultRedirectUrl }` + login cookies |
+| Twin | `GET /index.php/csrftoken` | same as `GET /csrftoken` |
+| Happy | `POST /login/confirm` | 200 `{ lastLogin }` unix timestamp |
+| Unauth JSON | `POST /login/confirm` | 401 `{ message }` |
+| Wrong password | `POST /login/confirm` | 403 `[]` |
+| Missing password | `POST /login/confirm` | 400 empty |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` (not waived).

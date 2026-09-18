@@ -543,6 +543,7 @@ const MOCKED_GET_ROUTES = new Set([
 	'/ocs/v1.php/cloud/capabilities',
 	'/ocs/v2.php/cloud/capabilities',
 	'/csrftoken',
+	'/index.php/csrftoken',
 	'/login',
 	'/logout',
 ]);
@@ -554,7 +555,13 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 		return true;
 	}
 
-	if (normalizedMethod === 'POST' && (pathname === '/login' || isTwoFactorChallengePath(pathname) || isWebAuthnPath(pathname))) {
+	if (normalizedMethod === 'POST' && (
+		pathname === '/login'
+		|| pathname === '/login/confirm'
+		|| pathname === '/index.php/login/confirm'
+		|| isTwoFactorChallengePath(pathname)
+		|| isWebAuthnPath(pathname)
+	)) {
 		return true;
 	}
 

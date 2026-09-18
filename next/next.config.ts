@@ -45,6 +45,14 @@ const nextConfig: NextConfig = {
 				source: '/index.php/login/v2',
 				destination: '/login/v2',
 			},
+			{
+				source: '/index.php/login/confirm',
+				destination: '/login/confirm',
+			},
+			{
+				source: '/index.php/csrftoken',
+				destination: '/csrftoken',
+			},
 		];
 	},
 };

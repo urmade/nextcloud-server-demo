@@ -34,3 +34,5 @@ Cross-cutting. Phase-0 map `response.success` / `errors` are hypotheses from Ope
 | Login flow v2 poll pending | 401 | 404 `[]` |
 | 2FA challenge unauthenticated | 401 `login-failed` | 303 → `/login` |
 | WebAuthn start/finish | 303 `login-failed` | `JSONResponse` (`PublicPage` + session); finish without start session → 400 `[]` |
+| Login confirm | `auth: mixed`, 401 from controller | `auth: session`; unauth JSON → 401 `{ message }`; wrong password → 403 `[]`; missing password → 400 empty; `lastLogin` is confirm timestamp |
+| CSRF `/index.php` twin | `auth: mixed` | `auth: none`; same `CSRFTokenController#index` as `/csrftoken` |

@@ -4717,29 +4717,30 @@ endpoints:
   method: GET
   legacy_path: /index.php/csrftoken
   legacy_source: openapi.json operationId=core-csrf_token-index
-  auth: mixed
+  auth: none
   request:
     params: {}
     query: {}
-    headers: {}
+    headers:
+      cookie: optional session or nc_token cookies trigger strict same-site check
     body: null
   response:
     success:
       status: 200
+      content_type: application/json; charset=utf-8
       shape:
         token: string
-      content_type: application/json
     errors:
     - status: 403
-      shape: any
-      content_type: application/json
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: empty-array
+  status: parity
+  parity: tested
+  next_path: /csrftoken
+  next_handler: app/csrftoken/route.ts
+  parity_test: next/parity/tests/core-auth.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Twin of core.CSRFToken#index; same CSRFTokenController#index handler via rewrite.
 - id: core-login-confirm-password
   feature_ids:
   - core-login
@@ -4747,7 +4748,7 @@ endpoints:
   method: POST
   legacy_path: /index.php/login/confirm
   legacy_source: openapi.json operationId=core-login-confirm-password
-  auth: mixed
+  auth: session
   request:
     params: {}
     query: {}
@@ -4759,24 +4760,27 @@ endpoints:
   response:
     success:
       status: 200
+      content_type: application/json; charset=utf-8
       shape:
         lastLogin: int64
-      content_type: application/json
     errors:
     - status: 401
       shape:
         message: string
-      content_type: application/json
+      content_type: application/json; charset=utf-8
     - status: 403
-      shape: any
-      content_type: application/json
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: empty-array
+      content_type: application/json; charset=utf-8
+    - status: 400
+      shape: empty
+  status: parity
+  parity: tested
+  next_path: /login/confirm
+  next_handler: app/login/confirm/route.ts
+  parity_test: next/parity/tests/core-login-confirm-password.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: lastLogin is session last-password-confirm timestamp, not IUser::getLastLogin(). NoCSRFRequired. HTML Accept unauthenticated → 303 login.
 - id: core-client_flow_login_v2-init
   feature_ids:
   - core-login

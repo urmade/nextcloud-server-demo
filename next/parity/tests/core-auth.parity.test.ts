@@ -45,6 +45,19 @@ async function fetchWithJar(
 }
 
 describe('parity: core-auth', () => {
+	it('GET /index.php/csrftoken matches /csrftoken twin', async () => {
+		const result = await runParityCase({
+			name: 'csrftoken-index-php-twin',
+			path: '/index.php/csrftoken',
+			compare: {
+				contractHeaders: ['content-type'],
+				unstableIdPaths: ['token'],
+			},
+		});
+
+		expect(result.mismatches, formatParityMismatches(result.mismatches)).toEqual([]);
+	});
+
 	it('GET /csrftoken happy path returns token shape', async () => {
 		const result = await runParityCase({
 			name: 'csrftoken-happy',

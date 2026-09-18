@@ -28,15 +28,17 @@ description: Core session login, logout, CSRF token, and client login flow v2 en
 - `POST /login/webauthn/start` — begin WebAuthn login (JSON `{ loginName }`)
 - `POST /login/webauthn/finish` — complete WebAuthn login (JSON `{ data }`)
 - `POST /login/confirm` — sudo password confirmation (JSON `{ password }`)
+- `GET /heartbeat` — empty 200 keepalive probe (OC.php early return, not a controller)
 
 `/index.php/login/v2` and `/index.php/login/v2/poll` are twins rewritten to `/login/v2*`.
 `/index.php/login/confirm` rewrites to `/login/confirm`.
 `/index.php/csrftoken` rewrites to `/csrftoken` (same handler as `core.CSRFToken#index`).
+`/index.php/heartbeat` rewrites to `/heartbeat`.
 
 ## Non-scope (same feature, later slices)
 
 - Settings WebAuthn registration (`/settings/api/personal/webauthn/*`)
-- Lost password, heartbeat
+- Lost password
 - `POST /login/v2/apptoken` (app-token redirect path)
 - LDAP, SAML, OIDC, alternative login providers
 - Brute-force throttle timing (status codes only; no delay simulation)
@@ -63,6 +65,7 @@ Map ids with `feature_ids: [core-login]` and `parity: tested`:
 - `core.WebAuthn#finish`
 - `core-csrf_token-index` (twin of `core.CSRFToken#index`)
 - `core-login-confirm-password`
+- `core.heartbeat#get`
 
 ## Auth model
 
@@ -84,6 +87,7 @@ Map ids with `feature_ids: [core-login]` and `parity: tested`:
 | `POST /login/webauthn/start` | `none` (public); JSON `{ loginName }`; stores challenge in session |
 | `POST /login/webauthn/finish` | `none` (public); JSON `{ data }` where `data` is stringified assertion; requires prior start session |
 | `POST /login/confirm` | `session` (logged-in user); `NoCSRFRequired`; JSON `{ password }` |
+| `GET /heartbeat` | `none` (public); empty 200, no body; not CSRF keepalive (`GET /csrftoken`) |
 
 Credentials: env `NC_ADMIN_USER` / `NC_ADMIN_PASSWORD` (defaults `admin` / `parity-test-password`).
 
@@ -104,8 +108,10 @@ src/server/auth/
   webauthn-store.ts        # in-memory fixture credentials
   webauthn.ts              # start/finish handlers
   confirm-password.ts      # sudo confirm handler
+  heartbeat.ts             # OC.php early-return probe
 app/
   csrftoken/route.ts
+  heartbeat/route.ts
   login/route.ts
   logout/route.ts
   login/v2/route.ts
@@ -225,6 +231,8 @@ Failed login sets session flash `loginMessages: [[errorCode], []]`.
 - Confirm `lastLogin` field name is a **confirm timestamp**, not user last-login.
 - Confirm 403 body is `[]`, not an error object. Missing password is 400 empty, not 403.
 - `core-csrf_token-index` is the same handler as `core.CSRFToken#index`; map `auth: mixed` was wrong.
+- `/heartbeat` is not CSRF polling (`GET /csrftoken`) and not user_status OCS heartbeat. OC.php path-only early return; empty 200, no Content-Type.
+- Phase-0 map `legacy_source: core/routes.php heartbeat` implies a controller; contract is `lib/OC.php handleRequest` short-circuit.
 
 ## Parity extras
 
@@ -264,5 +272,7 @@ Failed login sets session flash `loginMessages: [[errorCode], []]`.
 | Unauth JSON | `POST /login/confirm` | 401 `{ message }` |
 | Wrong password | `POST /login/confirm` | 403 `[]` |
 | Missing password | `POST /login/confirm` | 400 empty |
+| Happy | `GET /heartbeat` | 200 empty body |
+| Twin | `GET /index.php/heartbeat` | same as `GET /heartbeat` |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` (not waived).

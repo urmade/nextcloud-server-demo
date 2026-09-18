@@ -36,3 +36,4 @@ Cross-cutting. Phase-0 map `response.success` / `errors` are hypotheses from Ope
 | WebAuthn start/finish | 303 `login-failed` | `JSONResponse` (`PublicPage` + session); finish without start session → 400 `[]` |
 | Login confirm | `auth: mixed`, 401 from controller | `auth: session`; unauth JSON → 401 `{ message }`; wrong password → 403 `[]`; missing password → 400 empty; `lastLogin` is confirm timestamp |
 | CSRF `/index.php` twin | `auth: mixed` | `auth: none`; same `CSRFTokenController#index` as `/csrftoken` |
+| Heartbeat | `legacy_source: core/routes.php heartbeat` (implies controller) | `lib/OC.php handleRequest` path-only early return; empty 200, no Content-Type; not CSRF/user_status |

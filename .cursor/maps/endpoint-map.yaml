@@ -4659,7 +4659,7 @@ endpoints:
   protocol: http
   method: GET
   legacy_path: /heartbeat
-  legacy_source: core/routes.php heartbeat
+  legacy_source: lib/OC.php handleRequest early return (not a controller)
   auth: none
   request:
     params: {}
@@ -4671,11 +4671,11 @@ endpoints:
       status: 200
       shape: empty
     errors: []
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /heartbeat
+  next_handler: app/heartbeat/route.ts
+  parity_test: next/parity/tests/core-heartbeat.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: oauth2-login_redirector-authorize

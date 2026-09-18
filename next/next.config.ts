@@ -53,6 +53,10 @@ const nextConfig: NextConfig = {
 				source: '/index.php/csrftoken',
 				destination: '/csrftoken',
 			},
+			{
+				source: '/index.php/heartbeat',
+				destination: '/heartbeat',
+			},
 		];
 	},
 };

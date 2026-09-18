@@ -8,6 +8,7 @@ import {
 	passesStrictCookieCheck,
 	SESSION_COOKIE,
 } from '@/src/server/auth/cookies';
+import { handleHeartbeatGet } from '@/src/server/heartbeat';
 import { createCsrfToken, encryptCsrfToken, isCsrfTokenValid } from '@/src/server/auth/csrf';
 import { checkPassword } from '@/src/server/auth/credentials';
 import {
@@ -133,6 +134,14 @@ export function handleLegacyMockAuth(pathname: string, options: ParityRequestOpt
 
 	if (requestCookies.nc_sameSiteCookielax !== 'true' || requestCookies.nc_sameSiteCookiestrict !== 'true') {
 		setCookies.push(...buildSameSiteCookieHeaders());
+	}
+
+	if ((pathname === '/heartbeat' || pathname === '/index.php/heartbeat') && method === 'GET') {
+		const request = new Request(`http://127.0.0.1:3100${pathname}`, {
+			headers: options.headers,
+		});
+
+		return snapshotResponse(handleHeartbeatGet(request), '');
 	}
 
 	if ((pathname === '/csrftoken' || pathname === '/index.php/csrftoken') && method === 'GET') {

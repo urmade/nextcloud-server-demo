@@ -544,6 +544,8 @@ const MOCKED_GET_ROUTES = new Set([
 	'/ocs/v2.php/cloud/capabilities',
 	'/csrftoken',
 	'/index.php/csrftoken',
+	'/heartbeat',
+	'/index.php/heartbeat',
 	'/login',
 	'/logout',
 ]);

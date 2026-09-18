@@ -62,7 +62,9 @@ v1 success adds `totalitems` and `itemsperpage` (empty strings) to `meta`.
 
 **Trap:** `#[ExAppRequired]` auth failure is **not** OCS-wrapped: HTTP **412** + plain JSON `{ message: "ExApp required" }` from SecurityMiddleware (OpenAPI may list 401/403 — PHP behavior wins).
 
-**Trap:** OCS **204** responses (`getNextScheduledTask` empty queue) have **no body** — not `{ ocs: … }`.
+**Trap:** OCS **204** responses (`getNextScheduledTask` empty queue, unified `deleteShare`) have **no body** — not `{ ocs: … }`.
+
+**Trap:** Unified sharing API disabled → HTTP **501** with `meta.message` `The Unified Sharing API is not enabled.` and `data: {}`. On `NoAdminRequired` routes, unauthenticated callers get **401/997** first (SecurityMiddleware before the 501 gate); `PublicPage` routes get **501** without login.
 
 **Trap:** `setFileContentsExApp` success uses HTTP **201** with OCS envelope and `meta.statuscode` **201**.
 

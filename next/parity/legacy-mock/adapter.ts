@@ -24,6 +24,7 @@ import { handleTwoFactorMock } from './two-factor';
 import { handleTwoFactorChallengeMock, isTwoFactorChallengePath } from './two-factor-challenge';
 import { handleWebAuthnMock, isWebAuthnPath } from './webauthn';
 import { handleUnifiedSearchMock } from './unified-search';
+import { handleAvatarWriteMock } from './avatar-write';
 import { handleWipeMock } from './wipe';
 import { handleDavMock, isDavMockMethod } from './dav';
 import { handleDavDirectMock, isDavDirectMockPath } from './dav-direct';
@@ -618,6 +619,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return wipe;
 	}
 
+	const avatarWrite = await handleAvatarWriteMock(pathname, options);
+
+	if (avatarWrite) {
+		return avatarWrite;
+	}
+
 	const avatar = handleAvatarMock(pathname, search);
 
 	if (avatar) {
@@ -743,6 +750,19 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 		|| pathname === '/core/wipe/check'
 		|| pathname === '/index.php/core/wipe/success'
 		|| pathname === '/core/wipe/success'
+		|| pathname === '/avatar'
+		|| pathname === '/avatar/'
+		|| pathname === '/index.php/avatar'
+		|| pathname === '/index.php/avatar/'
+	)) {
+		return true;
+	}
+
+	if (normalizedMethod === 'DELETE' && (
+		pathname === '/avatar'
+		|| pathname === '/avatar/'
+		|| pathname === '/index.php/avatar'
+		|| pathname === '/index.php/avatar/'
 	)) {
 		return true;
 	}

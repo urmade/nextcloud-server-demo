@@ -66,6 +66,8 @@ Binary-ish HTTP endpoints with high fan-in after navigation:
 
 - `GET /index.php/avatar/{userId}/{size}` — user avatar (64 or 512)
 - `GET /index.php/avatar/{userId}/{size}/dark` — dark theme variant
+- `POST /index.php/avatar` — upload custom avatar (session + CSRF)
+- `DELETE /index.php/avatar` — remove custom avatar (session + CSRF)
 - `GET /index.php/avatar/guest/{guestName}/{size}` — generated guest avatar (201)
 - `GET /index.php/avatar/guest/{guestName}/{size}/dark` — dark guest avatar
 - `GET /index.php/core/preview?fileId=…` — preview by file id (auth required)
@@ -236,6 +238,8 @@ Slice 2:
 
 - `core-avatar-get-avatar`
 - `core-avatar-get-avatar-dark`
+- `core.Avatar#postAvatar.post`
+- `core.Avatar#deleteAvatar.delete`
 - `core-guest_avatar-get-avatar`
 - `core-guest_avatar-get-avatar-dark`
 - `core-preview-get-preview`
@@ -324,7 +328,8 @@ Slice 13:
 | `/ocs-provider/` | `none` — public catalog |
 | Navigation / autocomplete / hover card / app passwords / unified search / reference API (non-public) | `mixed` — session or Basic |
 | Reference extract/resolve public | `mixed` — `@PublicPage`; no auth required |
-| User / guest avatars | `none` — `@PublicPage` in legacy |
+| User / guest avatars (GET) | `none` — `@PublicPage` in legacy |
+| Avatar POST / DELETE | `session` + CSRF — unauthenticated → **401** JSON `{ message }` / 303 login |
 | Preview by file id / path | `session` or Basic — unauthenticated → **401** JSON `{ message }` |
 | Mime icon redirect | `none` — public |
 | Reference preview | `none` — public |
@@ -354,6 +359,9 @@ src/server/
   avatar/
     user.ts                    # user avatar + guestFallback
     guest.ts                   # generated guest avatars (201)
+    write.ts                   # POST/DELETE custom avatar
+    store.ts                   # in-memory custom avatar bytes per user
+    image.ts                   # jpeg/png parse + dimension check
   preview/
     catalog.ts                 # parity file catalog (NC_PARITY_PREVIEW_FILES)
     handlers.ts                # preview + mimeicon redirect
@@ -394,6 +402,7 @@ src/server/
     auth.ts                    # requireLoggedInUser for preview
     binary.ts                  # size normalization, cache headers
 app/
+  avatar/route.ts
   avatar/[userId]/[size]/route.ts
   avatar/[userId]/[size]/dark/route.ts
   avatar/guest/[guestName]/[size]/route.ts
@@ -483,6 +492,14 @@ Config:
 - Avatar sizes normalize to **64** (≤64) or **512** (>64); deprecated sizes log in legacy only
 - Guest avatars return **201** for generated avatars, **200** for custom (parity fixtures use 201)
 - User avatar 404 is JSON `[]`, not a message object
+- Avatar POST requires CSRF — missing/invalid → **412** `{ message: "CSRF check failed" }`
+- Avatar POST unauthenticated → **401** JSON `{ message }` or **303** login when `Accept` includes HTML
+- Avatar POST square jpeg/png → **200** `{ status: "success" }`; non-square → **200** `{ data: "notsquare", image: "data:image/…;base64,…" }`
+- Avatar POST missing file/path → **400** `{ data: { message: "No image or file provided" } }`
+- Avatar POST unknown filetype / invalid image → **200** `{ data: { message } }` (not 400)
+- Avatar POST folder path → **200** `{ data: { message: "Please select a file." } }`
+- Avatar DELETE success → **200** body `[]`; then GET custom user avatar → **404** `[]`
+- Custom avatar GET sets `X-NC-IsCustomAvatar: 1`
 - Preview validation errors return JSON `[]` with 400/404 — not OCS envelope
 - Preview unauthenticated returns `{ message: string }` with 401
 - Mime icon always 303; falls back to `application/octet-stream` icon
@@ -572,6 +589,12 @@ Config:
 | Validation | hover card | 404 for unknown `userId` |
 | Happy | user avatar | 200 PNG for `admin`; binary size class |
 | Validation | user avatar | unknown user → 404 `[]` |
+| Auth failure | avatar POST/DELETE | 401 JSON `{ message }` |
+| Validation | avatar POST | missing file → 400 `data.message` |
+| Validation | avatar POST/DELETE | no CSRF → 412 |
+| Happy | avatar POST square | 200 `{ status: "success" }` then GET 200 custom |
+| Happy | avatar POST non-square | 200 `data: "notsquare"` + data URL (ignore `image` bytes) |
+| Happy | avatar DELETE | 200 `[]` then GET 404 `[]` |
 | Happy | guest avatar | 201 PNG |
 | Happy | preview fileId / path | 200 PNG with session or Basic |
 | Auth failure | preview | 401 `{ message }` |

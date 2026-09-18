@@ -41,6 +41,7 @@ Existing resets:
 | Files API + DAV file nodes | `/api/parity/reset-files-store` | `resetParityFilesStores()` |
 | Shares + external shares + DAV file nodes | `/api/parity/reset-files-sharing-store` | `resetParityShareStores()` |
 | Unified sharing v1 shares | `/api/parity/reset-sharing-v1-store` | `resetParitySharingV1Stores()` |
+| Custom avatars | `/api/parity/reset-avatar-store` | `resetParityAvatarStores()` in `core-avatar-write.parity.test.ts` |
 
 `set-files-sharing-config` parity route toggles `incomingServer2ServerShareEnabled` (ExternalShares) and `outgoingServer2ServerShareEnabled` (ShareInfo) on both sides. `set-sharing-v1-config` toggles `sharing.unified_api_enable` on both sides — seed via `seedShareOnBothSides` after enable, or delete/get cases diverge across mock vs HTTP.
 

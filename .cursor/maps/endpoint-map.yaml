@@ -21078,14 +21078,14 @@ endpoints:
         data:
           message: string
       content_type: application/json
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /avatar
+  next_handler: app/avatar/route.ts
+  parity_test: next/parity/tests/core-avatar-write.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: 'NoAdminRequired. PHP registers /avatar/ (trailing slash); public path canonicalized to /avatar. CSRF required (no NoCSRFRequired). Side effect: AvatarManager remove for the session user.'
+  notes: 'NoAdminRequired. PHP registers /avatar/ (trailing slash); public path canonicalized to /avatar. CSRF required (no NoCSRFRequired). DELETE success body is JSON [] (not {}). Side effect: AvatarManager remove for the session user.'
 - id: core.Avatar#postAvatar.post
   feature_ids:
   - core
@@ -21112,14 +21112,14 @@ endpoints:
         data:
           message: string
       content_type: application/json
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /avatar
+  next_handler: app/avatar/route.ts
+  parity_test: next/parity/tests/core-avatar-write.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: 'NoAdminRequired. PHP registers /avatar/. Accepts user-folder path or multipart files[0]; jpeg/png; 20MiB cap. Square image sets avatar; non-square returns data URL with data=notsquare. Some validation failures return HTTP 200 with data.message (unknown filetype, invalid image). CSRF required. Side effect: AvatarManager set when square.'
+  notes: 'NoAdminRequired. PHP registers /avatar/. Accepts user-folder path or multipart files[0]; jpeg/png; 20MiB cap. Square image sets avatar; non-square returns data URL with data=notsquare. Some validation failures return HTTP 200 with data.message (unknown filetype, invalid image). Missing file returns HTTP 400. CSRF required. Side effect: AvatarManager set when square.'
 - id: core.ContactsMenu#index.post
   feature_ids:
   - core

@@ -221,6 +221,7 @@ export function handleLoginPost(request: Request, resolved: ResolvedSession, bod
 	session.loginName = trimmedUser;
 	session.loginToken = loginToken;
 	session.loginMessages = undefined;
+	session.lastPasswordConfirm = Math.floor(Date.now() / 1000);
 	updateSession(session);
 
 	const maxAge = form.rememberme ? 60 * 60 * 24 * 15 : 60 * 60 * 24;

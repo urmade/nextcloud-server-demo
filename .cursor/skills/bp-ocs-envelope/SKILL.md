@@ -40,8 +40,11 @@ v1 success adds `totalitems` and `itemsperpage` (empty strings) to `meta`.
 | Not found | 200 | 998 | 404 | 998 |
 | Server error | 200 | 996/999 | 500 | 996/999 |
 | Method not allowed | 200 | 405 | 405 | 405 |
+| Forbidden (app password, confirm) | 200 | 403 | 403 | 403 |
 
 **Trap:** v1 maps most failures to HTTP 200 with a failure `meta.statuscode`. Do not copy v2 HTTP codes onto v1.
+
+**Trap:** `OCSForbiddenException` and `DataResponse` with HTTP 403 both become v2 HTTP **403** with `meta.statuscode` **403** and `data: {}` (or `[]` for confirm-password failure).
 
 ## Implementation
 

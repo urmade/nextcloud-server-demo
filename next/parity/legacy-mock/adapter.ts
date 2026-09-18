@@ -8,6 +8,7 @@ import { getMimeIconRedirect, getPreviewByFileIdResponse, getPreviewByPathRespon
 import { getReferencePreviewResponse } from '@/src/server/reference/preview';
 import { SECURITY_TXT_BODY } from '@/src/server/well-known/handlers';
 import { generateNavigationETag, getAppsNavigation, getSettingsNavigation } from '@/src/server/ocs/navigation';
+import { handleAppPasswordMock } from './app-password';
 import { handleLegacyMockAuth, parseCookiesFromOptions } from './auth';
 import { snapshotResponse } from '../compare';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
@@ -352,6 +353,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		});
 	}
 
+	const appPassword = await handleAppPasswordMock(pathname, search, options);
+
+	if (appPassword) {
+		return appPassword;
+	}
+
 	if (method !== 'GET') {
 		return jsonSnapshot(404, { message: `Legacy mock has no fixture for ${method} ${pathname}` });
 	}
@@ -456,6 +463,11 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (normalizedMethod === 'POST' && pathname === '/login') {
+		return true;
+	}
+
+	if (pathname.startsWith('/ocs/v2.php/core/getapppassword')
+		|| pathname.startsWith('/ocs/v2.php/core/apppassword')) {
 		return true;
 	}
 

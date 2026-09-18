@@ -1670,15 +1670,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/core/apppassword
+  next_handler: app/ocs/v2.php/core/apppassword/route.ts
+  parity_test: next/parity/tests/core-app-passwords.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. Delete/rotate require session.app_password set via Basic auth with stored app token.
 - id: core-app_password-confirm-user-password
   feature_ids:
   - core
@@ -1718,14 +1718,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/core/apppassword/confirm
+  next_handler: app/ocs/v2.php/core/apppassword/confirm/route.ts
+  parity_test: next/parity/tests/core-app-passwords.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Wrong password returns 403 with ocs.data [] (empty array). lastLogin is unix epoch seconds.
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
 - id: core-app_password-rotate-app-password
   feature_ids:
@@ -1763,15 +1764,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/core/apppassword/rotate
+  next_handler: app/ocs/v2.php/core/apppassword/rotate/route.ts
+  parity_test: next/parity/tests/core-app-passwords.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. apppassword token value is generated; parity compares envelope only.
 - id: core-auto_complete-get
   feature_ids:
   - core
@@ -1855,15 +1856,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/core/getapppassword
+  next_handler: app/ocs/v2.php/core/getapppassword/route.ts
+  parity_test: next/parity/tests/core-app-passwords.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: PasswordConfirmationRequired (30m window). 403 when session already has app_password or password unconfirmed (X-NC-Auth-NotConfirmed). apppassword token not byte-compared in parity.
 - id: core-app_password-get-app-password-with-one-time-password
   feature_ids:
   - core
@@ -1901,15 +1902,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/core/getapppassword-onetime
+  next_handler: app/ocs/v2.php/core/getapppassword-onetime/route.ts
+  parity_test: next/parity/tests/core-app-passwords.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Requires session one_time_token from one-time Basic auth on this path. Parity fixtures re-seed NC_PARITY one-time token when NC_PARITY_USERS is set.
 - id: core-navigation-get-apps-navigation
   feature_ids:
   - core

@@ -26,6 +26,16 @@ High fan-in endpoints used immediately after login:
 
 v1 OCS paths mirror v2 routes in legacy; implemented **v2 canonical paths** only.
 
+### Slice 3 — app passwords (done)
+
+OCS endpoints for device/app token lifecycle:
+
+- `GET /ocs/v2.php/core/getapppassword` — create app password (`PasswordConfirmationRequired`)
+- `GET /ocs/v2.php/core/getapppassword-onetime` — create after one-time token auth
+- `DELETE /ocs/v2.php/core/apppassword` — revoke current app-password session token
+- `POST /ocs/v2.php/core/apppassword/rotate` — rotate current app-password session token
+- `PUT /ocs/v2.php/core/apppassword/confirm` — confirm account password (`lastLogin` unix timestamp)
+
 ### Slice 2 — avatars + preview (done)
 
 Binary-ish HTTP endpoints with high fan-in after navigation:
@@ -45,7 +55,6 @@ Legacy paths use `/index.php/…`; Next.js rewrites to `/avatar/…` and `/core/
 
 | Sub-slice | Endpoint ids (prefix / theme) |
 | --- | --- |
-| **core-app-passwords** | `core-app_password-*` |
 | **core-unified-search** | `core-unified_search-*` |
 | **core-reference** | `core-reference_api-*` |
 | **core-ai-tasks** | `core-task_processing_api-*`, `core-text_processing_api-*`, `core-text_to_image_api-*` |
@@ -70,6 +79,14 @@ Slice 1:
 - `core-auto_complete-get`
 - `core-hover_card-get-user`
 
+Slice 3:
+
+- `core-app_password-get-app-password`
+- `core-app_password-get-app-password-with-one-time-password`
+- `core-app_password-delete-app-password`
+- `core-app_password-rotate-app-password`
+- `core-app_password-confirm-user-password`
+
 Slice 2:
 
 - `core-avatar-get-avatar`
@@ -87,7 +104,7 @@ Slice 2:
 | --- | --- |
 | Well-known | `none` — public |
 | `/ocs-provider/` | `none` — public catalog |
-| Navigation / autocomplete / hover card | `mixed` — session or Basic |
+| Navigation / autocomplete / hover card / app passwords | `mixed` — session or Basic |
 | User / guest avatars | `none` — `@PublicPage` in legacy |
 | Preview by file id / path | `session` or Basic — unauthenticated → **401** JSON `{ message }` |
 | Mime icon redirect | `none` — public |
@@ -100,7 +117,9 @@ Unauthenticated OCS calls → v2 HTTP **401**, `ocs.meta.statuscode` **997**, em
 ```
 src/server/
   well-known/handlers.ts
-  ocs/                         # auth, navigation, autocomplete, hover card, …
+  ocs/                         # auth, navigation, autocomplete, hover card, app passwords, …
+    app-password.ts            # create/rotate/delete/confirm handlers
+    app-password-store.ts      # in-memory token store for parity
   avatar/
     user.ts                    # user avatar + guestFallback
     guest.ts                   # generated guest avatars (201)
@@ -123,6 +142,11 @@ app/
   core/preview.png/route.ts
   core/mimeicon/route.ts
   core/references/preview/[referenceId]/route.ts
+  ocs/v2.php/core/getapppassword/route.ts
+  ocs/v2.php/core/getapppassword-onetime/route.ts
+  ocs/v2.php/core/apppassword/route.ts
+  ocs/v2.php/core/apppassword/rotate/route.ts
+  ocs/v2.php/core/apppassword/confirm/route.ts
 ```
 
 Config:
@@ -147,6 +171,11 @@ Config:
 - Mime icon always 303; falls back to `application/octet-stream` icon
 - Binary parity compares **status + content-type + size class**, not pixel bytes (documented delta)
 - `index.php` prefix required in parity tests; rewrites strip it internally
+- `getapppassword` requires `last-password-confirm` within 30m (+15s slack); login sets it; confirm endpoint refreshes it
+- Delete/rotate require `session.app_password` — set when Basic auth uses a stored 72-char app token alongside session cookie
+- `confirm` wrong password → 403 OCS with `data: []`; success returns `lastLogin` as unix seconds (not ISO)
+- Generated `apppassword` values are not byte-compared in parity (unstable id)
+- One-time flow: Basic auth with one-time token on `getapppassword-onetime` sets `one_time_token` session flag
 
 ## Parity extras
 
@@ -171,5 +200,14 @@ Config:
 | Happy | mimeicon | 303 to `/core/img/filetypes/{mime}.svg` |
 | Happy | reference preview | 200 PNG for `parity-reference` |
 | Validation | reference preview | unknown id → 404 empty body |
+| Happy | getapppassword | 200 + apppassword with session after login |
+| Auth failure | app password endpoints | 401 OCS 997 |
+| Validation | getapppassword | app_password already in session → 403 |
+| Happy | delete/rotate app password | 200 with app-password session via Basic+session |
+| Validation | delete/rotate | no app_password in session → 403 |
+| Happy | confirm password | 200 `lastLogin` unix timestamp |
+| Validation | confirm password | wrong password → 403, `data: []` |
+| Happy | getapppassword-onetime | 200 after one-time Basic auth on same path |
+| Validation | getapppassword-onetime | missing one_time_token → 403 |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` fixtures (not waived).

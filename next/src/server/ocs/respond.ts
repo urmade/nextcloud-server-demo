@@ -23,6 +23,33 @@ export function ocsUnauthorizedResponse(ocsVersion: OcsApiVersion): Response {
 	});
 }
 
+export function ocsForbiddenResponse(
+	ocsVersion: OcsApiVersion,
+	message = '',
+	data: Record<string, never> | unknown[] = {},
+	extraHeaders: Record<string, string> = {},
+): Response {
+	const envelope = {
+		ocs: {
+			meta: {
+				status: 'failure' as const,
+				statuscode: 403,
+				message,
+				...(ocsVersion === 1 ? { totalitems: '', itemsperpage: '' } : {}),
+			},
+			data,
+		},
+	};
+
+	return Response.json(envelope, {
+		status: getOcsHttpStatus(ocsVersion, 403),
+		headers: {
+			...OCS_JSON_HEADERS,
+			...extraHeaders,
+		},
+	});
+}
+
 export function ocsFailureResponse(
 	ocsVersion: OcsApiVersion,
 	statuscode: number,

@@ -1,10 +1,19 @@
 import { isValidBasicAuth, parseBasicAuthHeader } from '@/src/server/auth/basic';
 import { parseCookieHeader, SESSION_COOKIE, USERNAME_COOKIE } from '@/src/server/auth/cookies';
 import { getSession } from '@/src/server/auth/session-store';
+import { isAppPasswordTokenFormat, lookupAppPasswordToken } from '@/src/server/ocs/app-password-store';
 import { ocsUnauthorizedResponse, parseOcsVersion } from '@/src/server/ocs/respond';
 
 export function resolveAuthenticatedUserId(request: Request): string | null {
 	const credentials = parseBasicAuthHeader(request.headers.get('authorization'));
+
+	if (credentials && isAppPasswordTokenFormat(credentials.password)) {
+		const stored = lookupAppPasswordToken(credentials.password);
+
+		if (stored && stored.loginName === credentials.username) {
+			return stored.userId;
+		}
+	}
 
 	if (isValidBasicAuth(credentials)) {
 		return credentials!.username;

@@ -10,25 +10,24 @@ import {
 } from '@/src/server/auth/cookies';
 import { createCsrfToken, encryptCsrfToken, isCsrfTokenValid } from '@/src/server/auth/csrf';
 import { checkPassword } from '@/src/server/auth/credentials';
-import type { SessionData } from '@/src/server/auth/session-store';
+import {
+	createSession,
+	deleteSession,
+	getOrCreateSession,
+	getSession,
+	resetSessionStore,
+	updateSession,
+	type SessionData,
+} from '@/src/server/auth/session-store';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
 import { snapshotResponse } from '../compare';
 
-const mockSessions = new Map<string, SessionData>();
-
-function createMockSession(): SessionData {
-	const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 18)}`;
-	const session: SessionData = { id };
-	mockSessions.set(id, session);
-	return session;
-}
-
 function getMockSession(sessionId: string | undefined): SessionData {
-	if (sessionId && mockSessions.has(sessionId)) {
-		return mockSessions.get(sessionId)!;
+	if (sessionId) {
+		return getOrCreateSession(sessionId);
 	}
 
-	return createMockSession();
+	return createSession();
 }
 
 function parseCookiesFromOptions(options: ParityRequestOptions): Record<string, string> {
@@ -115,7 +114,7 @@ function ensureMockCsrfToken(session: SessionData): string {
 	if (!session.csrfToken) {
 		const token = createCsrfToken();
 		session.csrfToken = token.raw;
-		mockSessions.set(session.id, session);
+		updateSession(session);
 		return token.encrypted;
 	}
 
@@ -172,7 +171,7 @@ export function handleLegacyMockAuth(pathname: string, options: ParityRequestOpt
 
 		if (origin && origin !== 'http://127.0.0.1:3100') {
 			session.loginMessages = [['invalidOrigin'], []];
-			mockSessions.set(session.id, session);
+			updateSession(session);
 
 			const location = `/login?user=${encodeURIComponent(user.trim())}&direct=1`;
 			return redirectResponse(`http://127.0.0.1:3100${location}`, setCookies);
@@ -184,7 +183,7 @@ export function handleLegacyMockAuth(pathname: string, options: ParityRequestOpt
 			}
 
 			session.loginMessages = [['csrfCheckFailed'], []];
-			mockSessions.set(session.id, session);
+			updateSession(session);
 
 			const location = `/login?user=${encodeURIComponent(user.trim())}&direct=1`;
 			return redirectResponse(`http://127.0.0.1:3100${location}`, setCookies);
@@ -199,7 +198,7 @@ export function handleLegacyMockAuth(pathname: string, options: ParityRequestOpt
 
 		if (!checkPassword(trimmedUser, password)) {
 			session.loginMessages = [['invalidpassword'], []];
-			mockSessions.set(session.id, session);
+			updateSession(session);
 
 			const location = `/login?user=${encodeURIComponent(trimmedUser)}&direct=1`;
 			return redirectResponse(`http://127.0.0.1:3100${location}`, setCookies);
@@ -209,7 +208,8 @@ export function handleLegacyMockAuth(pathname: string, options: ParityRequestOpt
 		session.userId = trimmedUser;
 		session.loginName = trimmedUser;
 		session.loginToken = loginToken;
-		mockSessions.set(session.id, session);
+		session.lastPasswordConfirm = Math.floor(Date.now() / 1000);
+		updateSession(session);
 
 		const maxAge = rememberme ? 60 * 60 * 24 * 15 : 60 * 60 * 24;
 		const loginCookies = buildLoginCookieHeaders(trimmedUser, loginToken, session.id, maxAge);
@@ -225,7 +225,7 @@ export function handleLegacyMockAuth(pathname: string, options: ParityRequestOpt
 			extraHeaders['x-user-id'] = session.userId;
 		}
 
-		mockSessions.delete(session.id);
+		deleteSession(session.id);
 
 		return redirectResponse('http://127.0.0.1:3100/login?clear=true', [...setCookies, ...buildClearCookieHeaders()], extraHeaders);
 	}
@@ -234,7 +234,7 @@ export function handleLegacyMockAuth(pathname: string, options: ParityRequestOpt
 }
 
 export function resetLegacyMockAuth(): void {
-	mockSessions.clear();
+	resetSessionStore();
 }
 
 export { buildCookieHeader, mergeSetCookies, parseCookiesFromOptions };

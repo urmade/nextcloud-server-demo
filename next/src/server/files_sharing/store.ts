@@ -17,6 +17,10 @@ let nextShareId = 1;
 const shares: ShareRecord[] = [];
 
 function randomToken(): string {
+	if (process.env.NC_PARITY_DETERMINISTIC_SHARE_TOKENS === 'true') {
+		return `parity-link-${nextShareId}`;
+	}
+
 	const chars = 'abcdefghijklmnopqrstuvwxyz0123456789-';
 	let token = '';
 
@@ -34,6 +38,10 @@ export function resetShareStore(): void {
 
 export function getShareById(id: number): ShareRecord | undefined {
 	return shares.find((share) => share.id === id);
+}
+
+export function getShareByToken(token: string): ShareRecord | undefined {
+	return shares.find((share) => share.token === token && share.shareType === SHARE_TYPE_LINK);
 }
 
 export function listShares(): ShareRecord[] {

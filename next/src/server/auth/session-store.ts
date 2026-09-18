@@ -19,6 +19,9 @@ export interface SessionData {
 	webauthnLogin?: string;
 	webauthnLoginUid?: string;
 	webauthnLoginName?: string;
+	publicLinkAuthenticateRedirect?: string;
+	publicLinkAuthenticatedFrontend?: string;
+	publicLinkAuthenticatedDav?: number[];
 }
 
 const globalForSessions = globalThis as typeof globalThis & {
@@ -100,6 +103,9 @@ export function clearSessionData(session: SessionData): void {
 	session.webauthnLogin = undefined;
 	session.webauthnLoginUid = undefined;
 	session.webauthnLoginName = undefined;
+	session.publicLinkAuthenticateRedirect = undefined;
+	session.publicLinkAuthenticatedFrontend = undefined;
+	session.publicLinkAuthenticatedDav = undefined;
 	updateSession(session);
 }
 

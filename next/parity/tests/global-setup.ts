@@ -29,6 +29,7 @@ async function waitForServer(baseUrl: string, attempts = 60): Promise<void> {
 
 export async function setup(): Promise<void> {
 	process.env.NC_PARITY_EXAPP = 'true';
+	process.env.NC_PARITY_DETERMINISTIC_SHARE_TOKENS = 'true';
 
 	if (process.env.NEW_BASE_URL?.trim()) {
 		return;
@@ -77,6 +78,7 @@ export async function setup(): Promise<void> {
 		env: {
 			...process.env,
 			NC_PARITY_EXAPP: 'true',
+			NC_PARITY_DETERMINISTIC_SHARE_TOKENS: 'true',
 		},
 	});
 

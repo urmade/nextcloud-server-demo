@@ -12,6 +12,8 @@ import { handleAppPasswordMock } from './app-password';
 import { handleLegacyMockAuth, parseCookiesFromOptions } from './auth';
 import { handleReferenceMock } from './reference';
 import { handleTaskProcessingMock } from './task-processing';
+import { handleTextProcessingMock } from './text-processing';
+import { handleTextToImageMock } from './text-to-image';
 import { handleUnifiedSearchMock } from './unified-search';
 import { snapshotResponse } from '../compare';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
@@ -414,6 +416,18 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return taskProcessing;
 	}
 
+	const textProcessing = await handleTextProcessingMock(pathname, search, options);
+
+	if (textProcessing) {
+		return textProcessing;
+	}
+
+	const textToImage = await handleTextToImageMock(pathname, search, options);
+
+	if (textToImage) {
+		return textToImage;
+	}
+
 	const avatar = handleAvatarMock(pathname, search);
 
 	if (avatar) {
@@ -492,7 +506,9 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 		|| pathname.startsWith('/ocs/v2.php/core/apppassword')
 		|| pathname.startsWith('/ocs/v2.php/search/providers')
 		|| pathname.startsWith('/ocs/v2.php/references/')
-		|| pathname.startsWith('/ocs/v2.php/taskprocessing/')) {
+		|| pathname.startsWith('/ocs/v2.php/taskprocessing/')
+		|| pathname.startsWith('/ocs/v2.php/textprocessing/')
+		|| pathname.startsWith('/ocs/v2.php/text2image/')) {
 		return true;
 	}
 

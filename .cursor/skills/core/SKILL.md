@@ -116,11 +116,33 @@ Ex-App consumer + provider TaskProcessing OCS endpoints (`#[ExAppRequired]`):
 
 Parity uses in-memory store with `claimNextScheduledTask` / provider intersection matching PHP `Manager` semantics. No DB persistence.
 
+### Slice 8 — deprecated TextProcessing + TextToImage (done)
+
+Legacy OCS APIs (distinct from TaskProcessing). User session / mixed auth. In-memory store only.
+
+**TextProcessing** (`/ocs/v2.php/textprocessing/…`):
+
+- `GET /ocs/v2.php/textprocessing/tasktypes` — `@PublicPage`; `types` is an **array** of `{ id, name, description }` with PHP class ids
+- `POST /ocs/v2.php/textprocessing/schedule` — schedule task (`input`, `type`, `appId`, `identifier`)
+- `GET /ocs/v2.php/textprocessing/task/{id}` — get one task
+- `DELETE /ocs/v2.php/textprocessing/task/{id}` — delete task; returns `{ task }` (not `data: null`)
+- `GET /ocs/v2.php/textprocessing/tasks/app/{appId}` — list by app (+ optional `identifier`)
+
+**TextToImage** (`/ocs/v2.php/text2image/…`):
+
+- `GET /ocs/v2.php/text2image/is_available` — `{ isAvailable: bool }`
+- `POST /ocs/v2.php/text2image/schedule` — schedule task (`input`, `appId`, `identifier`, `numberOfImages` default **8**)
+- `GET /ocs/v2.php/text2image/task/{id}` — get one task
+- `DELETE /ocs/v2.php/text2image/task/{id}` — delete task; returns `{ task }`
+- `GET /ocs/v2.php/text2image/task/{id}/image/{index}` — binary PNG (see `bp-binary-parity`)
+- `GET /ocs/v2.php/text2image/tasks/app/{appId}` — list by app (+ optional `identifier`)
+
+Task payloads use numeric `status` (0–4), string `input`, and `identifier` (not TaskProcessing `customId` / shape maps). Parity registers fixture providers via env toggles; no real model execution.
+
 ## Non-scope (later core sub-slices)
 
 | Sub-slice | Endpoint ids (prefix / theme) |
 | --- | --- |
-| **core-ai-tasks** | `core-text_processing_api-*`, `core-text_to_image_api-*` |
 | **core-translation** | `core-translation_api-*` |
 | **core-2fa** | `core-two_factor_api-*` |
 | **core-wipe** | `core-wipe-*` |
@@ -205,6 +227,20 @@ Slice 7:
 - `core-task_processing_api-set-file-contents-ex-app`
 - `core-task_processing_api-get-file-contents-ex-app`
 
+Slice 8:
+
+- `core-text_processing_api-task-types`
+- `core-text_processing_api-schedule`
+- `core-text_processing_api-get-task`
+- `core-text_processing_api-delete-task`
+- `core-text_processing_api-list-tasks-by-app`
+- `core-text_to_image_api-is-available`
+- `core-text_to_image_api-schedule`
+- `core-text_to_image_api-get-task`
+- `core-text_to_image_api-delete-task`
+- `core-text_to_image_api-get-image`
+- `core-text_to_image_api-list-tasks-by-app`
+
 ## Auth model
 
 | Route | Auth |
@@ -219,6 +255,8 @@ Slice 7:
 | Reference preview | `none` — public |
 | Task processing (user session) | `mixed` — session or Basic |
 | Task processing (Ex-App / worker) | `ExAppRequired` — session `app_api === true`; parity harness also accepts `Authorization: Bearer parity-ex-app` when `NC_PARITY_EXAPP=true` |
+| Deprecated TextProcessing `tasktypes` | `@PublicPage` — unauthenticated **200** (not 401) |
+| Deprecated TextProcessing / TextToImage (other) | `mixed` — session or Basic; unauthenticated → **401** OCS 997 |
 
 Unauthenticated OCS calls → v2 HTTP **401**, `ocs.meta.statuscode` **997**, empty `data`.
 
@@ -247,6 +285,14 @@ src/server/
     store.ts                   # in-memory queue, claim/provider path, uploaded files
     api.ts                     # user-session handlers
     ex-app-api.ts              # Ex-App consumer + provider handlers
+  text-processing/
+    catalog.ts                 # deprecated TextProcessing task type list + provider toggle
+    store.ts                   # in-memory tasks (CoreTextProcessingTask shape)
+    api.ts                     # textprocessing/* handlers
+  text-to-image/
+    catalog.ts                 # provider availability toggle
+    store.ts                   # in-memory tasks + image bytes by task/index
+    api.ts                     # text2image/* handlers
   fixtures/
     binary.ts                  # deterministic PNG bytes (no real photos)
   http/
@@ -294,6 +340,15 @@ app/
   ocs/v2.php/taskprocessing/tasks_provider/[taskId]/stream-result/route.ts
   ocs/v2.php/taskprocessing/tasks_provider/[taskId]/file/route.ts
   ocs/v2.php/taskprocessing/tasks_provider/[taskId]/file/[fileId]/route.ts
+  ocs/v2.php/textprocessing/tasktypes/route.ts
+  ocs/v2.php/textprocessing/schedule/route.ts
+  ocs/v2.php/textprocessing/task/[id]/route.ts
+  ocs/v2.php/textprocessing/tasks/app/[appId]/route.ts
+  ocs/v2.php/text2image/is_available/route.ts
+  ocs/v2.php/text2image/schedule/route.ts
+  ocs/v2.php/text2image/task/[id]/route.ts
+  ocs/v2.php/text2image/task/[id]/image/[index]/route.ts
+  ocs/v2.php/text2image/tasks/app/[appId]/route.ts
 ```
 
 Config:
@@ -306,6 +361,8 @@ Config:
 | `NC_APP_*_ENABLED` | all `true` for parity | OCS provider optional services |
 | `NC_UNIFIED_SEARCH_MIN_LENGTH` | `1` | Ignore `term` shorter than this |
 | `NC_UNIFIED_SEARCH_MAX_RESULTS` | `25` | Cap per-request `limit` |
+| `NC_PARITY_TEXT_PROCESSING_PROVIDER` | `true` | Toggle deprecated TextProcessing schedule provider |
+| `NC_PARITY_TEXT_TO_IMAGE_PROVIDER` | `true` | Toggle TextToImage `isAvailable` + schedule provider |
 
 ## Traps
 
@@ -350,6 +407,13 @@ Config:
 - `setFileContentsExApp` success → HTTP **201** with `ocs.meta.statuscode` **201**
 - Provider `getFileContentsExApp` uses `getTask` (any owner); consumer routes filter `userId === null`
 - Batch claim returns `tasks[].provider` as string id; single claim returns `provider.name`
+- Deprecated TextProcessing `tasktypes` is `@PublicPage` — no 401 on missing session; `types` is an **array**, not TaskProcessing map
+- Deprecated TextProcessing schedule unknown `type` → **400** `Requested task type does not exist`; no provider → **412** `Necessary language model provider is not available`
+- Deprecated TextProcessing `deleteTask` success returns `{ task }` — **not** `data: null` (TaskProcessing idempotent delete differs)
+- Deprecated TextProcessing task uses numeric `status` 0–4, string `input`, field `identifier` (not shape maps / `customId`)
+- Deprecated TextToImage schedule validation (input length, `numberOfImages` bounds, missing provider) → **412** — not 400
+- Deprecated TextToImage default `numberOfImages` is **8**; max **12**
+- TextToImage `getImage` 404 messages: `Task not found` vs `Image not found`; success is raw PNG without OCS envelope
 
 ## Parity extras
 
@@ -413,5 +477,15 @@ Config:
 | Happy | set progress / result / stream-result | 200 updated task payload |
 | Happy | set file contents | 201 `fileId`; unstable id |
 | Happy | provider get file contents | 200 binary; size class only |
+| Public | deprecated TextProcessing tasktypes | 200 without auth |
+| Auth failure | deprecated TextProcessing / TextToImage (non-public) | 401 OCS 997 |
+| Validation | deprecated TextProcessing schedule | unknown type → 400 `Requested task type does not exist` |
+| Happy | deprecated TextProcessing schedule / get / delete / list | 200 task payload; unstable id/timestamps |
+| Validation | deprecated TextProcessing get/delete | unknown id → 404 `Task not found` |
+| Happy | TextToImage is_available | 200 `{ isAvailable: true }` with session |
+| Validation | TextToImage schedule | `numberOfImages` > 12 → 412 |
+| Happy | TextToImage schedule / get / delete / list | 200 task payload; unstable id |
+| Validation | TextToImage getImage | missing image bytes → 404 `Image not found` |
+| Happy | TextToImage getImage | 200 PNG; size class only (see `bp-binary-parity`) |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` fixtures (not waived).

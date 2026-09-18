@@ -66,6 +66,14 @@ v1 success adds `totalitems` and `itemsperpage` (empty strings) to `meta`.
 
 **Trap:** `setFileContentsExApp` success uses HTTP **201** with OCS envelope and `meta.statuscode` **201**.
 
+**Trap:** Deprecated TextProcessing `deleteTask` returns `{ task }` on success — not `data: null` (TaskProcessing idempotent delete differs).
+
+**Trap:** Deprecated TextProcessing schedule: unknown `type` → **400** `Requested task type does not exist`; missing provider → **412** `Necessary language model provider is not available`.
+
+**Trap:** Deprecated TextToImage schedule validation failures (input length, image count, missing provider) use HTTP **412** — not 400.
+
+**Trap:** Deprecated TextProcessing `tasktypes` is `@PublicPage` — unauthenticated callers get HTTP **200**, not 401.
+
 ## Implementation
 
 - Shared helpers: `src/server/ocs/envelope.ts` (`buildOcsSuccessEnvelope`, `buildOcsFailureEnvelope`, `getOcsHttpStatus`); `src/server/ocs/respond.ts` (`ocsBadRequestStringResponse` for string `data` on 400).

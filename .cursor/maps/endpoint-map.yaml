@@ -3815,12 +3815,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/text2image/is_available
+  next_handler: app/ocs/v2.php/text2image/is_available/route.ts
+  parity_test: next/parity/tests/core-text-processing-ai.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -3874,15 +3874,15 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/text2image/schedule
+  next_handler: app/ocs/v2.php/text2image/schedule/route.ts
+  parity_test: next/parity/tests/core-text-processing-ai.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Validation failures use HTTP 412 (including input too long). Default numberOfImages=8. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
 - id: core-text_to_image_api-delete-task
   feature_ids:
   - core
@@ -3928,15 +3928,15 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/text2image/task/{id}
+  next_handler: app/ocs/v2.php/text2image/task/[id]/route.ts
+  parity_test: next/parity/tests/core-text-processing-ai.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Success returns deleted task in ocs.data.task. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
 - id: core-text_to_image_api-get-task
   feature_ids:
   - core
@@ -3982,15 +3982,15 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/text2image/task/{id}
+  next_handler: app/ocs/v2.php/text2image/task/[id]/route.ts
+  parity_test: next/parity/tests/core-text-processing-ai.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: 404 Task not found. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
 - id: core-text_to_image_api-get-image
   feature_ids:
   - core
@@ -4033,15 +4033,15 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/text2image/task/{id}/image/{index}
+  next_handler: app/ocs/v2.php/text2image/task/[id]/image/[index]/route.ts
+  parity_test: next/parity/tests/core-text-processing-ai.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Binary parity: status + content-type + size class only (see bp-binary-parity). 404 Task not found / Image not found use OCS JSON envelope. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
 - id: core-text_to_image_api-list-tasks-by-app
   feature_ids:
   - core
@@ -4082,15 +4082,15 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/text2image/tasks/app/{appId}
+  next_handler: app/ocs/v2.php/text2image/tasks/app/[appId]/route.ts
+  parity_test: next/parity/tests/core-text-processing-ai.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Optional identifier query filter. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
 - id: core-text_processing_api-schedule
   feature_ids:
   - core
@@ -4148,15 +4148,15 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/textprocessing/schedule
+  next_handler: app/ocs/v2.php/textprocessing/schedule/route.ts
+  parity_test: next/parity/tests/core-text-processing-ai.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Unknown type → 400 Requested task type does not exist; no provider → 412 Necessary language model provider is not available. delete returns task payload (not null). Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
 - id: core-text_processing_api-delete-task
   feature_ids:
   - core
@@ -4202,15 +4202,15 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/textprocessing/task/{id}
+  next_handler: app/ocs/v2.php/textprocessing/task/[id]/route.ts
+  parity_test: next/parity/tests/core-text-processing-ai.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Success returns deleted task in ocs.data.task (not null). 404 Task not found. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
 - id: core-text_processing_api-get-task
   feature_ids:
   - core
@@ -4256,15 +4256,15 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/textprocessing/task/{id}
+  next_handler: app/ocs/v2.php/textprocessing/task/[id]/route.ts
+  parity_test: next/parity/tests/core-text-processing-ai.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: 404 Task not found. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
 - id: core-text_processing_api-list-tasks-by-app
   feature_ids:
   - core
@@ -4305,15 +4305,15 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/textprocessing/tasks/app/{appId}
+  next_handler: app/ocs/v2.php/textprocessing/tasks/app/[appId]/route.ts
+  parity_test: next/parity/tests/core-text-processing-ai.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Optional identifier query filter. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
 - id: core-text_processing_api-task-types
   feature_ids:
   - core
@@ -4342,15 +4342,15 @@ endpoints:
                 description: any
       content_type: application/json
     errors: []
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/textprocessing/tasktypes
+  next_handler: app/ocs/v2.php/textprocessing/tasktypes/route.ts
+  parity_test: next/parity/tests/core-text-processing-ai.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: PublicPage — unauthenticated 200; types is array of {id,name,description} with PHP class ids. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
 - id: core-translation_api-languages
   feature_ids:
   - core

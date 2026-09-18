@@ -34,6 +34,12 @@ Before comparing `Location`:
 
 Example (mimeicon): both sides must resolve to `/core/img/filetypes/image-png.svg`.
 
+## OCS-adjacent binary (TextToImage get-image)
+
+- Success: raw PNG bytes, `content-type: image/png` — **no** OCS envelope.
+- Errors (404 task/image, 500): OCS JSON envelope with `data.message`.
+- Compare success with `compareBinarySnapshots` / size class only — see `parity/tests/core-text-processing-ai.parity.test.ts`.
+
 ## Auth on public binary routes
 
 Avatars and reference previews are `@PublicPage` in legacy — no auth-failure case. Preview-by-file routes require session/Basic; assert 401 JSON `{ message }` when unauthenticated.

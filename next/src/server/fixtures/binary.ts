@@ -56,3 +56,7 @@ export function getPreviewFixture(): Buffer {
 export function getReferencePreviewFixture(): Buffer {
 	return ensureFixture('reference-parity.png', TWO_BY_TWO_PNG);
 }
+
+export function getTextToImageFixture(): Uint8Array {
+	return new Uint8Array(ensureFixture('text2image-parity.png', TWO_BY_TWO_PNG));
+}

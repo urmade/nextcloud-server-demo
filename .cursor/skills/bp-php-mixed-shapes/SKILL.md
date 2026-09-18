@@ -38,6 +38,13 @@ Cross-cutting. Applies when PHP types a success body as `mixed`, `array`, or pro
 - Uploaded result files get generated `fileId` values — treat as unstable in parity except auth/validation cases.
 - `getNextScheduledTask` empty → HTTP **204** empty body; do not expect OCS JSON.
 
+## Deprecated TextProcessing / TextToImage (core slice 8)
+
+- TextProcessing `tasktypes` returns `types` as a **list** of `{ id, name, description }` with PHP FQCN ids — not TaskProcessing `types` map.
+- Task payloads use numeric `status`, plain string `input`, and `identifier` — compare fixture paths; unstable `id` / `completionExpectedAt`.
+- TextToImage `numberOfImages` defaults to **8** in PHP when omitted.
+- Provider toggles: `NC_PARITY_TEXT_PROCESSING_PROVIDER`, `NC_PARITY_TEXT_TO_IMAGE_PROVIDER` (default on).
+
 ## Parity
 
 - Happy path: fixture-backed partial paths.

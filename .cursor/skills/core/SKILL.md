@@ -165,11 +165,24 @@ Plain HTTP remote-wipe handshake (`/index.php/core/wipe/…`). `@PublicPage` —
 
 Parity seeds wipe-pending tokens via `markAppPasswordForWipe`. Real Nextcloud marks tokens through settings/provisioning admin flows; this slice models the device-facing HTTP contract only.
 
+### Slice 12 — collaboration resources (done)
+
+OCS Collaboration collections API (`/ocs/v2.php/collaboration/resources/…`). Mixed auth. In-memory collections only.
+
+- `GET /ocs/v2.php/collaboration/resources/collections/search/{filter}` — search accessible collections by name
+- `GET /ocs/v2.php/collaboration/resources/collections/{collectionId}` — get one collection
+- `POST /ocs/v2.php/collaboration/resources/collections/{collectionId}` — add resource (`resourceType`, `resourceId` in JSON body)
+- `DELETE /ocs/v2.php/collaboration/resources/collections/{collectionId}` — remove resource (`resourceType`, `resourceId` query params)
+- `PUT /ocs/v2.php/collaboration/resources/collections/{collectionId}` — rename (`collectionName` in JSON body)
+- `POST /ocs/v2.php/collaboration/resources/{baseResourceType}/{baseResourceId}` — create collection on resource (`name` in JSON body)
+- `GET /ocs/v2.php/collaboration/resources/{resourceType}/{resourceId}` — list collections containing resource
+
+Same collection path serves four methods — routes must dispatch by HTTP method. Parity registers fixture resource type `parity-room` (`room-1`, `room-2` accessible; `room-secret` inaccessible). Real Nextcloud loads app resource providers dynamically; this slice models the OCS contract only.
+
 ## Non-scope (later core sub-slices)
 
 | Sub-slice | Endpoint ids (prefix / theme) |
 | --- | --- |
-| **core-collaboration** | `core-collaboration_resources-*` |
 | **core-teams** | `core-teams_api-*` |
 | **core-misc** | `provisioning_api-users-search-by-phone-numbers` (owned by map under `core`) |
 
@@ -280,6 +293,16 @@ Slice 11:
 - `core-wipe-check-wipe`
 - `core-wipe-wipe-done`
 
+Slice 12:
+
+- `core-collaboration_resources-search-collections`
+- `core-collaboration_resources-list-collection`
+- `core-collaboration_resources-add-resource`
+- `core-collaboration_resources-remove-resource`
+- `core-collaboration_resources-rename-collection`
+- `core-collaboration_resources-create-collection-on-resource`
+- `core-collaboration_resources-get-collections-by-resource`
+
 ## Auth model
 
 | Route | Auth |
@@ -299,6 +322,7 @@ Slice 11:
 | Translation API | `@PublicPage` — unauthenticated **200** (not 401) |
 | Two-factor admin API | `mixed` — session or Basic; **admin only** — non-admin → **403** `Logged in account must be an admin` |
 | Device wipe HTTP | `@PublicPage` — token in JSON body; no session required; invalid/unknown/non-pending token → **404** `[]` |
+| Collaboration resources | `mixed` — session or Basic; unauthenticated → **401** OCS 997 |
 
 Unauthenticated OCS calls → v2 HTTP **401**, `ocs.meta.statuscode` **997**, empty `data` (except `@PublicPage` routes above).
 
@@ -346,6 +370,10 @@ src/server/
     catalog.ts                 # parity fixture tokens (W/N 72-char app passwords)
     store.ts                   # in-memory wipe-pending flags on app-password tokens
     api.ts                     # wipe/check + wipe/success handlers
+  collaboration-resources/
+    catalog.ts                 # parity-room fixture resources + provider toggle
+    store.ts                   # in-memory collections, known resources, access cache
+    api.ts                     # collaboration/resources/* handlers
   fixtures/
     binary.ts                  # deterministic PNG bytes (no real photos)
   http/
@@ -409,6 +437,9 @@ app/
   ocs/v2.php/twofactor/disable/route.ts
   core/wipe/check/route.ts
   core/wipe/success/route.ts
+  ocs/v2.php/collaboration/resources/collections/search/[filter]/route.ts
+  ocs/v2.php/collaboration/resources/collections/[collectionId]/route.ts
+  ocs/v2.php/collaboration/resources/[resourceType]/[resourceId]/route.ts
 ```
 
 Config:
@@ -425,6 +456,7 @@ Config:
 | `NC_PARITY_TEXT_TO_IMAGE_PROVIDER` | `true` | Toggle TextToImage `isAvailable` + schedule provider |
 | `NC_PARITY_TRANSLATION_PROVIDER` | `true` | Toggle translation catalog + translate provider |
 | `NC_PARITY_TWO_FACTOR_PROVIDER` | `true` | Toggle fixture provider `parity-totp` |
+| `NC_PARITY_COLLABORATION_PROVIDER` | `true` | Toggle fixture resource type `parity-room` |
 
 ## Traps
 
@@ -493,6 +525,13 @@ Config:
 - Wipe failures (invalid token, valid token not wipe-pending, missing body token) all return HTTP **404** with JSON body `[]` — not `{ message }`
 - Wipe auth is the app-password token in POST JSON — do not require cookie session
 - `finish` (`/success`) invalidates the app-password token from the in-memory store
+- Collaboration resources 404/400 failures use `ocs.data: []` — not `{}` or `null`
+- `createCollectionOnResource` rejects empty `name` or length > **64** chars → HTTP **400** + `data: []`
+- `removeResource` deleting the last resource auto-deletes the collection → HTTP **404** + `data: []` (cannot `respondCollection` after delete)
+- `addResource` swallows duplicate-resource errors — still returns **200** with collection payload
+- `removeResource` requires resource in known-resources registry (must have been added to a collection before)
+- Collection `resources[]` entries are provider rich objects (`type`, `id`, `name`, `link`) — OpenAPI `Resource` wrapper shape is not what PHP returns
+- Generated collection `id` is unstable — use `unstableIdPaths` in parity; seed mock store via `seedParityCollaborationCollection` for stateful cases
 
 ## Parity extras
 
@@ -578,5 +617,10 @@ Config:
 | Validation | wipe check / success | valid token not wipe-pending → 404 `[]` |
 | Happy | wipe check | 200 `{ wipe: true }` for wipe-pending token |
 | Happy | wipe success | 200 `{}`; token invalidated |
+| Auth failure | collaboration resources | 401 OCS 997 |
+| Validation | collaboration list/rename/add/remove | unknown collection → 404 `data: []` |
+| Validation | collaboration create | empty `name` → 400 `data: []` |
+| Validation | collaboration add/get-by-resource | inaccessible `parity-room` → 404 `data: []` |
+| Happy | collaboration create/list/search/rename/add/remove/get-by-resource | 200 collection payload; unstable `id` |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` fixtures (not waived).

@@ -86,6 +86,12 @@ v1 success adds `totalitems` and `itemsperpage` (empty strings) to `meta`.
 
 **Trap:** Two-factor `disable` strict confirm missing Basic password → HTTP **403** `Required authorization header missing`.
 
+**Trap:** Collaboration resources 404/400 failures use HTTP **404**/**400** with `ocs.data: []` (empty array) — not `{}` or `null`.
+
+**Trap:** Collaboration `createCollectionOnResource` empty or >64-char `name` → HTTP **400** + `data: []`.
+
+**Trap:** Collaboration `removeResource` deleting the last resource auto-deletes the collection; `respondCollection` then fails access → HTTP **404** + `data: []`.
+
 ## Implementation
 
 - Shared helpers: `src/server/ocs/envelope.ts` (`buildOcsSuccessEnvelope`, `buildOcsFailureEnvelope`, `getOcsHttpStatus`); `src/server/ocs/respond.ts` (`ocsBadRequestStringResponse` for string `data` on 400).

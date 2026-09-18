@@ -9,6 +9,8 @@ const DAV_REMOTE_PREFIXES = [
 	'/remote.php/files',
 	'/remote.php/caldav',
 	'/remote.php/calendar',
+	'/remote.php/carddav',
+	'/remote.php/contacts',
 ];
 
 const DAV_MOCK_METHODS = new Set([

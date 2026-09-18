@@ -1,4 +1,5 @@
 import { resolveLegacyCalDavUserId } from './auth-legacy-caldav';
+import { resolveLegacyCardDavUserId } from './auth-legacy-carddav';
 import { davUnauthorizedResponse, resolveDavUserId } from './auth-basic';
 import {
 	addressBookForbiddenResponse,
@@ -34,7 +35,7 @@ import {
 	parsePrincipalDepth,
 	parsePrincipalPath,
 } from './principals';
-import { isLegacyCalDavIngress, parseDavRequest } from './remote';
+import { isLegacyCalDavIngress, isLegacyCardDavIngress, parseDavRequest } from './remote';
 import type { DavIngress } from './types';
 import {
 	assertUploadAccess,
@@ -63,6 +64,10 @@ type ResolveUser = (request: Request) => string | null;
 function resolveUserForIngress(request: Request, ingress: DavIngress, resolveUser: ResolveUser): string | null {
 	if (isLegacyCalDavIngress(ingress)) {
 		return resolveLegacyCalDavUserId(request);
+	}
+
+	if (isLegacyCardDavIngress(ingress)) {
+		return resolveLegacyCardDavUserId(request);
 	}
 
 	return resolveUser(request);
@@ -117,7 +122,7 @@ async function handleAddressBookRequest(
 	}
 
 	const method = request.method.toUpperCase();
-	const userId = resolveUser(request);
+	const userId = resolveUserForIngress(request, parsed!.ingress, resolveUser);
 
 	if (!userId) {
 		return davUnauthorizedResponse();
@@ -598,6 +603,10 @@ export async function handleDavRequest(
 
 	if (isLegacyCalDavIngress(parsed.ingress)) {
 		return handleCalendarRequest(request, parsed, resolveUser);
+	}
+
+	if (isLegacyCardDavIngress(parsed.ingress)) {
+		return handleAddressBookRequest(request, parsed, resolveUser);
 	}
 
 	if (parsed.ingress === 'v2' && isCalendarDavPath(parsed)) {

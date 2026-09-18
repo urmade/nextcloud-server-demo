@@ -1,4 +1,11 @@
-export type DavIngress = 'v2' | 'legacy-webdav' | 'legacy-files' | 'legacy-caldav' | 'legacy-calendar';
+export type DavIngress =
+	| 'v2'
+	| 'legacy-webdav'
+	| 'legacy-files'
+	| 'legacy-caldav'
+	| 'legacy-calendar'
+	| 'legacy-carddav'
+	| 'legacy-contacts';
 
 export interface ParsedDavRequest {
 	ingress: DavIngress;

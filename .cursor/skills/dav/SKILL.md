@@ -264,6 +264,20 @@ Next.js: `src/server/dav/addressbooks.ts` + `addressbooks-store.ts`; addressbook
 
 Parity extras (`next/parity/tests/dav-addressbooks.parity.test.ts`): unauth 401; own book PROPFIND 207; GET vcard 200; system book PROPFIND 207. Reset/seed via `resetParityAddressBooksStores()` → `/api/parity/reset-dav-addressbooks-store` and `/api/parity/seed-dav-addressbooks`.
 
+### Legacy CardDAV — `dav-legacy-carddav` (`parity: tested`)
+
+Next.js: `src/server/dav/auth-legacy-carddav.ts` + legacy path parsing in `addressbooks.ts`; reuses `addressbooks-store`. v1 path `principals/users/{uid}/addressbooks/…` (not `dav/` prefix).
+
+| Step | Method | Path | Notes |
+| --- | --- | --- | --- |
+| Addressbook home | PROPFIND | `/remote.php/carddav/principals/users/{uid}/addressbooks/` | depth 0 → **207**; unauth **401** + Basic `WWW-Authenticate` |
+| Addressbook collection | PROPFIND | `…/addressbooks/{book}/` | **207**; same book row as v2 |
+| Alias | PROPFIND | `/remote.php/contacts/principals/users/{uid}/addressbooks/…` | same resource as `/carddav` prefix |
+
+**Basic only** — Bearer does **not** authenticate (unlike v2 / v1 webdav). Map `auth: mixed` is a lie. App password may be used as Basic password, not as Bearer.
+
+Parity extras (`next/parity/tests/dav-legacy-carddav.parity.test.ts`): unauth 401; Bearer-only 401; own PROPFIND 207; alias same book. Reset/seed via `resetParityAddressBooksStores()` (shared with `dav-addressbooks`).
+
 ### Calendar/contacts import-export
 
 `#[ApiRoute]` under `/calendar` and `/contacts`. Export: stream ical/jcal/xcal; UserRateLimit 1/60s; own calendar or **admin** + `user` query. Import: NDJSON `application/x-ndjson`; rate 10/3600; calendar/addressbook must be writable. Contacts default format `'ical'` as written.

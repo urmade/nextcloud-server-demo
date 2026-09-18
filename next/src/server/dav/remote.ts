@@ -55,11 +55,35 @@ export function parseDavRequest(url: URL): ParsedDavRequest | null {
 		};
 	}
 
+	if (pathname.startsWith('/remote.php/carddav')) {
+		const suffix = pathname.slice('/remote.php/carddav'.length).replace(/^\//, '');
+
+		return {
+			ingress: 'legacy-carddav',
+			davPath: suffix,
+			requestPath: pathname,
+		};
+	}
+
+	if (pathname.startsWith('/remote.php/contacts')) {
+		const suffix = pathname.slice('/remote.php/contacts'.length).replace(/^\//, '');
+
+		return {
+			ingress: 'legacy-contacts',
+			davPath: suffix,
+			requestPath: pathname,
+		};
+	}
+
 	return null;
 }
 
 export function isLegacyCalDavIngress(ingress: DavIngress): boolean {
 	return ingress === 'legacy-caldav' || ingress === 'legacy-calendar';
+}
+
+export function isLegacyCardDavIngress(ingress: DavIngress): boolean {
+	return ingress === 'legacy-carddav' || ingress === 'legacy-contacts';
 }
 
 export function ingressBasePath(ingress: DavIngress): string {
@@ -74,6 +98,10 @@ export function ingressBasePath(ingress: DavIngress): string {
 			return '/remote.php/caldav';
 		case 'legacy-calendar':
 			return '/remote.php/calendar';
+		case 'legacy-carddav':
+			return '/remote.php/carddav';
+		case 'legacy-contacts':
+			return '/remote.php/contacts';
 	}
 }
 

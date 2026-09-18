@@ -12,7 +12,7 @@ import {
 	type AddressBookRecord,
 	type VCardRecord,
 } from './addressbooks-store';
-import { buildDavHref } from './remote';
+import { buildDavHref, ingressBasePath, isLegacyCardDavIngress } from './remote';
 import type { ParsedDavRequest } from './types';
 import {
 	buildAddressBookPropfindMultistatus,
@@ -32,6 +32,7 @@ export interface ParsedAddressBookPath {
 	vcardUri?: string;
 	isRootHome: boolean;
 	isPrincipalHome: boolean;
+	addressBookBasePath?: string;
 }
 
 function splitSegments(path: string): string[] {
@@ -48,7 +49,49 @@ function objectLooksLikeFile(segment: string | undefined): boolean {
 	return Boolean(segment?.includes('.'));
 }
 
+function parseLegacyUserAddressBookPath(parsed: ParsedDavRequest): ParsedAddressBookPath | null {
+	if (!isLegacyCardDavIngress(parsed.ingress)) {
+		return null;
+	}
+
+	const segments = splitSegments(parsed.davPath);
+
+	if (segments[0] !== 'principals' || segments[1] !== 'users' || segments[3] !== 'addressbooks') {
+		return null;
+	}
+
+	const userId = segments[2];
+
+	if (!userId) {
+		return null;
+	}
+
+	const bookUri = segments[4];
+	const vcardUri = segments[5];
+	const addressBookBasePath = `${ingressBasePath(parsed.ingress)}/principals/users/${userId}/addressbooks`;
+
+	return {
+		kind: 'users',
+		userId,
+		bookUri,
+		vcardUri,
+		isRootHome: false,
+		isPrincipalHome: !bookUri,
+		requestPath: buildDavHref(
+			parsed.requestPath,
+			!bookUri || (!vcardUri && !objectLooksLikeFile(bookUri)),
+		),
+		addressBookBasePath,
+	};
+}
+
 export function parseAddressBookPath(parsed: ParsedDavRequest): ParsedAddressBookPath | null {
+	const legacyPath = parseLegacyUserAddressBookPath(parsed);
+
+	if (legacyPath) {
+		return legacyPath;
+	}
+
 	const segments = splitSegments(parsed.davPath);
 
 	if (segments[0] !== 'addressbooks') {
@@ -153,7 +196,11 @@ function canAccessUserAddressBookHome(sessionUserId: string, targetUserId: strin
 	return 'empty';
 }
 
-function userBookHref(userId: string, bookUri: string): string {
+function userBookHref(userId: string, bookUri: string, addressBookBasePath?: string): string {
+	if (addressBookBasePath) {
+		return buildDavHref(`${addressBookBasePath}/${bookUri}`, true);
+	}
+
 	return buildDavHref(`/remote.php/dav/addressbooks/users/${userId}/${bookUri}/`, true);
 }
 
@@ -220,7 +267,7 @@ function resolveReadableBook(
 
 		return {
 			book,
-			href: userBookHref(parsed.userId!, parsed.bookUri),
+			href: userBookHref(parsed.userId!, parsed.bookUri, parsed.addressBookBasePath),
 		};
 	}
 
@@ -274,8 +321,11 @@ export function buildAddressBookPropfindBody(
 		}
 
 		if (parsed.isPrincipalHome) {
+			const principalHomeHref = parsed.addressBookBasePath
+				? buildDavHref(parsed.addressBookBasePath, true)
+				: buildDavHref(`/remote.php/dav/addressbooks/users/${parsed.userId}/`, true);
 			const responses: AddressBookPropfindEntry[] = [{
-				href: buildDavHref(`/remote.php/dav/addressbooks/users/${parsed.userId}/`, true),
+				href: principalHomeHref,
 				displayName: parsed.userId ?? '',
 				isCollection: true,
 				isAddressBook: false,
@@ -285,7 +335,11 @@ export function buildAddressBookPropfindBody(
 				const principalUri = resolvePrincipalUri(parsed) ?? '';
 
 				for (const book of getAddressBooksForPrincipal(principalUri)) {
-					responses.push(bookToPropfindEntry(book, userBookHref(parsed.userId!, book.uri), true));
+					responses.push(bookToPropfindEntry(
+						book,
+						userBookHref(parsed.userId!, book.uri, parsed.addressBookBasePath),
+						true,
+					));
 				}
 			}
 

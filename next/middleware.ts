@@ -5,6 +5,7 @@ import {
 	isAddressBookDavPath,
 	isCalendarDavPath,
 	isLegacyCalDavIngress,
+	isLegacyCardDavIngress,
 	isPublicCalendarDavPath,
 	parseDavRequest,
 } from '@/src/server/dav/remote';
@@ -26,7 +27,9 @@ function isDavRemotePath(pathname: string): boolean {
 		|| pathname.startsWith('/remote.php/webdav')
 		|| pathname.startsWith('/remote.php/files')
 		|| pathname.startsWith('/remote.php/caldav')
-		|| pathname.startsWith('/remote.php/calendar');
+		|| pathname.startsWith('/remote.php/calendar')
+		|| pathname.startsWith('/remote.php/carddav')
+		|| pathname.startsWith('/remote.php/contacts');
 }
 
 function isPublicDavPath(pathname: string): boolean {
@@ -56,12 +59,12 @@ export async function middleware(request: NextRequest) {
 		&& (isLegacyCalDavIngress(parsed.ingress)
 			|| (parsed.ingress === 'v2' && (isCalendarDavPath(davPath ?? '') || isPublicCalendarDavPath(davPath ?? ''))));
 	const isAddressBookPath = parsed !== null
-		&& parsed.ingress === 'v2'
-		&& isAddressBookDavPath(davPath ?? '');
+		&& (isLegacyCardDavIngress(parsed.ingress)
+			|| (parsed.ingress === 'v2' && isAddressBookDavPath(davPath ?? '')));
 	const allowedMethods = isCalendarPath
 		? new Set([...DAV_METHODS, 'GET', 'HEAD', 'DELETE', 'MKCALENDAR', 'REPORT'])
 		: isAddressBookPath
-			? new Set([...DAV_METHODS, 'GET', 'HEAD', 'DELETE', 'REPORT'])
+			? new Set([...DAV_METHODS, 'GET', 'HEAD', 'DELETE', 'PUT', 'REPORT'])
 			: DAV_METHODS;
 
 	if (!allowedMethods.has(method)) {
@@ -79,6 +82,8 @@ export const config = {
 		'/remote.php/files/:path*',
 		'/remote.php/caldav/:path*',
 		'/remote.php/calendar/:path*',
+		'/remote.php/carddav/:path*',
+		'/remote.php/contacts/:path*',
 		'/public.php/dav/:path*',
 		'/public.php/webdav/:path*',
 	],

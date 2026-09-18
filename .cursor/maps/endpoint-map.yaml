@@ -21454,11 +21454,11 @@ endpoints:
     errors:
     - status: 200
       shape: guest error HTML Access Forbidden / Invalid request when OCS-APIREQUEST is not true and clientIdentifier is empty
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   next_path: /login/flow
   next_handler: app/login/flow/route.ts
-  parity_test: null
+  parity_test: next/parity/tests/core-login-flow-v1.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: 'PublicPage + NoCSRFRequired + UseSession. OpenAPI SCOPE_IGNORE. Stores client.flow.state.token in session. Invalid-request error is still HTTP 200 guest error template. Distinct from POST /login/flow.'
@@ -21483,13 +21483,15 @@ endpoints:
       status: 303
       shape: redirect to OAuth redirectUri with state+code, or nc://login/server:...&user:...&password:...
     errors:
+    - status: 412
+      shape: csrf-failed-json
     - status: 403
       shape: guest HTML state-token mismatch or empty Response
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   next_path: /login/flow
   next_handler: app/login/flow/route.ts
-  parity_test: null
+  parity_test: next/parity/tests/core-login-flow-v1.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: 'NoAdminRequired + UseSession + PasswordConfirmationRequired(strict false). CSRF required. Side effect: generates permanent app password; OAuth clients store AccessToken; non-OAuth nc:// redirect invalidates session token; AppPasswordCreatedEvent. oauth2.enable_oc_clients may accept providedRedirectUri for http://localhost:* clients.'
@@ -21514,13 +21516,15 @@ endpoints:
       status: 303
       shape: redirect nc://login/server:...&user:...&password:...
     errors:
+    - status: 412
+      shape: csrf-failed-json
     - status: 403
       shape: guest HTML (state-token mismatch or Invalid app password)
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   next_path: /login/flow/apptoken
   next_handler: app/login/flow/apptoken/route.ts
-  parity_test: null
+  parity_test: next/parity/tests/core-login-flow-v1.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: 'PublicPage. CSRF required (no NoCSRFRequired). password is an existing app token whose loginName must match user.'
@@ -21549,11 +21553,13 @@ endpoints:
     errors:
     - status: 403
       shape: guest HTML state-token mismatch
-  status: discovered
-  parity: pending
+    - status: 303
+      shape: login redirect when unauthenticated HTML Accept
+  status: parity
+  parity: tested
   next_path: /login/flow/grant
   next_handler: app/login/flow/grant/route.ts
-  parity_test: null
+  parity_test: next/parity/tests/core-login-flow-v1.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: 'NoAdminRequired + NoCSRFRequired + UseSession + NoSameSiteCookieRequired. Distinct from POST /login/flow.'

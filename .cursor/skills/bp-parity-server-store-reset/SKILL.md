@@ -18,7 +18,8 @@ The Next.js app under test is a **separate process** from Vitest. Clearing an in
 - Helper must reset **all three**: Vitest-side module state, legacy mock, Next.js server via HTTP.
 - **Every full-suite-sensitive auth test file** must call `resetParityAuthStores()` in `beforeEach` — not only in `afterEach`. Isolation-only green is not enough; the next file in the run must start from a clean server.
 - Also call `resetParityAuthStores()` in `afterEach` when the suite mutates auth state (2FA enable, login, confirm-password).
-- Call it from `beforeEach` of the suite that reads the store, and `afterEach` of the suite that mutates it (order in the full run matters).
+- Seed **both** stores when a case depends on process-local state, and seed a **single-use** token once per store. `POST /login/flow` consumes `client.flow.state.token`, so the two sides must each hold their own copy; take the token from the HTTP side (it is minted there) and mirror it into the mock.
+- Drive the new side over **HTTP**, never by importing the handler and calling it in the Vitest process. That shares one session store with the mock, so whichever side runs first consumes the state and the other fails on it. The symptom is a 403 state-token mismatch against a legacy 303.
 - Reset a store from **every** route that depends on it, not only from its own domain. The DAV file store owns the file-node id counter and the seeded home tree, so both the files and the files_sharing resets clear it — share records point at node ids, and a suite that resets only shares would still read drifted ids.
 - Audit a reset route for completeness before trusting it. `reset-files-store` reset the files API stores but not the node store; `reset-auth-store` reset sessions, 2FA and credential overrides but not the lost-password store, which is what *writes* a credential override.
 - Prefer the HTTP-backed helper over a direct `reset*Store()` import in a suite. The helper already does the Vitest-side reset, so importing both duplicates it and hides the fact that the server was never cleared.
@@ -32,8 +33,17 @@ Existing resets:
 | Auth/session/2FA/credentials/lost-password | `/api/parity/reset-auth-store` | `resetParityAuthStores()` |
 | Files API + DAV file nodes | `/api/parity/reset-files-store` | `resetParityFilesStores()` |
 | Shares + external shares + DAV file nodes | `/api/parity/reset-files-sharing-store` | `resetParityShareStores()` |
+| Unified sharing v1 shares | `/api/parity/reset-sharing-v1-store` | `resetParitySharingV1Stores()` |
 
 `set-files-sharing-config` parity route toggles `incomingServer2ServerShareEnabled` (ExternalShares) and `outgoingServer2ServerShareEnabled` (ShareInfo) on both sides.
+
+Mutating routes follow the same rules as the resets:
+
+| State | Route | Helper |
+| --- | --- | --- |
+| Stale `last-password-confirm` for one session | `/api/parity/expire-password-confirm` | `expireParityPasswordConfirmation(jar)` |
+
+`POST /login` sets a fresh confirmation, so a stale-confirm case cannot be built over HTTP alone — the route reaches the server's own session store, and the helper expires the mock side too.
 
 ## Do not
 
@@ -49,6 +59,8 @@ Existing resets:
 | `core-two-factor-api` | `afterEach` | Enables/disables 2FA via OCS |
 | `core-login-2fa-challenge` | `beforeEach` + `afterEach` | Enables 2FA for `admin` on server |
 | `core-login-confirm-password` | `beforeEach` + `afterEach` | Creates authenticated sessions |
+| `core-login-lost` | `beforeEach` + `afterEach` | Resets the `admin` password on the server |
+| `core-login-flow-v1` | `beforeEach` + `afterEach` | Logs in and expires `last-password-confirm` |
 | `core-auth` | `beforeEach` | Reads login redirect state |
 | `core-platform` | `beforeEach` | `loginParitySession` + ETag probes need clean `admin` |
 
@@ -70,6 +82,8 @@ only one ordering is not verified.
 - A number off by exactly the count of nodes earlier suites created (`fileid` `legacy=1100, new=1101`, `used` `45` vs `61`) is a Vitest-side-only reset of a store the server also owns.
 - OCS `997` from a suite that authenticates fine in isolation is leaked server credential or session state, not a bug in the suite.
 - A seeding helper can pass **vacuously** when both sides fail the same way. Assert the seed produced what the suite needs (a token, an id) before using it, or the real failure surfaces many cases later.
+- Two different 403s are not parity. When both sides can fail for several reasons, assert the branch — the error body, the marker header — instead of widening the compare until the statuses line up.
+- `contractHeaders: ['x']` together with `ignoreHeaders: ['x']` compares nothing: `ignoreHeaders` wins. If a header value is genuinely per-side (a freshly minted app password), ignore it and assert its stable fields explicitly; do not leave the self-cancelling pair behind as if it were a comparison.
 
 ## Related
 
@@ -77,3 +91,4 @@ only one ordering is not verified.
 - Task-processing isolation on `cursor/fix-task-processing-on-dav-e1af`
 - Auth isolation on `cursor/core-auth-login-redirect-flakes-e1af` (`0b4d9b0085b`)
 - File-node id and credential isolation on `cursor/fix-parity-fileid-reset-e1af`
+- Single-use state-token seeding on `cursor/core-login-flow-v1-e1af`

@@ -1,6 +1,6 @@
 ---
 name: core-login
-description: Core session login, logout, CSRF token, and client login flow v2 endpoints. Use when implementing or testing /csrftoken, /login, /logout, /login/v2/*.
+description: Core session login, logout, CSRF token, and client login flows v1 and v2. Use when implementing or testing /csrftoken, /login, /logout, /login/flow*, /login/v2/*.
 ---
 
 <!--
@@ -23,6 +23,10 @@ description: Core session login, logout, CSRF token, and client login flow v2 en
 - `GET /login/v2/grant` — grant page HTML (session + `stateToken` query)
 - `POST /login/v2/grant` — confirm grant, generate app password for client
 - `POST /login/v2/apptoken` — complete flow with existing app password (200 HTML done)
+- `GET /login/flow` — client login flow v1 auth picker HTML (desktop `OCS-APIREQUEST` or known client)
+- `GET /login/flow/grant` — v1 grant page HTML (session + `stateToken` query)
+- `POST /login/flow` — v1 grant confirm; mints an app password and redirects to `nc://login/...`
+- `POST /login/flow/apptoken` — v1 completion with an existing app password (303 `nc://login/...`)
 - `GET /login/selectchallenge` — pick 2FA provider (HTML, 2FA pending session)
 - `GET /login/challenge/{challengeProviderId}` — show provider challenge (HTML)
 - `POST /login/challenge/{challengeProviderId}` — submit challenge code (form `challenge`)
@@ -35,6 +39,7 @@ description: Core session login, logout, CSRF token, and client login flow v2 en
 - `POST /lostpassword/set/{token}/{userId}` — set new password (JSON `{ password, proceed }`)
 
 `/index.php/login/v2` and `/index.php/login/v2/poll` are twins rewritten to `/login/v2*`.
+`/index.php/login/flow*` rewrites to `/login/flow*` (same handlers).
 `/index.php/login/confirm` rewrites to `/login/confirm`.
 `/index.php/csrftoken` rewrites to `/csrftoken` (same handler as `core.CSRFToken#index`).
 `/index.php/heartbeat` rewrites to `/heartbeat`.
@@ -44,7 +49,8 @@ description: Core session login, logout, CSRF token, and client login flow v2 en
 ## Non-scope (same feature, later slices)
 
 - Settings WebAuthn registration (`/settings/api/personal/webauthn/*`)
-- Client login flow v1 (`/login/flow*`)
+- 2FA setup challenge (`/login/setupchallenge*`)
+- OAuth redirect variant of `POST /login/flow` (`oauth2.enable_oc_clients`, `providedRedirectUri`) — owned by `oauth2`
 - Brute-force throttle timing (status codes only; no delay simulation)
 - `Clear-Site-Data` header (HTTPS non-Chrome only on legacy)
 
@@ -76,6 +82,10 @@ Map ids with `feature_ids: [core-login]` and `parity: tested`:
 - `core.ClientFlowLoginV2#landing`
 - `core.ClientFlowLoginV2#grantPage`
 - `core.ClientFlowLoginV2#apptokenRedirect.post`
+- `core.ClientFlowLogin#showAuthPickerPage`
+- `core.ClientFlowLogin#grantPage`
+- `core.ClientFlowLogin#generateAppPassword.post`
+- `core.ClientFlowLogin#apptokenRedirect.post`
 
 ## Auth model
 
@@ -92,6 +102,10 @@ Map ids with `feature_ids: [core-login]` and `parity: tested`:
 | `GET /login/v2/grant` | `session` (logged-in user) + valid `stateToken`; unauth HTML → 303 login |
 | `POST /login/v2/grant` | `session` + CSRF + fresh password confirm + valid `stateToken` |
 | `POST /login/v2/apptoken` | `none` (public) + CSRF + valid `stateToken` + existing app password |
+| `GET /login/flow` | `none` (public); `NoCSRFRequired`; sets `client.flow.state.token` in session |
+| `GET /login/flow/grant` | `session` (logged-in user) + matching `stateToken`; `NoSameSiteCookieRequired` |
+| `POST /login/flow` | `session` + CSRF + matching `stateToken` + fresh password confirm |
+| `POST /login/flow/apptoken` | `none` (public) + CSRF + matching `stateToken` + existing app password |
 | `GET /login/selectchallenge` | `session` with 2FA pending (`twoFactorPendingUid`); redirects if unauthenticated or 2FA complete |
 | `GET /login/challenge/{id}` | same as selectchallenge |
 | `POST /login/challenge/{id}` | same; form field `challenge` (NoCSRFRequired on legacy) |
@@ -118,6 +132,7 @@ src/server/auth/
   logout.ts
   login-flow-v2-store.ts   # in-memory pending flows
   login-flow-v2.ts         # init/poll/flow/grant handlers
+  login-flow-v1.ts         # auth picker/grant/generate/apptoken handlers
   two-factor-challenge.ts  # select/show/solve + pending-session state
   webauthn-store.ts        # in-memory fixture credentials
   webauthn.ts              # start/finish handlers
@@ -136,6 +151,9 @@ app/
   login/v2/flow/[token]/route.ts
   login/v2/grant/route.ts
   login/v2/apptoken/route.ts
+  login/flow/route.ts
+  login/flow/grant/route.ts
+  login/flow/apptoken/route.ts
   login/selectchallenge/route.ts
   login/challenge/[challengeProviderId]/route.ts
   login/webauthn/start/route.ts
@@ -220,6 +238,26 @@ Unauthenticated → 303 `/login`. Already 2FA-complete → 303 default page. Unk
 
 Pending flows are **in-memory only** (no DB). App passwords are stored in the shared app-password store on grant.
 
+## Client login flow v1
+
+`ClientFlowLoginController`. Session key `client.flow.state.token` (64 alphanumeric chars). There is no poll endpoint: the client receives its credentials in the `nc://login/...` redirect target.
+
+1. Desktop client opens `GET /login/flow` with `OCS-APIREQUEST: true` (or a known `clientIdentifier`) → auth picker HTML carrying the grant URL with a fresh `stateToken`.
+2. Logged-in user opens `GET /login/flow/grant?stateToken=…` → grant page HTML.
+3. `POST /login/flow` with `stateToken` + CSRF → 303 `nc://login/server:<server>&user:<loginName>&password:<app password>`.
+4. Or the user submits an existing app password via `POST /login/flow/apptoken` → the same 303 shape, reusing that password.
+
+| Route | CSRF | Success | Errors |
+| --- | --- | --- | --- |
+| `GET /login/flow` | off | 200 auth picker HTML | no `OCS-APIREQUEST` and empty `clientIdentifier` → **200** guest error HTML (`Access Forbidden` / `Invalid request`) |
+| `GET /login/flow/grant` | off | 200 grant HTML | state mismatch 403 HTML; unauthenticated 401 JSON / 303 login |
+| `POST /login/flow` | required | 303 `nc://login/...` (or OAuth `redirectUri?state=&code=`) | CSRF 412; state mismatch 403 HTML (**clears** the state token); no session user 403 empty body; stale confirm 403 + `X-NC-Auth-NotConfirmed: true` |
+| `POST /login/flow/apptoken` | required | 303 `nc://login/...` reusing the submitted password | CSRF 412; state mismatch 403 HTML; unknown token or `loginName` mismatch 403 `Invalid app password` |
+
+`POST /login/flow` mints a **new** app password and invalidates the session login token; `POST /login/flow/apptoken` mints nothing.
+
+Either POST clears the state token, so it is single-use: a second POST with the same token gets the 403 state-mismatch HTML.
+
 ## Same-site cookies
 
 Legacy sets `nc_sameSiteCookielax` and `nc_sameSiteCookiestrict` (= `true`) on first visit.
@@ -280,6 +318,11 @@ Failed login sets session flash `loginMessages: [[errorCode], []]`.
 - `/heartbeat` is not CSRF polling (`GET /csrftoken`) and not user_status OCS heartbeat. OC.php path-only early return; empty 200, no Content-Type.
 - Lost success is 200 `{status:success}` even when nothing was sent; CSRF is on for POST email/set, off for resetform GET.
 - Phase-0 map `core.Lost#email` success 303 was wrong — trust `LostController#email` JSONResponse.
+- v1 auth-picker rejection is HTTP **200** guest error HTML, not 403. Do not "fix" the map to 403.
+- v1 `POST /login/flow` state token is single-use. Legacy mock and Next.js server keep separate session stores, so each side must be seeded with its own copy before the case runs; calling the mock and then the in-process handler makes the second one fail the state check.
+- v1 success is a 303 with an **empty body**; only `Location` distinguishes it. Each side mints its own app password, so compare the `nc://` server/user fields and the password format rather than the whole header.
+- `request.url` in a Next.js route handler is reconstructed from the address the server is bound to and reports `localhost` whatever the client asked for. Client-visible URLs (`nc://login/server:…`, grant URL, login redirect) must come from `x-forwarded-host` / `host`, which is what PHP's `getAbsoluteURL` does.
+- v1 and v2 `apptoken` differ: v1 is a 303 `nc://` redirect, v2 is a 200 done HTML page.
 
 ## Parity extras
 
@@ -306,6 +349,16 @@ Failed login sets session flash `loginMessages: [[errorCode], []]`.
 | Apptoken no CSRF | `POST /login/v2/apptoken` | 412 `{ message }` |
 | Apptoken bad password | `POST /login/v2/apptoken` | 403 HTML `Invalid app password` |
 | Apptoken happy | `POST /login/v2/apptoken` | 200 HTML `#core-loginflow` done + poll credentials |
+| No client header | `GET /login/flow` | 200 HTML `Access Forbidden`, no `#core-loginflow` |
+| Happy | `GET /login/flow` | 200 HTML `#core-loginflow` + `data-grant-url` with `stateToken` |
+| Grant unauthenticated | `GET /login/flow/grant` | 303 to `/login` |
+| Grant bad state | `GET /login/flow/grant` | 403 HTML `State token does not match` |
+| No CSRF | `POST /login/flow` | 412 `{ message }` |
+| Stale confirm | `POST /login/flow` | 403 HTML `Password confirmation is required` + `X-NC-Auth-NotConfirmed: true` |
+| Happy | `POST /login/flow` | 303 `nc://login/server:…&user:admin&password:<72 chars>` |
+| Apptoken no CSRF | `POST /login/flow/apptoken` | 412 `{ message }` |
+| Apptoken bad password | `POST /login/flow/apptoken` | 403 HTML `Invalid app password` |
+| Apptoken happy | `POST /login/flow/apptoken` | 303 `nc://login/...` reusing the existing app password |
 | Unauthenticated | `GET /login/selectchallenge` | 303 to `/login` |
 | Happy select | `GET /login/selectchallenge` | 200 HTML `#twofactor-select` after 2FA-pending login |
 | Happy show | `GET /login/challenge/parity-totp` | 200 HTML `#twofactor-challenge` + `name="challenge"` |

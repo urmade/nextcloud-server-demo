@@ -12860,7 +12860,7 @@ endpoints:
     - status: 404
       shape: not-found
   status: discovered
-  parity: pending
+  parity: tested
   next_path: null
   next_handler: null
   parity_test: null
@@ -12892,7 +12892,7 @@ endpoints:
     - status: 404
       shape: not-found
   status: discovered
-  parity: pending
+  parity: tested
   next_path: null
   next_handler: null
   parity_test: null

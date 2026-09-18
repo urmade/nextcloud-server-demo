@@ -54,7 +54,6 @@ async function setIncomingS2SOnBothSides(enabled: boolean): Promise<void> {
 
 function aliceAuthHeaders(jar: Record<string, string>, options: { csrfToken?: string } = {}): Record<string, string> {
 	const headers: Record<string, string> = {
-		Accept: 'application/json',
 		cookie: cookieJarToHeader(jar) ?? '',
 		...basicAuthHeader('alice', PARITY_PASSWORD),
 		...OCS_JSON_HEADERS,

@@ -10,6 +10,7 @@ import { SECURITY_TXT_BODY } from '@/src/server/well-known/handlers';
 import { generateNavigationETag, getAppsNavigation, getSettingsNavigation } from '@/src/server/ocs/navigation';
 import { handleAppPasswordMock } from './app-password';
 import { handleLegacyMockAuth, parseCookiesFromOptions } from './auth';
+import { handleLoginFlowV1Mock } from './login-flow-v1';
 import { handleLoginFlowV2Mock } from './login-flow-v2';
 import { handleLostPasswordMock, isLostPasswordPath } from './lost-password';
 import { handleReferenceMock } from './reference';
@@ -387,6 +388,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return webauthn;
 	}
 
+	const loginFlowV1 = await handleLoginFlowV1Mock(pathname, search, options);
+
+	if (loginFlowV1) {
+		return loginFlowV1;
+	}
+
 	const loginFlowV2 = await handleLoginFlowV2Mock(pathname, search, options);
 
 	if (loginFlowV2) {
@@ -695,7 +702,11 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 		return true;
 	}
 
-	if (pathname === '/login/v2'
+	if (pathname === '/login/flow'
+		|| pathname === '/index.php/login/flow'
+		|| pathname === '/login/flow/grant'
+		|| pathname === '/login/flow/apptoken'
+		|| pathname === '/login/v2'
 		|| pathname === '/index.php/login/v2'
 		|| pathname === '/login/v2/poll'
 		|| pathname === '/index.php/login/v2/poll'

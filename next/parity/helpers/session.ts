@@ -29,6 +29,31 @@ export function seedParityGuestSessionFromJar(
 	return session;
 }
 
+export function seedParityLoginFlowV1Session(
+	jar: Record<string, string>,
+	stateToken: string,
+	csrfToken?: string,
+): SessionData | null {
+	const sessionId = jar[SESSION_COOKIE];
+
+	if (!sessionId) {
+		return null;
+	}
+
+	const session = getOrCreateSession(sessionId);
+
+	if (csrfToken) {
+		const rawToken = decryptCsrfToken(csrfToken);
+		session.csrfToken = rawToken || csrfToken;
+	}
+
+	session.loginFlowV1StateToken = stateToken;
+	session.loginToken = session.loginToken ?? `parity-login-token-${sessionId}`;
+	updateSession(session);
+
+	return session;
+}
+
 export function seedParityLoginFlowV2Session(
 	jar: Record<string, string>,
 	loginToken: string,

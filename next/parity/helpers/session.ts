@@ -4,6 +4,7 @@ import { decryptCsrfToken } from '@/src/server/auth/csrf';
 import { getOrCreateSession, type SessionData, updateSession } from '@/src/server/auth/session-store';
 import { getParityEnv } from '../env';
 import { cookieJarToHeader, mergeResponseCookies } from '../helpers/cookies';
+import { expirePasswordConfirmation } from '../legacy-mock/app-password';
 
 /**
  * Mirror a browser session into the in-process legacy-mock session store without
@@ -87,6 +88,36 @@ export function seedParitySessionFromJar(jar: Record<string, string>, csrfToken:
 	session.userId = jar[USERNAME_COOKIE] ?? 'admin';
 	session.loginName = session.userId;
 	updateSession(session);
+}
+
+/**
+ * Make `last-password-confirm` stale for one session on both sides. `POST /login`
+ * sets a fresh confirmation, so the Next.js server needs the parity-only route to
+ * reach its own session store.
+ */
+export async function expireParityPasswordConfirmation(
+	jar: Record<string, string>,
+	baseUrl = getParityEnv().newBaseUrl,
+): Promise<void> {
+	const sessionId = jar[SESSION_COOKIE];
+
+	if (!sessionId) {
+		throw new Error('Cannot expire password confirmation without a session cookie');
+	}
+
+	expirePasswordConfirmation(sessionId);
+
+	const response = await fetch(`${baseUrl}/api/parity/expire-password-confirm`, {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+		},
+		body: JSON.stringify({ sessionId }),
+	});
+
+	if (!response.ok) {
+		throw new Error(`Failed to expire password confirmation on the Next.js server (${response.status})`);
+	}
 }
 
 export async function fetchParityCsrfToken(

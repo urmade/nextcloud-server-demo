@@ -1,22 +1,29 @@
-import { describe, expect, it } from 'vitest';
-import { handleLoginFlowV1GenerateAppPassword } from '@/src/server/auth/login-flow-v1';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { compareParityResponses, snapshotResponse } from '../compare';
 import { getParityEnv } from '../env';
 import { fetchLegacyMockSnapshot } from '../legacy-mock/adapter';
 import { formatParityMismatches, runParityCase } from '../harness';
+import { resetParityAuthStores } from '../helpers/auth';
 import { cookieJarToHeader, mergeResponseCookies } from '../helpers/cookies';
 import {
+	expireParityPasswordConfirmation,
 	fetchParityCsrfToken,
-	fetchParityGuestCsrfToken,
 	loginParitySession,
 	loginParitySessionWithCsrf,
 	seedParityGuestSessionFromJar,
 	seedParityLoginFlowV1Session,
 	seedParitySessionFromJar,
 } from '../helpers/session';
-import { getOrCreateSession, updateSession } from '@/src/server/auth/session-store';
-import { SESSION_COOKIE } from '@/src/server/auth/cookies';
-import { storeAppPasswordToken } from '@/src/server/ocs/app-password-store';
+import { isAppPasswordTokenFormat, storeAppPasswordToken } from '@/src/server/ocs/app-password-store';
+import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
+
+const NC_LOGIN_REDIRECT = /^nc:\/\/login\/server:(?<server>[^&]+)&user:(?<user>[^&]+)&password:(?<password>.+)$/;
+
+interface V1GeneratePostSetup {
+	jar: Record<string, string>;
+	csrfToken: string;
+	stateToken: string;
+}
 
 function normalizeLocation(location: string | null): string | null {
 	if (!location) {
@@ -32,33 +39,59 @@ function normalizeLocation(location: string | null): string | null {
 	}
 }
 
-function prepareV1GeneratePostSession(stateToken: string, freshPasswordConfirm = true): {
-	jar: Record<string, string>;
-	csrfToken: string;
-} {
-	const csrf = fetchParityGuestCsrfToken();
+function parseNcLoginRedirect(location: string | undefined): { server: string; user: string; password: string } {
+	const groups = NC_LOGIN_REDIRECT.exec(location ?? '')?.groups;
 
-	return csrf.then(({ jar, token }) => {
-		seedParityGuestSessionFromJar(jar, token);
-		seedParitySessionFromJar(jar, token);
-		seedParityLoginFlowV1Session(jar, stateToken, token);
+	expect(groups, `expected an nc:// login redirect, got ${location}`).toBeTruthy();
 
-		const session = getOrCreateSession(jar[SESSION_COOKIE]);
+	return groups as unknown as { server: string; user: string; password: string };
+}
 
-		if (session) {
-			session.userId = 'admin';
-			session.loginName = 'admin';
-			session.lastPasswordConfirm = freshPasswordConfirm
-				? Math.floor(Date.now() / 1000)
-				: 0;
-			updateSession(session);
-		}
-
-		return {
-			jar,
-			csrfToken: token,
-		};
+async function fetchNewSnapshot(path: string, options: ParityRequestOptions): Promise<ParityResponseSnapshot> {
+	const env = getParityEnv();
+	const response = await fetch(`${env.newBaseUrl}${path}`, {
+		method: options.method ?? 'GET',
+		headers: options.headers,
+		body: options.body,
+		redirect: 'manual',
 	});
+
+	return snapshotResponse(response, await response.text());
+}
+
+/**
+ * Log in, open the auth picker over HTTP and mirror the resulting state token into
+ * the legacy-mock session store. `POST /login/flow` consumes the state token, and
+ * the Next.js server and the Vitest-process mock keep separate session stores, so
+ * each side needs its own copy of the same token before the case runs.
+ */
+async function seedV1GeneratePostSession(): Promise<V1GeneratePostSetup> {
+	const env = getParityEnv();
+	const login = await loginParitySessionWithCsrf();
+	const { jar, stateToken } = await openV1AuthPicker(env.newBaseUrl, login.jar);
+
+	seedParitySessionFromJar(jar, login.csrfToken);
+	seedParityLoginFlowV1Session(jar, stateToken, login.csrfToken);
+
+	return {
+		jar,
+		csrfToken: login.csrfToken,
+		stateToken,
+	};
+}
+
+function v1GeneratePostOptions(setup: V1GeneratePostSetup): ParityRequestOptions {
+	return {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/x-www-form-urlencoded',
+			cookie: cookieJarToHeader(setup.jar) ?? '',
+		},
+		body: new URLSearchParams({
+			stateToken: setup.stateToken,
+			requesttoken: setup.csrfToken,
+		}).toString(),
+	};
 }
 
 async function openV1AuthPicker(
@@ -90,6 +123,14 @@ async function openV1AuthPicker(
 }
 
 describe('parity: core-login-flow-v1', () => {
+	beforeEach(async () => {
+		await resetParityAuthStores();
+	});
+
+	afterEach(async () => {
+		await resetParityAuthStores();
+	});
+
 	it('GET /login/flow without OCS header returns 200 error template (core.ClientFlowLogin#showAuthPickerPage)', async () => {
 		const env = getParityEnv();
 
@@ -190,12 +231,7 @@ describe('parity: core-login-flow-v1', () => {
 
 	it('POST /login/flow without CSRF returns 412 (core.ClientFlowLogin#generateAppPassword.post)', async () => {
 		const env = getParityEnv();
-		const login = await loginParitySessionWithCsrf();
-		const { jar, stateToken } = await openV1AuthPicker(env.newBaseUrl, login.jar);
-
-		seedParityGuestSessionFromJar(jar, login.csrfToken);
-		seedParitySessionFromJar(jar, login.csrfToken);
-		seedParityLoginFlowV1Session(jar, stateToken, login.csrfToken);
+		const setup = await seedV1GeneratePostSession();
 
 		const result = await runParityCase({
 			name: 'login-flow-v1-generate-no-csrf',
@@ -204,10 +240,10 @@ describe('parity: core-login-flow-v1', () => {
 				method: 'POST',
 				headers: {
 					'content-type': 'application/x-www-form-urlencoded',
-					cookie: cookieJarToHeader(jar) ?? '',
+					cookie: cookieJarToHeader(setup.jar) ?? '',
 				},
 				body: new URLSearchParams({
-					stateToken,
+					stateToken: setup.stateToken,
 				}).toString(),
 			},
 			compare: {
@@ -220,10 +256,10 @@ describe('parity: core-login-flow-v1', () => {
 			redirect: 'manual',
 			headers: {
 				'content-type': 'application/x-www-form-urlencoded',
-				cookie: cookieJarToHeader(jar) ?? '',
+				cookie: cookieJarToHeader(setup.jar) ?? '',
 			},
 			body: new URLSearchParams({
-				stateToken,
+				stateToken: setup.stateToken,
 			}).toString(),
 		});
 
@@ -232,64 +268,46 @@ describe('parity: core-login-flow-v1', () => {
 	});
 
 	it('POST /login/flow stale password confirm returns 403 with not-confirmed header (core.ClientFlowLogin#generateAppPassword.post)', async () => {
-		const stateToken = 'parity-v1-generate-stale-state';
-		const { jar, csrfToken } = await prepareV1GeneratePostSession(stateToken, false);
-		const body = new URLSearchParams({
-			stateToken,
-			requesttoken: csrfToken,
-		}).toString();
-		const options = {
-			method: 'POST',
-			headers: {
-				'content-type': 'application/x-www-form-urlencoded',
-				cookie: cookieJarToHeader(jar) ?? '',
-			},
-			body,
-		};
+		const setup = await seedV1GeneratePostSession();
+		await expireParityPasswordConfirmation(setup.jar);
 
+		const options = v1GeneratePostOptions(setup);
 		const legacySnapshot = await fetchLegacyMockSnapshot('/login/flow', options);
-		const request = new Request('http://127.0.0.1:3100/login/flow', options);
-		const { resolveSession } = await import('@/src/server/auth/session');
-		const response = handleLoginFlowV1GenerateAppPassword(request, resolveSession(request), body);
-		const newSnapshot = snapshotResponse(response, await response.text());
+		const newSnapshot = await fetchNewSnapshot('/login/flow', options);
 		const mismatches = compareParityResponses(legacySnapshot, newSnapshot, {
 			contractHeaders: ['content-type', 'x-nc-auth-notconfirmed'],
 		});
 
 		expect(mismatches, formatParityMismatches(mismatches)).toEqual([]);
-		expect(response.status).toBe(403);
-		expect(response.headers.get('x-nc-auth-notconfirmed')).toBe('true');
+		expect(newSnapshot.status).toBe(403);
+		expect(newSnapshot.headers['x-nc-auth-notconfirmed']).toBe('true');
+		expect(newSnapshot.rawBody).toContain('Password confirmation is required');
 	});
 
 	it('POST /login/flow happy path returns 303 nc:// redirect (core.ClientFlowLogin#generateAppPassword.post)', async () => {
-		const stateToken = 'parity-v1-generate-happy-state';
-		const { jar, csrfToken } = await prepareV1GeneratePostSession(stateToken);
-		const body = new URLSearchParams({
-			stateToken,
-			requesttoken: csrfToken,
-		}).toString();
-		const options = {
-			method: 'POST',
-			headers: {
-				'content-type': 'application/x-www-form-urlencoded',
-				cookie: cookieJarToHeader(jar) ?? '',
-			},
-			body,
-		};
+		const setup = await seedV1GeneratePostSession();
 
+		const options = v1GeneratePostOptions(setup);
 		const legacySnapshot = await fetchLegacyMockSnapshot('/login/flow', options);
-		const request = new Request('http://127.0.0.1:3100/login/flow', options);
-		const { resolveSession } = await import('@/src/server/auth/session');
-		const response = handleLoginFlowV1GenerateAppPassword(request, resolveSession(request), body);
-		const newSnapshot = snapshotResponse(response, await response.text());
+		const newSnapshot = await fetchNewSnapshot('/login/flow', options);
 		const mismatches = compareParityResponses(legacySnapshot, newSnapshot, {
-			contractHeaders: ['location'],
+			contractHeaders: ['content-type'],
+			// Each side mints its own app password, so the redirect is compared field
+			// by field below instead of as one opaque header value.
 			ignoreHeaders: ['location'],
 		});
 
 		expect(mismatches, formatParityMismatches(mismatches)).toEqual([]);
-		expect(response.status).toBe(303);
-		expect(response.headers.get('location')).toMatch(/^nc:\/\/login\/server:/);
+		expect(newSnapshot.status).toBe(303);
+
+		const legacyRedirect = parseNcLoginRedirect(legacySnapshot.headers.location);
+		const newRedirect = parseNcLoginRedirect(newSnapshot.headers.location);
+
+		expect(newRedirect.server).toBe(legacyRedirect.server);
+		expect(newRedirect.user).toBe(legacyRedirect.user);
+		expect(newRedirect.user).toBe('admin');
+		expect(isAppPasswordTokenFormat(legacyRedirect.password)).toBe(true);
+		expect(isAppPasswordTokenFormat(newRedirect.password)).toBe(true);
 	});
 
 	it('POST /login/flow/apptoken without CSRF returns 412 (core.ClientFlowLogin#apptokenRedirect.post)', async () => {
@@ -426,7 +444,6 @@ describe('parity: core-login-flow-v1', () => {
 			},
 			compare: {
 				contractHeaders: ['location'],
-				ignoreHeaders: ['location'],
 			},
 		});
 

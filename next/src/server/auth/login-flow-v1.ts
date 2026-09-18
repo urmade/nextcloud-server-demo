@@ -69,7 +69,7 @@ function acceptsHtml(request: Request): boolean {
 
 function buildLoginRedirect(request: Request, cookieHeaders: string[] = []): Response {
 	const requestUrl = new URL(request.url);
-	const loginUrl = new URL('/login', requestUrl.origin);
+	const loginUrl = new URL('/login', getRequestOrigin(request));
 	loginUrl.searchParams.set('redirect_url', `${requestUrl.pathname}${requestUrl.search}`);
 
 	return redirectResponse(loginUrl.toString(), cookieHeaders);
@@ -103,19 +103,31 @@ function generateStateToken(): string {
 	return token;
 }
 
+/**
+ * PHP builds client-visible URLs from the request host, so the origin cannot come
+ * from `request.url`: Next.js reconstructs that from the address it is bound to and
+ * reports `localhost` whatever the client asked for.
+ */
+function getRequestOrigin(request: Request): string {
+	const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '127.0.0.1:3100';
+	const proto = request.headers.get('x-forwarded-proto') ?? 'http';
+
+	return `${proto}://${host}`;
+}
+
 function getServerPath(request: Request): string {
-	const url = new URL(request.url);
-	const pathname = url.pathname;
+	const { pathname } = new URL(request.url);
+	const origin = getRequestOrigin(request);
 
 	if (pathname.includes('/index.php')) {
-		return `${url.origin}${pathname.slice(0, pathname.indexOf('/index.php'))}`;
+		return `${origin}${pathname.slice(0, pathname.indexOf('/index.php'))}`;
 	}
 
 	if (pathname.includes('/login/flow')) {
-		return `${url.origin}${pathname.slice(0, pathname.indexOf('/login/flow'))}`;
+		return `${origin}${pathname.slice(0, pathname.indexOf('/login/flow'))}`;
 	}
 
-	return url.origin;
+	return origin;
 }
 
 function ensureSessionCookie(resolved: ResolvedSession, cookieHeaders: string[]): void {
@@ -219,9 +231,7 @@ function buildGrantPageUrl(
 	direct = 0,
 	providedRedirectUri = '',
 ): string {
-	const url = new URL(request.url);
-	url.pathname = '/login/flow/grant';
-	url.search = '';
+	const url = new URL('/login/flow/grant', getRequestOrigin(request));
 
 	if (clientIdentifier) {
 		url.searchParams.set('clientIdentifier', clientIdentifier);

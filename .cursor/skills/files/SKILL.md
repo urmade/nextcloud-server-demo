@@ -163,17 +163,25 @@ Frontpage `GET /directEditing/{token}`: **`PublicPage`**, `NoCSRFRequired`, `Use
 
 `path` `POST …/templates/path` body `{templatePath?, copySystemTemplates?}` → **200** `{template_path, templates}` where `templates` is `listCreators()` (no nested templates). `initializeTemplateDirectory` failures usually still **200** with `template_path:''`.
 
-### Open local editor
+### Open local editor (implemented)
 
-`create(path)`: UserRateLimit 10/120s → `{userId,pathHash,expirationTime,token}`. `validate(token, path)`: bruteforce `openLocalEditor`; mismatch/expired/missing → 404 + throttle. 500 if 50 token collisions.
+`create(path)` `POST …/openlocaleditor`: mixed OCS; unauth v2 **401/997**; `OCS-APIRequest` bypasses CSRF. Success **200** `{userId,pathHash,expirationTime,token}`; `pathHash=sha1(path)`; token 128 alnum; TTL **600s**. Does not verify path exists.
 
-### Conversion
+`validate(token, path)` `POST …/openlocaleditor/{token}`: deletes row first, then checks expiry. Mismatch/expired/missing/already-used → **404** `data:[]`. Second validate → **404** (one-shot).
 
-`POST` `{fileId, targetMimeType, destination?}`. Rate 25/120s. 201 `{path,fileId}`. 404 unreadable; 403 parent not creatable; 400 size/extension; 500 convert fail. Existing dest → `getNonExistingName` rename. Null dest is **not** a temp file (OpenAPI text is wrong; PHP writes beside source).
+### Conversion (implemented)
 
-### Transfer ownership
+`POST …/convert` `{fileId, targetMimeType, destination?}`. Parity stubs **image/jpeg → image/png** (`png` extension). Success HTTP **201**, meta **201**, `{path,fileId}`. 404 unreadable/missing; 403 parent not creatable; 400 size/extension; 500 when no provider or convert fails. Null `destination` writes sibling `basename.png` (not a temp file). Existing dest → `getNonExistingName` rename.
 
-`transfer(recipient, path)`: owner UID + `IHomeStorage` else 403; bad user/path 400. `accept`/`reject` `{id}` = transfer row; only targetUser else 403; missing 404. Accept schedules job; reject deletes row.
+### Folder tree (implemented)
+
+`GET …/folder-tree` `ApiController` — **raw JSON array**, not OCS envelope. Query `path` default `/`, `depth` default 1, `withParents` default false. Directories only. **CSRF required** (`requesttoken`); `OCS-APIRequest` does **not** bypass. Unauth **401** `{message}`. File path → **400**; missing folder → **404**; other errors → **200** `[]`.
+
+### Transfer ownership (implemented)
+
+`transfer(recipient, path)` `POST …/transferownership`: owner UID + home storage else **403** `[]`; unknown recipient or missing path **400** `[]` (empty meta.message). Inserts `user_transfer_owner` row; `{id}` is row id, not file id.
+
+`accept(id)` `POST …/transferownership/{id}`: targetUser only; **200** `[]`; queues job (row kept). `reject(id)` `DELETE` same path: targetUser only; **200** `[]`; deletes row. Missing id **404**; wrong user **403**.
 
 ### Filenames OCS (implemented)
 
@@ -241,6 +249,13 @@ src/server/files/
   filenames.ts
   direct-editing-store.ts
   direct-editing.ts        # OCS info/templates/open/create
+  open-local-editor-store.ts
+  open-local-editor.ts
+  conversion-store.ts
+  conversion.ts
+  folder-tree.ts
+  transfer-ownership-store.ts
+  transfer-ownership.ts
   template-store.ts
   templates.ts             # OCS list/fields/create/path
   templates-auth.ts
@@ -258,6 +273,12 @@ app/ocs/v2.php/apps/files/api/v1/templates/route.ts
 app/ocs/v2.php/apps/files/api/v1/templates/create/route.ts
 app/ocs/v2.php/apps/files/api/v1/templates/path/route.ts
 app/ocs/v2.php/apps/files/api/v1/templates/fields/[fileId]/route.ts
+app/ocs/v2.php/apps/files/api/v1/openlocaleditor/route.ts
+app/ocs/v2.php/apps/files/api/v1/openlocaleditor/[token]/route.ts
+app/ocs/v2.php/apps/files/api/v1/convert/route.ts
+app/ocs/v2.php/apps/files/api/v1/folder-tree/route.ts
+app/ocs/v2.php/apps/files/api/v1/transferownership/route.ts
+app/ocs/v2.php/apps/files/api/v1/transferownership/[id]/route.ts
 app/f/route.ts
 app/f/[fileid]/route.ts
 app/apps/files/api/v1/config/[key]/route.ts
@@ -276,6 +297,7 @@ parity/legacy-mock/files.ts
 parity/legacy-mock/files-view.ts
 parity/legacy-mock/files-direct-editing.ts
 parity/legacy-mock/files-templates.ts
+parity/legacy-mock/files-remaining-ocs.ts
 parity/legacy-mock/files-filenames.ts
 parity/helpers/files.ts
 app/api/parity/reset-files-store/route.ts
@@ -286,6 +308,7 @@ parity/tests/files-json-filenames.parity.test.ts
 parity/tests/files-html-shell.parity.test.ts
 parity/tests/files-direct-editing-ocs.parity.test.ts
 parity/tests/files-template-ocs.parity.test.ts
+parity/tests/files-remaining-ocs.parity.test.ts
 ```
 
 List/download still go through DAV modules. `computeStorageStats` reads DAV home tree size.

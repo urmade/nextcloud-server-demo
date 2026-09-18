@@ -29,6 +29,7 @@ import { handleDavDirectMock, isDavDirectMockPath } from './dav-direct';
 import { handleFilesApiMock, isFilesApiPath, isFilesApiWritePath } from './files';
 import { handleFilesDirectEditingMock, isFilesDirectEditingMockPath } from './files-direct-editing';
 import { handleFilesFilenamesMock, isFilesFilenamesMockPath } from './files-filenames';
+import { handleFilesRemainingOcsMock, isFilesRemainingOcsMockPath } from './files-remaining-ocs';
 import { handleFilesTemplatesMock, isFilesTemplatesMockPath } from './files-templates';
 import { handleFilesViewMock, isFilesViewMockPath } from './files-view';
 import { snapshotResponse } from '../compare';
@@ -426,6 +427,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return filesTemplates;
 	}
 
+	const filesRemainingOcs = await handleFilesRemainingOcsMock(pathname, search, options);
+
+	if (filesRemainingOcs) {
+		return filesRemainingOcs;
+	}
+
 	const filesView = await handleFilesViewMock(fullPath, options);
 
 	if (filesView) {
@@ -699,6 +706,10 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (isFilesTemplatesMockPath(pathname, normalizedMethod)) {
+		return true;
+	}
+
+	if (isFilesRemainingOcsMockPath(pathname, normalizedMethod)) {
 		return true;
 	}
 

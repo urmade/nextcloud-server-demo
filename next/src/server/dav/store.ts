@@ -21,6 +21,19 @@ function welcomeFile(): DavFileNode {
 	};
 }
 
+function photoFile(): DavFileNode {
+	return {
+		name: 'photo.jpg',
+		kind: 'file',
+		fileId: 1004,
+		etag: '"64f0a1b2c3d4e5f9"',
+		size: 4,
+		contentType: 'image/jpeg',
+		mtime: seedMtime(2),
+		content: '\xff\xd8\xff\xd9',
+	};
+}
+
 function documentsFolder(): DavFileNode {
 	return {
 		name: 'Documents',
@@ -53,7 +66,7 @@ function adminHome(): DavFileNode {
 		etag: '"64f0a1b2c3d4e5f5"',
 		size: 0,
 		contentType: 'httpd/unix-directory',
-		children: [welcomeFile(), documentsFolder()],
+		children: [welcomeFile(), documentsFolder(), photoFile()],
 	};
 }
 
@@ -108,7 +121,11 @@ export function ensureDirectoryInHome(relativePath: string): void {
 	findOrCreateDirectory(segments);
 }
 
-export function assembleFileIntoHome(relativePath: string, content: Buffer): { created: boolean } {
+export function assembleFileIntoHome(
+	relativePath: string,
+	content: Buffer,
+	contentType = 'application/octet-stream',
+): { created: boolean } {
 	const segments = relativePath.split('/').filter(Boolean);
 	const fileName = segments.pop();
 
@@ -130,7 +147,7 @@ export function assembleFileIntoHome(relativePath: string, content: Buffer): { c
 		fileId: nextFileId++,
 		etag,
 		size: content.length,
-		contentType: 'application/octet-stream',
+		contentType,
 		mtime: Math.floor(Date.now() / 1000),
 		content: content.toString('latin1'),
 	};

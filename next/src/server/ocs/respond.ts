@@ -115,6 +115,32 @@ export function ocsNotFoundNullResponse(ocsVersion: OcsApiVersion): Response {
 	});
 }
 
+export function ocsCreatedResponse<TData>(
+	data: TData,
+	ocsVersion: OcsApiVersion,
+	extraHeaders: Record<string, string> = {},
+): Response {
+	const envelope = {
+		ocs: {
+			meta: {
+				status: 'ok' as const,
+				statuscode: 201,
+				message: 'OK',
+				...(ocsVersion === 1 ? { totalitems: '', itemsperpage: '' } : {}),
+			},
+			data,
+		},
+	};
+
+	return Response.json(envelope, {
+		status: 201,
+		headers: {
+			...OCS_JSON_HEADERS,
+			...extraHeaders,
+		},
+	});
+}
+
 export function ocsBadRequestStringResponse(
 	ocsVersion: OcsApiVersion,
 	message: string,

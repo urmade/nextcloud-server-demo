@@ -28,7 +28,10 @@ import { getServiceWorkerResponse } from './service-worker';
 import { getThumbnailResponse } from './thumbnail';
 import { resetDirectEditingStore } from './direct-editing-store';
 import { resetFilenamesStore } from './filenames-store';
+import { resetConversionStore } from './conversion-store';
+import { resetOpenLocalEditorStore } from './open-local-editor-store';
 import { resetTemplateStore } from './template-store';
+import { resetTransferOwnershipStore } from './transfer-ownership-store';
 import { resetFilesViewConfigStore } from './view-config-store';
 
 const JSON_HEADERS = {
@@ -405,4 +408,7 @@ export function resetFilesApiStores(): void {
 	resetFilenamesStore();
 	resetDirectEditingStore();
 	resetTemplateStore();
+	resetOpenLocalEditorStore();
+	resetConversionStore();
+	resetTransferOwnershipStore();
 }

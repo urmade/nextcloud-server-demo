@@ -1,3 +1,4 @@
+import { resetDavFileStore } from '@/src/server/dav/store';
 import { resetFilesApiStores } from '@/src/server/files/api';
 
 export async function POST() {
@@ -6,6 +7,7 @@ export async function POST() {
 	}
 
 	resetFilesApiStores();
+	resetDavFileStore();
 
 	return new Response(null, { status: 204 });
 }

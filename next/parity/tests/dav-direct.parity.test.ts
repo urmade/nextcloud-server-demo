@@ -1,11 +1,11 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { resetDirectLinkStore } from '@/src/server/dav/direct-store';
-import { resetDavFileStore } from '@/src/server/dav/store';
 import { getParityEnv } from '../env';
 import { formatParityMismatches, runParityCase } from '../harness';
 import { fetchLegacyMockSnapshot } from '../legacy-mock/adapter';
 import { compareBinarySnapshots, snapshotBinaryResponse } from '../helpers/binary';
 import { cookieJarToHeader } from '../helpers/cookies';
+import { resetParityFilesStores } from '../helpers/files';
 import { loginParitySession, OCS_JSON_HEADERS, OCS_META_PATHS } from '../helpers/session';
 
 const WELCOME_FILE_ID = 1001;
@@ -78,9 +78,13 @@ async function fetchLegacyDirectResponse(path: string, options: { method?: strin
 }
 
 describe('parity: dav direct', () => {
-	afterEach(() => {
-		resetDavFileStore();
+	beforeEach(async () => {
+		await resetParityFilesStores();
+	});
+
+	afterEach(async () => {
 		resetDirectLinkStore();
+		await resetParityFilesStores();
 	});
 
 	it('POST dav-direct-get-url mint then GET dav.Direct#get returns 200 file bytes', async () => {

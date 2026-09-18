@@ -1,9 +1,8 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { resetSessionStore } from '@/src/server/auth/session-store';
-import { resetDavFileStore } from '@/src/server/dav/store';
-import { resetFilesApiStores } from '@/src/server/files/api';
 import { getParityEnv } from '../env';
 import { compareBinarySnapshots, snapshotBinaryResponse } from '../helpers/binary';
+import { resetParityFilesStores } from '../helpers/files';
 import { fetchLegacyMockSnapshot, hasLegacyMockFixture } from '../legacy-mock/adapter';
 
 const SERVICE_WORKER_PATH = '/apps/files/preview-service-worker.js';
@@ -65,10 +64,13 @@ async function fetchLegacyServiceWorkerResponse(options: { headers?: Record<stri
 }
 
 describe('parity: files-service-worker', () => {
-	afterEach(() => {
+	beforeEach(async () => {
+		await resetParityFilesStores();
+	});
+
+	afterEach(async () => {
 		resetSessionStore();
-		resetDavFileStore();
-		resetFilesApiStores();
+		await resetParityFilesStores();
 	});
 
 	it('GET /apps/files/preview-service-worker.js streams JS without authentication', async () => {

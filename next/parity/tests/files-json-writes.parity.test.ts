@@ -1,10 +1,9 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { resetSessionStore } from '@/src/server/auth/session-store';
-import { resetDavFileStore } from '@/src/server/dav/store';
-import { resetFilesApiStores } from '@/src/server/files/api';
 import { getParityEnv } from '../env';
 import { formatParityMismatches, runParityCase } from '../harness';
 import { cookieJarToHeader } from '../helpers/cookies';
+import { resetParityFilesStores } from '../helpers/files';
 import { loginParitySession, loginParitySessionWithCsrf } from '../helpers/session';
 
 const JSON_HEADERS = {
@@ -31,10 +30,13 @@ function mutationHeaders(jar: Record<string, string>, csrfToken: string, content
 }
 
 describe('parity: files-json-writes', () => {
-	afterEach(() => {
+	beforeEach(async () => {
+		await resetParityFilesStores();
+	});
+
+	afterEach(async () => {
 		resetSessionStore();
-		resetDavFileStore();
-		resetFilesApiStores();
+		await resetParityFilesStores();
 	});
 
 	it('PUT /apps/files/api/v1/config/{key} happy path updates user config', async () => {

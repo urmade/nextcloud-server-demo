@@ -190,6 +190,15 @@ OCS Teams resource listing (`/ocs/v2.php/teams/…`). Mixed auth. In-memory fixt
 
 Parity registers fixture provider `parity-deck` with board `board-1` shared to teams `parity-team-alpha` / `parity-team-beta` (admin member). Unknown provider → **500** OCS 996 (`No provider found for id …`). Unknown team or non-member → **200** with empty `resources[]` (not 404). Real Nextcloud uses Circles + app `ITeamResourceProvider` registrations; this slice models the OCS contract only.
 
+### Slice 15 — public OCS leftovers + OpenMetrics (done)
+
+Public `@PublicPage` OCS and metrics endpoints. No session required.
+
+- `GET /ocs/v2.php/config` — OCS config probe (`version: "1.7"`, `ssl: "false"` string, `host` from request)
+- `POST /ocs/v2.php/person/check` — credential probe (`login`, `password`); v2 failures HTTP **400** + `meta.statuscode` **101**/**102**
+- `GET /ocs/v2.php/identityproof/key/{cloudId}` — fixture PEM for known local uid; miss HTTP **404** `data: ["Account not found"]`
+- `GET /metrics` — OpenMetrics export; IP allowlist (`NC_OPENMETRICS_ALLOWED_CLIENTS` / `NC_PARITY_METRICS_ALLOWED_CLIENTS`); outside → **403** empty body
+
 ### Slice 14 — contacts menu + display names (done)
 
 Header contacts menu HTTP endpoints (session + CSRF on POST). Fixture users from `NC_PARITY_USERS`; teams from `parity-deck` catalog (`NC_PARITY_TEAMS_PROVIDER`). No Circles HTTP.
@@ -336,6 +345,13 @@ Slice 14:
 - `core.ContactsMenu#getTeams`
 - `core.User#getDisplayNames.post`
 
+Slice 15:
+
+- `core.OCS#getConfig`
+- `core.OCS#personCheck.post`
+- `core.OCS#getIdentityProof`
+- `core.OpenMetrics#export`
+
 ## Auth model
 
 | Route | Auth |
@@ -360,6 +376,8 @@ Slice 14:
 | Teams API | `mixed` — session or Basic; unauthenticated → **401** OCS 997 |
 | Contacts menu POST / displaynames POST | `session` + CSRF — unauthenticated → **401** JSON `{ message }` / 303 login |
 | Contacts menu GET teams | `session` — unauthenticated → **401** JSON `{ message }` / 303 login |
+| OCS config / person check / identity proof | `@PublicPage` — unauthenticated **200** (not 401) |
+| OpenMetrics `/metrics` | `@PublicPage` — no session; IP allowlist only |
 
 Unauthenticated OCS calls → v2 HTTP **401**, `ocs.meta.statuscode` **997**, empty `data` (except `@PublicPage` routes above).
 
@@ -508,6 +526,9 @@ Config:
 | `NC_PARITY_TEAMS_PROVIDER` | `true` | Toggle fixture team provider `parity-deck` |
 | `NC_APP_CONTACTS_ENABLED` | `true` | Toggle `contactsAppEnabled` in contacts menu index |
 | `NC_CONTACTSMENU_MIN_SEARCH_LENGTH` | `0` | Ignore `filter` shorter than this |
+| `NC_OPENMETRICS_ALLOWED_CLIENTS` | `127.0.0.0/16,::1/128` | CIDR allowlist for `/metrics` |
+| `NC_PARITY_METRICS_ALLOWED_CLIENTS` | (unset) | Parity override for metrics allowlist |
+| `NC_PARITY_METRICS_REMOTE_ADDR` | (unset) | Pin remote address for metrics parity |
 
 ## Traps
 
@@ -603,6 +624,11 @@ Config:
 - `POST /contactsmenu/findOne` unknown target → **404** body `[]`; missing `shareType` / `shareWith` → **400** empty body
 - `GET /contactsmenu/teams` returns JSON **array** (not wrapped); empty `[]` allowed when team support disabled
 - `POST /displaynames` unknown uid echoed as requested id; success always includes `status: "success"`
+- OCS `getConfig` `ssl` is the string `"false"` — not boolean
+- `personCheck` v2 empty/bad password → HTTP **400** with `meta.statuscode` **101**/**102** and `data: []` (map error HTTP 101/102 is a lie)
+- `personCheck` success → `{ person: { personid: login } }`; skip brute-force throttle delay in parity
+- `getIdentityProof` `cloudId` is local uid; unknown → HTTP **404** with `data: ["Account not found"]` (list)
+- `/metrics` outside allowlist → **403** empty body (no JSON); success `application/openmetrics-text; version=1.0.0; charset=utf-8` with fixture family + `# EOF`
 
 ## Parity extras
 
@@ -710,5 +736,13 @@ Config:
 | Validation | contacts menu findOne | unknown user → 404 `[]`; missing params → 400 empty |
 | Happy | contacts menu teams | 200 JSON array for logged-in admin |
 | Happy | displaynames | 200 `{ users: { admin, missing }, status: "success" }` |
+| Public | OCS config | 200 without auth; `ssl === "false"` string |
+| Validation | person check empty | v2 HTTP 400 + meta 101 |
+| Validation | person check bad password | v2 HTTP 400 + meta 102 |
+| Happy | person check | 200 `{ person: { personid } }` |
+| Validation | identity proof unknown | 404 `data: ["Account not found"]` |
+| Happy | identity proof known uid | 200 fixture PEM in `data.public` |
+| Validation | metrics forbidden | 403 empty body |
+| Happy | metrics allowed | 200 openmetrics text + `# EOF` |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` fixtures (not waived).

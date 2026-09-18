@@ -102,6 +102,10 @@ v1 success adds `totalitems` and `itemsperpage` (empty strings) to `meta`.
 
 **Trap:** Teams unknown team or user not a member → HTTP **200** with empty `resources[]` — not 404 (PHP `getSharedWith` returns `[]`).
 
+**Trap:** `personCheck` v2 failures use DataResponse status **101**/**102** (below 200) → v2 HTTP **400** with `meta.statuscode` **101**/**102**, `meta.status: failure`, `data: []`. Map error HTTP 101/102 is a lie on v2. v1 keeps HTTP **200** with meta 101/102.
+
+**Trap:** `getIdentityProof` miss returns HTTP **404** with `ocs.data` as a **list** `["Account not found"]` — not `{}` or `{ message }`.
+
 ## Implementation
 
 - Shared helpers: `src/server/ocs/envelope.ts` (`buildOcsSuccessEnvelope`, `buildOcsFailureEnvelope`, `getOcsHttpStatus`); `src/server/ocs/respond.ts` (`ocsBadRequestStringResponse` for string `data` on 400).

@@ -21262,11 +21262,11 @@ endpoints:
     errors:
     - status: 403
       shape: empty AppFramework Response
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /metrics
+  next_handler: app/metrics/route.ts
+  parity_test: next/parity/tests/core-public-leftovers.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: 'PublicPage + NoCSRFRequired. Not session auth. 403 when remote address is outside system openmetrics_allowed_clients (default 127.0.0.0/16 and ::1/128). Metric family set is exporter-dependent; not enumerated here.'
@@ -21277,7 +21277,7 @@ endpoints:
   method: GET
   legacy_path: /ocs/v2.php/config
   legacy_source: core/Controller/OCSController.php OCS#getConfig ApiRoute GET /config root ''
-  auth: mixed
+  auth: none
   request:
     params: {}
     query: {}
@@ -21298,12 +21298,12 @@ endpoints:
             ssl: 'false'
       content_type: application/json
     errors: []
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/config
+  next_handler: app/ocs/v2.php/config/route.ts
+  parity_test: next/parity/tests/core-public-leftovers.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: 'PublicPage. OpenAPI SCOPE_IGNORE. ssl is the literal string false. Error statuses not asserted. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.'
@@ -21346,7 +21346,7 @@ endpoints:
   method: GET
   legacy_path: /ocs/v2.php/identityproof/key/{cloudId}
   legacy_source: core/Controller/OCSController.php OCS#getIdentityProof ApiRoute GET /key/{cloudId} root /identityproof
-  auth: mixed
+  auth: none
   request:
     params:
       cloudId: string
@@ -21371,12 +21371,12 @@ endpoints:
           data:
             - Account not found
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/identityproof/key/{cloudId}
+  next_handler: app/ocs/v2.php/identityproof/key/[cloudId]/route.ts
+  parity_test: next/parity/tests/core-public-leftovers.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: 'PublicPage. OpenAPI SCOPE_IGNORE. cloudId is a local uid looked up via IUserManager. Exact OCS wrapping of the 404 list payload not separately asserted. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.'
@@ -21387,7 +21387,7 @@ endpoints:
   method: POST
   legacy_path: /ocs/v2.php/person/check
   legacy_source: core/Controller/OCSController.php OCS#personCheck ApiRoute POST /check root /person
-  auth: mixed
+  auth: none
   request:
     params: {}
     query: {}
@@ -21419,12 +21419,12 @@ endpoints:
           meta: OCSMeta
           data: []
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/person/check
+  next_handler: app/ocs/v2.php/person/check/route.ts
+  parity_test: next/parity/tests/core-public-leftovers.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: 'PublicPage + BruteForceProtection(login). OpenAPI SCOPE_IGNORE. Empty login/password returns DataResponse HTTP 101; failed checkPassword returns HTTP 102 and throttles. Whether AppFramework remaps 101/102 into OCS meta.statuscode is not asserted. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.'

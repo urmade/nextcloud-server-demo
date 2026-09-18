@@ -26,6 +26,7 @@ import { handleWebAuthnMock, isWebAuthnPath } from './webauthn';
 import { handleUnifiedSearchMock } from './unified-search';
 import { handleAvatarWriteMock } from './avatar-write';
 import { handleContactsMenuMock } from './contactsmenu';
+import { handlePublicLeftoversMock, isPublicLeftoversMockPath } from './public-leftovers';
 import { handleWipeMock } from './wipe';
 import { handleDavMock, isDavMockMethod } from './dav';
 import { handleDavDirectMock, isDavDirectMockPath } from './dav-direct';
@@ -632,6 +633,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return contactsMenu;
 	}
 
+	const publicLeftovers = await handlePublicLeftoversMock(pathname, search, options);
+
+	if (publicLeftovers) {
+		return publicLeftovers;
+	}
+
 	const avatar = handleAvatarMock(pathname, search);
 
 	if (avatar) {
@@ -841,6 +848,10 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (isFilesViewMockPath(pathname, normalizedMethod)) {
+		return true;
+	}
+
+	if (isPublicLeftoversMockPath(pathname, normalizedMethod)) {
 		return true;
 	}
 

@@ -33,6 +33,8 @@ Existing resets:
 | Files API + DAV file nodes | `/api/parity/reset-files-store` | `resetParityFilesStores()` |
 | Shares + external shares + DAV file nodes | `/api/parity/reset-files-sharing-store` | `resetParityShareStores()` |
 
+`set-files-sharing-config` parity route toggles `incomingServer2ServerShareEnabled` (ExternalShares) and `outgoingServer2ServerShareEnabled` (ShareInfo) on both sides.
+
 ## Do not
 
 - Treat isolation-only green as full-suite green.

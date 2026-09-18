@@ -10911,28 +10911,50 @@ endpoints:
   method: POST
   legacy_path: /apps/files_sharing/shareinfo
   legacy_source: apps/files_sharing/appinfo/routes.php ShareInfo#info
-  auth: session
+  auth: public-share
   request:
     params: {}
     query: {}
     headers: {}
-    body: controller-specific
+    body:
+      content_type: application/json
+      shape:
+        t: string
+        password: string
+        dir: string
+        depth: int64
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape:
+        data: object
+        status: success
+      content_type: application/json
     errors:
-    - status: 401
-      shape: login-or-json
+    - status: 400
+      shape: raw-empty
+    - status: 403
+      shape:
+        data: array
+        status: error
+      content_type: application/json
     - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape:
+        data: array
+        status: error
+      content_type: application/json
+  status: parity
+  parity: tested
+  next_path: /apps/files_sharing/shareinfo
+  next_handler: src/server/files_sharing/share-info.ts
+  parity_test: next/parity/tests/files-sharing-shareinfo.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: >-
+    PublicPage NoCSRFRequired; not public-link session — password in body.
+    ShareInfoMiddleware wraps every JSON body as {data,status}. Routes.php
+    auth session and 401 login-or-json were wrong. Outgoing S2S must be on or
+    middleware returns 404 wrapped. Missing t TypeError is raw 400 unwrapped.
 - id: files_sharing-public_preview-get-preview
   feature_ids:
   - files_sharing
@@ -10989,7 +11011,7 @@ endpoints:
   method: POST
   legacy_path: /index.php/apps/files_sharing/shareinfo
   legacy_source: openapi.json operationId=files_sharing-share_info-info
-  auth: mixed
+  auth: public-share
   request:
     params: {}
     query: {}
@@ -11005,32 +11027,33 @@ endpoints:
     success:
       status: 200
       shape:
-        id: int64
-        parentId: int64
-        mtime: int64
-        name: string
-        permissions: int64
-        mimetype: string
-        size: any
-        type: string
-        etag: string
-        children:
-          array: object
+        data: object
+        status: success
       content_type: application/json
     errors:
+    - status: 400
+      shape: raw-empty
     - status: 403
-      shape: any
+      shape:
+        data: array
+        status: error
       content_type: application/json
     - status: 404
-      shape: any
+      shape:
+        data: array
+        status: error
       content_type: application/json
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /index.php/apps/files_sharing/shareinfo
+  next_handler: src/server/files_sharing/share-info.ts
+  parity_test: next/parity/tests/files-sharing-shareinfo.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: >-
+    OpenAPI twin of files_sharing.ShareInfo#info.post; same info handler.
+    OpenAPI auth mixed and bare ShareInfo success shape were wrong. Every JSON
+    body is wrapped {data,status}. Password in body, not public-link session.
 - id: files_sharing-public_preview-direct-link
   feature_ids:
   - files_sharing

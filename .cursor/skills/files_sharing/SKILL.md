@@ -195,6 +195,26 @@ Frontpage JSON over the same `External\Manager` as remote OCS. Soft-dep: use rem
   - no preview: `mimeFallback` + File → **303** mime icon; else **404**
 - Success: `FileDisplayResponse` 200 binary (`bp-binary-parity`). Query: `file` default `''`, `x=32`, `y=32`, `a` **untyped** (truthy = no-crop), `mimeFallback=false`.
 
+## ShareInfo (slice 8)
+
+POST `/apps/files_sharing/shareinfo`. `ShareInfoController` extends `ApiController` — **not** `PublicShareController`; `PublicShareMiddleware` does not run. Password goes in the **body**, not `public_link_authenticated_frontend`.
+
+| id | Method | Path |
+| --- | --- | --- |
+| `files_sharing.ShareInfo#info.post` | POST | `/apps/files_sharing/shareinfo` |
+| `files_sharing-share_info-info` | POST | `/index.php/apps/files_sharing/shareinfo` |
+
+### Auth / status
+
+- `#[PublicPage]` `#[NoCSRFRequired]`. Map `auth: session` / `auth: mixed` and 401 login-or-json are **lies**.
+- `ShareInfoMiddleware`: `outgoingServer2ServerSharesAllowed()===false` → **404** `[]`, then wrapped (below). Toggle via `outgoingServer2ServerShareEnabled` in parity config.
+- Every JSON body is wrapped `{data, status:'success'|'error'}`. OpenAPI bare ShareInfo success shape is a **lie**. 403/404 still wrapped with `status: error`.
+- Params: `t` required; `password`; `dir`; `depth` default `-1`. Missing `t` TypeError → raw **400** (not wrapped).
+- Unknown token → **404** `[]` + throttle. Bad password / no READ → **403** `[]` + throttle.
+- Invalid `dir`: `NotFoundException` swallowed — stays at share root (not 404).
+- `depth===0` → no `children`. Else `children[]` recursive.
+- Node fields: `id,parentId,mtime,name,permissions` (node perms **&** share mask), `mimetype,size,type,etag`.
+
 ## Implementation layout
 
 ```
@@ -214,6 +234,7 @@ src/server/files_sharing/
   public-link.ts
   public-preview.ts
   public-session.ts
+  share-info.ts
 app/ocs/v2.php/apps/files_sharing/api/v1/
   shares/route.ts
   shares/inherited/route.ts
@@ -241,11 +262,14 @@ app/s/[token]/
 app/index.php/s/[token]/preview/route.ts
 app/apps/files_sharing/publicpreview/[token]/route.ts
 app/index.php/apps/files_sharing/publicpreview/[token]/route.ts
+app/apps/files_sharing/shareinfo/route.ts
+app/index.php/apps/files_sharing/shareinfo/route.ts
 parity/legacy-mock/files-sharing-ocs.ts
 parity/legacy-mock/files-sharing-public-link.ts
 parity/legacy-mock/files-sharing-accept.ts
 parity/legacy-mock/files-sharing-external-shares.ts
 parity/legacy-mock/files-sharing-public-preview.ts
+parity/legacy-mock/files-sharing-shareinfo.ts
 parity/tests/files-sharing-share-ocs.parity.test.ts
 parity/tests/files-sharing-public-link.parity.test.ts
 parity/tests/files-sharing-deleted-ocs.parity.test.ts
@@ -253,6 +277,7 @@ parity/tests/files-sharing-remote-ocs.parity.test.ts
 parity/tests/files-sharing-accept.parity.test.ts
 parity/tests/files-sharing-external-shares.parity.test.ts
 parity/tests/files-sharing-public-preview.parity.test.ts
+parity/tests/files-sharing-shareinfo.parity.test.ts
 ```
 
 ## Parity notes
@@ -311,6 +336,12 @@ parity/tests/files-sharing-public-preview.parity.test.ts
 | `GET /publicpreview/{token}` folder, no `file` | 400 `[]` |
 | `GET /publicpreview/{token}` hideDownload, no header | 403 `[]` |
 | `GET /index.php/.../publicpreview/{token}` | same handler as app route |
+| `POST /shareinfo` outgoing S2S off | 404 `{data:[],status:error}` |
+| `POST /shareinfo` good token | 200 `{status:success,data:{name,…}}` |
+| `POST /shareinfo` bad password | 403 `{data:[],status:error}` |
+| `POST /shareinfo` unknown token | 404 `{data:[],status:error}` |
+| `POST /shareinfo` missing `t` | 400 raw empty body |
+| `POST /index.php/.../shareinfo` | same handler as app route |
 
 Reset files + sharing stores (and file-node id counters) in accept parity `beforeEach` via `resetParityFilesStores()` + `resetParityShareStores()`. Seed a pending user share with admin `POST /shares` (`shareType: 0`, `shareWith: alice`), then exercise accept as `alice`.
 

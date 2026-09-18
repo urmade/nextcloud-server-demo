@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { handleLegacyMockAuth } from './auth';
 import { snapshotResponse } from '../compare';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
 
@@ -64,6 +65,11 @@ function jsonSnapshot(
 
 export function fetchLegacyMockSnapshot(pathname: string, options: ParityRequestOptions = {}): ParityResponseSnapshot {
 	const method = (options.method ?? 'GET').toUpperCase();
+	const authResponse = handleLegacyMockAuth(pathname, options);
+
+	if (authResponse) {
+		return authResponse;
+	}
 
 	if (method === 'PUT' && pathname.includes('/cloud/capabilities')) {
 		const isV1 = pathname.includes('/ocs/v1.php/');
@@ -110,10 +116,13 @@ export function usesLegacyMock(): boolean {
 	return !process.env.LEGACY_BASE_URL?.trim();
 }
 
-const MOCKED_ROUTES = new Set([
+const MOCKED_GET_ROUTES = new Set([
 	'/status.php',
 	'/ocs/v1.php/cloud/capabilities',
 	'/ocs/v2.php/cloud/capabilities',
+	'/csrftoken',
+	'/login',
+	'/logout',
 ]);
 
 export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean {
@@ -123,5 +132,9 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 		return true;
 	}
 
-	return normalizedMethod === 'GET' && MOCKED_ROUTES.has(pathname);
+	if (normalizedMethod === 'POST' && pathname === '/login') {
+		return true;
+	}
+
+	return normalizedMethod === 'GET' && MOCKED_GET_ROUTES.has(pathname);
 }

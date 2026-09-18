@@ -199,6 +199,14 @@ Public `@PublicPage` OCS and metrics endpoints. No session required.
 - `GET /ocs/v2.php/identityproof/key/{cloudId}` — fixture PEM for known local uid; miss HTTP **404** `data: ["Account not found"]`
 - `GET /metrics` — OpenMetrics export; IP allowlist (`NC_OPENMETRICS_ALLOWED_CLIENTS` / `NC_PARITY_METRICS_ALLOWED_CLIENTS`); outside → **403** empty body
 
+### Slice 16 — web updater (done)
+
+Public `@PublicPage` browser upgrade probe. **Does not run `Updater::upgrade()` in parity.** Client progress is SSE (`text/event-stream`), not OCS JSON body.
+
+- `GET /ocs/v2.php/core/update` — EventSource stream (`success`/`notice`/`failure`/`done`); HTTP OCS tail is always `data: null`
+
+Parity covers only already-up-to-date and `upgrade.disable-web` paths. `!needUpgrade()` (default; `NC_NEEDS_DB_UPGRADE=false`) → `notice` “Already up to date” + `done`. `NC_PARITY_UPGRADE_DISABLE_WEB=true` with `NC_NEEDS_DB_UPGRADE=true` → `failure` event (no `done`). Do not assert SQL/repair event text.
+
 ### Slice 14 — contacts menu + display names (done)
 
 Header contacts menu HTTP endpoints (session + CSRF on POST). Fixture users from `NC_PARITY_USERS`; teams from `parity-deck` catalog (`NC_PARITY_TEAMS_PROVIDER`). No Circles HTTP.
@@ -352,6 +360,10 @@ Slice 15:
 - `core.OCS#getIdentityProof`
 - `core.OpenMetrics#export`
 
+Slice 16:
+
+- `core.Update#update`
+
 ## Auth model
 
 | Route | Auth |
@@ -378,6 +390,7 @@ Slice 15:
 | Contacts menu GET teams | `session` — unauthenticated → **401** JSON `{ message }` / 303 login |
 | OCS config / person check / identity proof | `@PublicPage` — unauthenticated **200** (not 401) |
 | OpenMetrics `/metrics` | `@PublicPage` — no session; IP allowlist only |
+| Web updater `GET /ocs/v2.php/core/update` | `@PublicPage` — no session; SSE stream (map `auth: mixed` lie) |
 
 Unauthenticated OCS calls → v2 HTTP **401**, `ocs.meta.statuscode` **997**, empty `data` (except `@PublicPage` routes above).
 
@@ -392,6 +405,7 @@ src/server/
     app-password.ts            # create/rotate/delete/confirm handlers
     app-password-store.ts      # in-memory token store for parity
     unified-search.ts          # parity providers + search
+    web-updater.ts             # SSE upgrade probe (parity-safe paths only)
   avatar/
     user.ts                    # user avatar + guestFallback
     guest.ts                   # generated guest avatars (201)
@@ -501,6 +515,7 @@ app/
   ocs/v2.php/collaboration/resources/[resourceType]/[resourceId]/route.ts
   ocs/v2.php/teams/resources/[providerId]/[resourceId]/route.ts
   ocs/v2.php/teams/[teamId]/resources/route.ts
+  ocs/v2.php/core/update/route.ts
   contactsmenu/api.ts
   contactsmenu/contacts/route.ts
   contactsmenu/findOne/route.ts
@@ -529,6 +544,8 @@ Config:
 | `NC_OPENMETRICS_ALLOWED_CLIENTS` | `127.0.0.0/16,::1/128` | CIDR allowlist for `/metrics` |
 | `NC_PARITY_METRICS_ALLOWED_CLIENTS` | (unset) | Parity override for metrics allowlist |
 | `NC_PARITY_METRICS_REMOTE_ADDR` | (unset) | Pin remote address for metrics parity |
+| `NC_NEEDS_DB_UPGRADE` | `false` | When `true`, simulates `Util::needUpgrade()` for updater parity |
+| `NC_PARITY_UPGRADE_DISABLE_WEB` | `false` | When `true` with `NC_NEEDS_DB_UPGRADE=true`, emits `failure` SSE event |
 
 ## Traps
 
@@ -629,6 +646,10 @@ Config:
 - `personCheck` success → `{ person: { personid: login } }`; skip brute-force throttle delay in parity
 - `getIdentityProof` `cloudId` is local uid; unknown → HTTP **404** with `data: ["Account not found"]` (list)
 - `/metrics` outside allowlist → **403** empty body (no JSON); success `application/openmetrics-text; version=1.0.0; charset=utf-8` with fixture family + `# EOF`
+- Web updater response is **SSE** (`text/event-stream`), not OCS JSON — compare event types, not `ocs.data`
+- Web updater `!needUpgrade()` → `success` “Preparing update”, `notice` “Already up to date”, `done`, then `__internal__` close
+- Web updater `upgrade.disable-web` only applies when `needUpgrade()` is true — set `NC_NEEDS_DB_UPGRADE=true` in parity
+- Do not run real `Updater::upgrade()` or assert SQL/repair stream text in parity
 
 ## Parity extras
 
@@ -744,5 +765,7 @@ Config:
 | Happy | identity proof known uid | 200 fixture PEM in `data.public` |
 | Validation | metrics forbidden | 403 empty body |
 | Happy | metrics allowed | 200 openmetrics text + `# EOF` |
+| Public | web updater already-current | 200 SSE `notice` + `done` (no auth) |
+| Validation | web updater disable-web | SSE `failure` when `NC_NEEDS_DB_UPGRADE=true` + `NC_PARITY_UPGRADE_DISABLE_WEB=true` |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` fixtures (not waived).

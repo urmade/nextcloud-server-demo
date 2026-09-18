@@ -38,6 +38,7 @@ Existing resets:
 | Task processing | `/api/parity/reset-task-store` | `resetParityTaskStores()` |
 | Auth/session/2FA/credentials/lost-password/mandatory-2FA | `/api/parity/reset-auth-store` | `resetParityAuthStores()` |
 | Mandatory 2FA enforcement toggle | `/api/parity/set-auth-config` | `setParityTwoFactorEnforced(enforced)` |
+| Web updater parity flags | `/api/parity/set-web-updater-config` | `setParityWebUpdaterConfig({ needsUpgrade, disableWeb })` / `resetParityWebUpdaterConfig()` |
 | Files API + DAV file nodes | `/api/parity/reset-files-store` | `resetParityFilesStores()` |
 | Shares + external shares + DAV file nodes | `/api/parity/reset-files-sharing-store` | `resetParityShareStores()` |
 | Unified sharing v1 shares | `/api/parity/reset-sharing-v1-store` | `resetParitySharingV1Stores()` |

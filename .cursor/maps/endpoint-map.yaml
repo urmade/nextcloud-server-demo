@@ -21314,7 +21314,7 @@ endpoints:
   method: GET
   legacy_path: /ocs/v2.php/core/update
   legacy_source: core/Controller/UpdateController.php Update#update ApiRoute GET /update root /core
-  auth: mixed
+  auth: none
   request:
     params: {}
     query: {}
@@ -21330,12 +21330,12 @@ endpoints:
           data: null
       content_type: application/json
     errors: []
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/core/update
+  next_handler: app/ocs/v2.php/core/update/route.ts
+  parity_test: next/parity/tests/core-web-updater.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: 'PublicPage. OpenAPI SCOPE_IGNORE. HTTP DataResponse body is always null. Client-visible progress is an EventSource stream (success/notice/failure/done); EventSource performs its own CSRF check. Side effects: may run Updater::upgrade, toggle maintenance, disable incompatible apps; sets incognito mode; upgrade.disable-web skips browser upgrade. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.'

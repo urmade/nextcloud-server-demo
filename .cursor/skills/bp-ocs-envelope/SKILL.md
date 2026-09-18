@@ -106,6 +106,8 @@ v1 success adds `totalitems` and `itemsperpage` (empty strings) to `meta`.
 
 **Trap:** `getIdentityProof` miss returns HTTP **404** with `ocs.data` as a **list** `["Account not found"]` — not `{}` or `{ message }`.
 
+**Trap:** `GET /ocs/v2.php/core/update` is `@PublicPage` but map lists `auth: mixed` — unauthenticated **200** SSE (`text/event-stream`), not OCS JSON. Progress is EventSource (`success`/`notice`/`failure`/`done`); HTTP OCS `data: null` is the conceptual tail, not the stream body. Parity must not run `Updater::upgrade()` — test only already-current and `NC_PARITY_UPGRADE_DISABLE_WEB=true` paths.
+
 ## Implementation
 
 - Shared helpers: `src/server/ocs/envelope.ts` (`buildOcsSuccessEnvelope`, `buildOcsFailureEnvelope`, `getOcsHttpStatus`); `src/server/ocs/respond.ts` (`ocsBadRequestStringResponse` for string `data` on 400).

@@ -13,6 +13,7 @@ export interface DavFileNode {
 	etag: string;
 	size: number;
 	contentType: string;
+	mtime?: number;
 	content?: string;
 	children?: DavFileNode[];
 }

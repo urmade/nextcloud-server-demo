@@ -2,6 +2,7 @@ import {
 	handleCropImagePreviews,
 	handleGetConfigs,
 	handleGetGridView,
+	handleGetRecentFiles,
 	handleGetStorageStats,
 	handleGetViewConfigs,
 	handleSetConfig,
@@ -18,6 +19,8 @@ const FILES_API_GET_HANDLERS: Record<string, (request: Request) => Response> = {
 	'/apps/files/api/v1/views': handleGetViewConfigs,
 	'/apps/files/api/v1/stats': handleGetStorageStats,
 	'/apps/files/api/v1/showgridview': handleGetGridView,
+	'/apps/files/api/v1/recent': handleGetRecentFiles,
+	'/apps/files/api/v1/recent/': handleGetRecentFiles,
 };
 
 const FILES_API_WRITE_HANDLERS: Array<{

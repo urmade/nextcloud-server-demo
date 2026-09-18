@@ -4,6 +4,10 @@ const ADMIN_USER = process.env.NC_ADMIN_USER?.trim() || 'admin';
 let nextFileId = 1100;
 let filesHome = adminHome();
 
+function seedMtime(daysAgo: number): number {
+	return Math.floor(Date.now() / 1000) - daysAgo * 24 * 60 * 60;
+}
+
 function welcomeFile(): DavFileNode {
 	return {
 		name: 'welcome.txt',
@@ -12,6 +16,7 @@ function welcomeFile(): DavFileNode {
 		etag: '"64f0a1b2c3d4e5f6"',
 		size: 13,
 		contentType: 'text/plain',
+		mtime: seedMtime(1),
 		content: 'Hello, admin!',
 	};
 }
@@ -24,6 +29,7 @@ function documentsFolder(): DavFileNode {
 		etag: '"64f0a1b2c3d4e5f7"',
 		size: 0,
 		contentType: 'httpd/unix-directory',
+		mtime: seedMtime(3),
 		children: [
 			{
 				name: 'readme.md',
@@ -32,6 +38,7 @@ function documentsFolder(): DavFileNode {
 				etag: '"64f0a1b2c3d4e5f8"',
 				size: 28,
 				contentType: 'text/markdown',
+				mtime: seedMtime(2),
 				content: '# Documents\n\nParity seed file.',
 			},
 		],
@@ -114,6 +121,7 @@ export function assembleFileIntoHome(relativePath: string, content: Buffer): { c
 		etag,
 		size: content.length,
 		contentType: 'application/octet-stream',
+		mtime: Math.floor(Date.now() / 1000),
 		content: content.toString('latin1'),
 	};
 

@@ -23,6 +23,7 @@ import {
 	setViewConfig,
 	ViewConfigValidationError,
 } from './view-config';
+import { getRecentFiles } from './recent';
 import { resetFilesViewConfigStore } from './view-config-store';
 
 const JSON_HEADERS = {
@@ -135,6 +136,16 @@ export function handleGetGridView(request: Request): Response {
 		status: 200,
 		headers: JSON_HEADERS,
 	});
+}
+
+export function handleGetRecentFiles(request: Request): Response {
+	const auth = requireFilesApiUser(request);
+
+	if (auth instanceof Response) {
+		return auth;
+	}
+
+	return jsonDataResponse({ files: getRecentFiles(auth) });
 }
 
 function csrfFailure(): Response {

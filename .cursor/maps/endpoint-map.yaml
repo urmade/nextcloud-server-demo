@@ -8663,17 +8663,17 @@ endpoints:
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: '{files:FileEntry[]}'
     errors:
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: '{message}'
+    - status: 303
+      shape: redirect-root-strict-cookie
+  status: parity
+  parity: tested
+  next_path: /apps/files/api/v1/recent/
+  next_handler: src/server/files/recent.ts
+  parity_test: next/parity/tests/files-json-recent.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: files.Api#getGridView

@@ -15,6 +15,12 @@ import {
 	type ResolvedSession,
 } from '@/src/server/auth/session';
 import { updateSession } from '@/src/server/auth/session-store';
+import {
+	getTwoFactorLoginRedirectUrl,
+	isTwoFactorEnabledForUser,
+	needsSecondFactor,
+	prepareTwoFactorLogin,
+} from '@/src/server/auth/two-factor-challenge';
 
 export const LOGIN_MSG_INVALIDPASSWORD = 'invalidpassword';
 export const LOGIN_MSG_CSRFCHECKFAILED = 'csrfCheckFailed';
@@ -227,6 +233,16 @@ export function handleLoginPost(request: Request, resolved: ResolvedSession, bod
 	const maxAge = form.rememberme ? 60 * 60 * 24 * 15 : 60 * 60 * 24;
 	const loginCookies = buildLoginCookieHeaders(trimmedUser, loginToken, session.id, maxAge);
 
+	if (isTwoFactorEnabledForUser(trimmedUser)) {
+		prepareTwoFactorLogin(session, form.rememberme);
+
+		return buildRedirectResponse(
+			request,
+			getTwoFactorLoginRedirectUrl(request, trimmedUser),
+			[...cookieHeaders, ...loginCookies],
+		);
+	}
+
 	return buildRedirectResponse(
 		request,
 		getDefaultPageUrl(request),
@@ -258,7 +274,10 @@ export function handleLoginGet(request: Request, resolved: ResolvedSession): Res
 	}
 
 	if (isLoggedIn(session)) {
-		headers.set('location', getDefaultPageUrl(request));
+		const location = needsSecondFactor(session)
+			? getTwoFactorLoginRedirectUrl(request, session.userId ?? '')
+			: getDefaultPageUrl(request);
+		headers.set('location', new URL(location, request.url).toString());
 
 		return new Response(null, {
 			status: 303,

@@ -19,6 +19,7 @@ import { handleTranslationMock } from './translation';
 import { handleCollaborationResourcesMock } from './collaboration-resources';
 import { handleTeamsMock } from './teams';
 import { handleTwoFactorMock } from './two-factor';
+import { handleTwoFactorChallengeMock, isTwoFactorChallengePath } from './two-factor-challenge';
 import { handleUnifiedSearchMock } from './unified-search';
 import { handleWipeMock } from './wipe';
 import { snapshotResponse } from '../compare';
@@ -348,6 +349,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return authResponse;
 	}
 
+	const twoFactorChallenge = await handleTwoFactorChallengeMock(pathname, search, options);
+
+	if (twoFactorChallenge) {
+		return twoFactorChallenge;
+	}
+
 	const loginFlowV2 = await handleLoginFlowV2Mock(pathname, search, options);
 
 	if (loginFlowV2) {
@@ -540,7 +547,7 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 		return true;
 	}
 
-	if (normalizedMethod === 'POST' && pathname === '/login') {
+	if (normalizedMethod === 'POST' && (pathname === '/login' || isTwoFactorChallengePath(pathname))) {
 		return true;
 	}
 
@@ -550,7 +557,8 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 		|| pathname === '/index.php/login/v2/poll'
 		|| pathname === '/login/v2/flow'
 		|| pathname === '/login/v2/grant'
-		|| /^\/login\/v2\/flow\/[^/]+$/.test(pathname)) {
+		|| /^\/login\/v2\/flow\/[^/]+$/.test(pathname)
+		|| isTwoFactorChallengePath(pathname)) {
 		return true;
 	}
 

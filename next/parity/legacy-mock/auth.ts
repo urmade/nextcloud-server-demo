@@ -19,6 +19,11 @@ import {
 	updateSession,
 	type SessionData,
 } from '@/src/server/auth/session-store';
+import {
+	getTwoFactorLoginRedirectUrl,
+	isTwoFactorEnabledForUser,
+	prepareTwoFactorLogin,
+} from '@/src/server/auth/two-factor-challenge';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
 import { snapshotResponse } from '../compare';
 
@@ -213,6 +218,16 @@ export function handleLegacyMockAuth(pathname: string, options: ParityRequestOpt
 
 		const maxAge = rememberme ? 60 * 60 * 24 * 15 : 60 * 60 * 24;
 		const loginCookies = buildLoginCookieHeaders(trimmedUser, loginToken, session.id, maxAge);
+
+		if (isTwoFactorEnabledForUser(trimmedUser)) {
+			prepareTwoFactorLogin(session, rememberme);
+			const challengeUrl = getTwoFactorLoginRedirectUrl(
+				new Request(`http://127.0.0.1:3100/login`),
+				trimmedUser,
+			);
+
+			return redirectResponse(`http://127.0.0.1:3100${challengeUrl}`, [...setCookies, ...loginCookies]);
+		}
 
 		return redirectResponse('http://127.0.0.1:3100/index.php/apps/dashboard/', [...setCookies, ...loginCookies]);
 	}

@@ -4925,25 +4925,30 @@ endpoints:
   request:
     params:
       challengeProviderId: string
-    query: {}
+    query:
+      redirect_url: optional string
     headers: {}
     body: null
   response:
     success:
       status: 200
-      shape: 2FA challenge page
+      content_type: text/html; charset=UTF-8
+      shape: twofactor-challenge-html
     errors:
-    - status: 401
-      shape: login-failed
-    - status: 429
-      shape: bruteforce-throttle
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+    - status: 303
+      shape: redirect-to-selectchallenge-when-unknown-provider
+    - status: 303
+      shape: redirect-to-login-when-unauthenticated
+    - status: 303
+      shape: redirect-to-default-page-when-2fa-complete
+  status: parity
+  parity: tested
+  next_path: /login/challenge/{challengeProviderId}
+  next_handler: app/login/challenge/[challengeProviderId]/route.ts
+  parity_test: next/parity/tests/core-login-2fa-challenge.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Fixture provider parity-totp only. Invalid providerId redirects to /login/selectchallenge. Session flash two_factor_auth_error on failed solve.
 - id: core.TwoFactorChallenge#solve
   feature_ids:
   - core-login
@@ -4957,24 +4962,30 @@ endpoints:
       challengeProviderId: string
     query: {}
     headers:
-      requesttoken: string
-    body: provider-specific
+      content-type: application/x-www-form-urlencoded
+    body:
+      challenge: string
+      redirect_url: optional string
   response:
     success:
       status: 303
-      shape: Submit 2FA
+      content_type: null
+      shape: redirect-to-default-page-or-redirect_url
     errors:
-    - status: 401
-      shape: login-failed
-    - status: 429
-      shape: bruteforce-throttle
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+    - status: 303
+      shape: redirect-back-to-challenge-on-invalid-code
+    - status: 303
+      shape: redirect-to-selectchallenge-when-unknown-provider
+    - status: 303
+      shape: redirect-to-login-when-unauthenticated
+  status: parity
+  parity: tested
+  next_path: /login/challenge/{challengeProviderId}
+  next_handler: app/login/challenge/[challengeProviderId]/route.ts
+  parity_test: next/parity/tests/core-login-2fa-challenge.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Form field challenge (not requesttoken). NoCSRFRequired on legacy. Brute-force throttle status only; no delay simulation.
 - id: core.TwoFactorChallenge#select
   feature_ids:
   - core-login
@@ -4985,25 +4996,28 @@ endpoints:
   auth: session
   request:
     params: {}
-    query: {}
+    query:
+      redirect_url: optional string
     headers: {}
     body: null
   response:
     success:
       status: 200
-      shape: Pick 2FA provider
+      content_type: text/html; charset=UTF-8
+      shape: twofactor-select-html
     errors:
-    - status: 401
-      shape: login-failed
-    - status: 429
-      shape: bruteforce-throttle
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+    - status: 303
+      shape: redirect-to-login-when-unauthenticated
+    - status: 303
+      shape: redirect-to-default-page-when-2fa-complete
+  status: parity
+  parity: tested
+  next_path: /login/selectchallenge
+  next_handler: app/login/selectchallenge/route.ts
+  parity_test: next/parity/tests/core-login-2fa-challenge.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Provider picker when multiple enabled providers. Single provider login redirects directly to showChallenge.
 - id: core.ClientFlowLoginV2#init
   feature_ids:
   - core-login

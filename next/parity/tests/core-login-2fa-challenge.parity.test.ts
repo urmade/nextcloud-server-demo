@@ -1,0 +1,314 @@
+import { afterEach, describe, expect, it } from 'vitest';
+import { SESSION_COOKIE } from '@/src/server/auth/cookies';
+import { FIXTURE_CHALLENGE_CODE, FIXTURE_PROVIDER_ID } from '@/src/server/auth/two-factor-challenge';
+import { resetSessionStore } from '@/src/server/auth/session-store';
+import { resetTwoFactorStore, tryEnableTwoFactorProvider } from '@/src/server/two-factor/store';
+import { getParityEnv } from '../env';
+import { fetchLegacyMockSnapshot } from '../legacy-mock/adapter';
+import { formatParityMismatches, runParityCase } from '../harness';
+import { cookieJarToHeader, mergeResponseCookies } from '../helpers/cookies';
+import { loginParitySession, OCS_JSON_HEADERS } from '../helpers/session';
+
+const LOCATION_COMPARE = {
+	contractHeaders: ['content-type', 'location'],
+	ignoreHeaders: ['location'],
+} as const;
+
+function normalizeLocation(location: string | null): string | null {
+	if (!location) {
+		return null;
+	}
+
+	try {
+		const url = new URL(location);
+
+		return `${url.pathname}${url.search}`;
+	} catch {
+		return location;
+	}
+}
+
+async function enableTwoFactorOnServer(baseUrl: string, adminJar: Record<string, string>): Promise<void> {
+	const enableResponse = await fetch(`${baseUrl}/ocs/v2.php/twofactor/enable?format=json`, {
+		method: 'POST',
+		headers: {
+			...OCS_JSON_HEADERS,
+			cookie: cookieJarToHeader(adminJar) ?? '',
+		},
+		body: JSON.stringify({ user: 'admin', providers: [FIXTURE_PROVIDER_ID] }),
+	});
+
+	expect(enableResponse.status).toBe(200);
+}
+
+async function loginWithTwoFactorEnabled(baseUrl = getParityEnv().newBaseUrl): Promise<Record<string, string>> {
+	tryEnableTwoFactorProvider(FIXTURE_PROVIDER_ID, 'admin');
+	const adminJar = await loginParitySession(baseUrl);
+	await enableTwoFactorOnServer(baseUrl, adminJar);
+
+	let jar: Record<string, string> = {};
+	const csrfResponse = await fetch(`${baseUrl}/csrftoken`, {
+		redirect: 'manual',
+		headers: { cookie: cookieJarToHeader(jar) ?? '' },
+	});
+	jar = mergeResponseCookies(jar, csrfResponse);
+	const csrfBody = await csrfResponse.json() as { token: string };
+
+	const loginResponse = await fetch(`${baseUrl}/login`, {
+		method: 'POST',
+		redirect: 'manual',
+		headers: {
+			'content-type': 'application/x-www-form-urlencoded',
+			cookie: cookieJarToHeader(jar) ?? '',
+		},
+		body: new URLSearchParams({
+			user: 'admin',
+			password: 'parity-test-password',
+			requesttoken: csrfBody.token,
+		}).toString(),
+	});
+
+	return mergeResponseCookies(jar, loginResponse);
+}
+
+describe('parity: core-login-2fa-challenge', () => {
+	afterEach(() => {
+		resetSessionStore();
+		resetTwoFactorStore();
+	});
+
+	it('GET /login/selectchallenge unauthenticated redirects to login', async () => {
+		const result = await runParityCase({
+			name: 'twofactor-select-unauth',
+			path: '/login/selectchallenge',
+			compare: LOCATION_COMPARE,
+		});
+
+		expect(result.mismatches, formatParityMismatches(result.mismatches)).toEqual([]);
+
+		const env = getParityEnv();
+		const response = await fetch(`${env.newBaseUrl}/login/selectchallenge`, { redirect: 'manual' });
+
+		expect(response.status).toBe(303);
+		expect(normalizeLocation(response.headers.get('location'))).toBe('/login');
+	});
+
+	it('GET /login/selectchallenge happy path after password login', async () => {
+		const jar = await loginWithTwoFactorEnabled();
+
+		const result = await runParityCase({
+			name: 'twofactor-select-happy',
+			path: '/login/selectchallenge',
+			options: {
+				headers: { cookie: cookieJarToHeader(jar) ?? '' },
+			},
+			compare: {
+				contractHeaders: ['content-type'],
+			},
+		});
+
+		expect(result.mismatches, formatParityMismatches(result.mismatches)).toEqual([]);
+
+		const env = getParityEnv();
+		const response = await fetch(`${env.newBaseUrl}/login/selectchallenge`, {
+			redirect: 'manual',
+			headers: { cookie: cookieJarToHeader(jar) ?? '' },
+		});
+		const html = await response.text();
+
+		expect(response.status).toBe(200);
+		expect(html).toContain('id="twofactor-select"');
+		expect(html).toContain(FIXTURE_PROVIDER_ID);
+	});
+
+	it('GET /login/challenge/{id} invalid provider redirects to selectchallenge', async () => {
+		const jar = await loginWithTwoFactorEnabled();
+
+		const legacy = await fetchLegacyMockSnapshot('/login/challenge/unknown-provider', {
+			headers: { cookie: cookieJarToHeader(jar) ?? '' },
+		});
+
+		const env = getParityEnv();
+		const response = await fetch(`${env.newBaseUrl}/login/challenge/unknown-provider`, {
+			redirect: 'manual',
+			headers: { cookie: cookieJarToHeader(jar) ?? '' },
+		});
+
+		expect(legacy.status).toBe(303);
+		expect(response.status).toBe(303);
+		expect(normalizeLocation(legacy.headers.location ?? null)).toBe('/login/selectchallenge');
+		expect(normalizeLocation(response.headers.get('location'))).toBe('/login/selectchallenge');
+	});
+
+	it('GET /login/challenge/{id} happy path shows challenge form', async () => {
+		const jar = await loginWithTwoFactorEnabled();
+
+		const result = await runParityCase({
+			name: 'twofactor-show-happy',
+			path: `/login/challenge/${FIXTURE_PROVIDER_ID}`,
+			options: {
+				headers: { cookie: cookieJarToHeader(jar) ?? '' },
+			},
+			compare: {
+				contractHeaders: ['content-type'],
+			},
+		});
+
+		expect(result.mismatches, formatParityMismatches(result.mismatches)).toEqual([]);
+
+		const env = getParityEnv();
+		const response = await fetch(`${env.newBaseUrl}/login/challenge/${FIXTURE_PROVIDER_ID}`, {
+			redirect: 'manual',
+			headers: { cookie: cookieJarToHeader(jar) ?? '' },
+		});
+		const html = await response.text();
+
+		expect(response.status).toBe(200);
+		expect(html).toContain('id="twofactor-challenge"');
+		expect(html).toContain('name="challenge"');
+	});
+
+	it('POST /login/challenge/{id} wrong code redirects back with error state', async () => {
+		const jar = await loginWithTwoFactorEnabled();
+
+		const legacy = await fetchLegacyMockSnapshot(`/login/challenge/${FIXTURE_PROVIDER_ID}`, {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/x-www-form-urlencoded',
+				cookie: cookieJarToHeader(jar) ?? '',
+			},
+			body: new URLSearchParams({ challenge: '000000' }).toString(),
+		});
+
+		const env = getParityEnv();
+		const response = await fetch(`${env.newBaseUrl}/login/challenge/${FIXTURE_PROVIDER_ID}`, {
+			method: 'POST',
+			redirect: 'manual',
+			headers: {
+				'content-type': 'application/x-www-form-urlencoded',
+				cookie: cookieJarToHeader(jar) ?? '',
+			},
+			body: new URLSearchParams({ challenge: '000000' }).toString(),
+		});
+
+		expect(legacy.status).toBe(303);
+		expect(response.status).toBe(303);
+		expect(normalizeLocation(response.headers.get('location'))).toBe(`/login/challenge/${FIXTURE_PROVIDER_ID}`);
+
+		const showResponse = await fetch(`${env.newBaseUrl}/login/challenge/${FIXTURE_PROVIDER_ID}`, {
+			redirect: 'manual',
+			headers: { cookie: cookieJarToHeader(jar) ?? '' },
+		});
+		const html = await showResponse.text();
+
+		expect(html).toContain('two-factor-error');
+	});
+
+	it('POST /login/challenge/{id} happy path completes login', async () => {
+		const jar = await loginWithTwoFactorEnabled();
+
+		const legacy = await fetchLegacyMockSnapshot(`/login/challenge/${FIXTURE_PROVIDER_ID}`, {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/x-www-form-urlencoded',
+				cookie: cookieJarToHeader(jar) ?? '',
+			},
+			body: new URLSearchParams({ challenge: FIXTURE_CHALLENGE_CODE }).toString(),
+		});
+
+		const env = getParityEnv();
+		const response = await fetch(`${env.newBaseUrl}/login/challenge/${FIXTURE_PROVIDER_ID}`, {
+			method: 'POST',
+			redirect: 'manual',
+			headers: {
+				'content-type': 'application/x-www-form-urlencoded',
+				cookie: cookieJarToHeader(jar) ?? '',
+			},
+			body: new URLSearchParams({ challenge: FIXTURE_CHALLENGE_CODE }).toString(),
+		});
+
+		expect(legacy.status).toBe(303);
+		expect(response.status).toBe(303);
+		expect(normalizeLocation(response.headers.get('location'))).toBe('/index.php/apps/dashboard/');
+	});
+
+	it('GET /login/challenge/{id} after 2FA complete redirects to default page', async () => {
+		const jar = await loginWithTwoFactorEnabled();
+		const solveBody = new URLSearchParams({ challenge: FIXTURE_CHALLENGE_CODE }).toString();
+		const solveHeaders = {
+			'content-type': 'application/x-www-form-urlencoded',
+			cookie: cookieJarToHeader(jar) ?? '',
+		};
+
+		await fetchLegacyMockSnapshot(`/login/challenge/${FIXTURE_PROVIDER_ID}`, {
+			method: 'POST',
+			headers: solveHeaders,
+			body: solveBody,
+		});
+
+		await fetch(`${getParityEnv().newBaseUrl}/login/challenge/${FIXTURE_PROVIDER_ID}`, {
+			method: 'POST',
+			redirect: 'manual',
+			headers: solveHeaders,
+			body: solveBody,
+		});
+
+		const legacy = await fetchLegacyMockSnapshot(`/login/challenge/${FIXTURE_PROVIDER_ID}`, {
+			headers: { cookie: cookieJarToHeader(jar) ?? '' },
+		});
+
+		const env = getParityEnv();
+		const response = await fetch(`${env.newBaseUrl}/login/challenge/${FIXTURE_PROVIDER_ID}`, {
+			redirect: 'manual',
+			headers: { cookie: cookieJarToHeader(jar) ?? '' },
+		});
+
+		expect(legacy.status).toBe(303);
+		expect(response.status).toBe(303);
+		expect(normalizeLocation(legacy.headers.location ?? null)).toBe('/index.php/apps/dashboard/');
+		expect(normalizeLocation(response.headers.get('location'))).toBe('/index.php/apps/dashboard/');
+	});
+
+	it('POST /login enables 2FA redirect via admin OCS enable', async () => {
+		const adminJar = await loginParitySession();
+		const sessionId = adminJar[SESSION_COOKIE];
+
+		expect(sessionId).toBeTruthy();
+
+		const enableResponse = await fetch(`${getParityEnv().newBaseUrl}/ocs/v2.php/twofactor/enable?format=json`, {
+			method: 'POST',
+			headers: {
+				...OCS_JSON_HEADERS,
+				cookie: cookieJarToHeader(adminJar) ?? '',
+			},
+			body: JSON.stringify({ user: 'admin', providers: [FIXTURE_PROVIDER_ID] }),
+		});
+
+		expect(enableResponse.status).toBe(200);
+
+		let jar: Record<string, string> = {};
+		const csrfResponse = await fetch(`${getParityEnv().newBaseUrl}/csrftoken`, {
+			redirect: 'manual',
+			headers: { cookie: cookieJarToHeader(jar) ?? '' },
+		});
+		jar = mergeResponseCookies(jar, csrfResponse);
+		const csrfBody = await csrfResponse.json() as { token: string };
+
+		const loginResponse = await fetch(`${getParityEnv().newBaseUrl}/login`, {
+			method: 'POST',
+			redirect: 'manual',
+			headers: {
+				'content-type': 'application/x-www-form-urlencoded',
+				cookie: cookieJarToHeader(jar) ?? '',
+			},
+			body: new URLSearchParams({
+				user: 'admin',
+				password: 'parity-test-password',
+				requesttoken: csrfBody.token,
+			}).toString(),
+		});
+
+		expect(loginResponse.status).toBe(303);
+		expect(normalizeLocation(loginResponse.headers.get('location'))).toBe(`/login/challenge/${FIXTURE_PROVIDER_ID}`);
+	});
+});

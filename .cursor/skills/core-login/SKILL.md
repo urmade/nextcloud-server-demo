@@ -22,12 +22,15 @@ description: Core session login, logout, CSRF token, and client login flow v2 en
 - `GET /login/v2/flow` — auth picker HTML (requires session login-flow token)
 - `GET /login/v2/grant` — grant page HTML (session + `stateToken` query)
 - `POST /login/v2/grant` — confirm grant, generate app password for client
+- `GET /login/selectchallenge` — pick 2FA provider (HTML, 2FA pending session)
+- `GET /login/challenge/{challengeProviderId}` — show provider challenge (HTML)
+- `POST /login/challenge/{challengeProviderId}` — submit challenge code (form `challenge`)
 
 `/index.php/login/v2` and `/index.php/login/v2/poll` are twins rewritten to `/login/v2*`.
 
 ## Non-scope (same feature, later slices)
 
-- WebAuthn (`/login/webauthn/*`), 2FA challenge flows, `POST /login/confirm`
+- WebAuthn (`/login/webauthn/*`), `POST /login/confirm`
 - Lost password, heartbeat
 - `POST /login/v2/apptoken` (app-token redirect path)
 - LDAP, SAML, OIDC, alternative login providers
@@ -48,6 +51,9 @@ Map ids with `feature_ids: [core-login]` and `parity: tested`:
 - `core.ClientFlowLoginV2#flow`
 - `core.ClientFlowLoginV2#grant`
 - `core.ClientFlowLoginV2#poll`
+- `core.TwoFactorChallenge#select`
+- `core.TwoFactorChallenge#showChallenge`
+- `core.TwoFactorChallenge#solve`
 
 ## Auth model
 
@@ -63,6 +69,9 @@ Map ids with `feature_ids: [core-login]` and `parity: tested`:
 | `GET /login/v2/flow` | `session` login-flow token in session (not user login) |
 | `GET /login/v2/grant` | `session` (logged-in user) + valid `stateToken` |
 | `POST /login/v2/grant` | `session` + CSRF + fresh password confirm + valid `stateToken` |
+| `GET /login/selectchallenge` | `session` with 2FA pending (`twoFactorPendingUid`); redirects if unauthenticated or 2FA complete |
+| `GET /login/challenge/{id}` | same as selectchallenge |
+| `POST /login/challenge/{id}` | same; form field `challenge` (NoCSRFRequired on legacy) |
 
 Credentials: env `NC_ADMIN_USER` / `NC_ADMIN_PASSWORD` (defaults `admin` / `parity-test-password`).
 
@@ -79,6 +88,7 @@ src/server/auth/
   logout.ts
   login-flow-v2-store.ts   # in-memory pending flows
   login-flow-v2.ts         # init/poll/flow/grant handlers
+  two-factor-challenge.ts  # select/show/solve + pending-session state
 app/
   csrftoken/route.ts
   login/route.ts
@@ -88,7 +98,20 @@ app/
   login/v2/flow/route.ts
   login/v2/flow/[token]/route.ts
   login/v2/grant/route.ts
+  login/selectchallenge/route.ts
+  login/challenge/[challengeProviderId]/route.ts
 ```
+
+## Login-time 2FA challenge
+
+Fixture provider `parity-totp` (enable via OCS `/ocs/v2.php/twofactor/enable`). Challenge code: env `NC_PARITY_TWO_FACTOR_CODE` (default `123456`).
+
+1. `POST /login` with 2FA-enabled user → `prepareTwoFactorLogin` sets `twoFactorPendingUid` → 303 to `/login/challenge/parity-totp` (single provider) or `/login/selectchallenge` (multiple).
+2. User submits `POST /login/challenge/{id}` with form field `challenge`.
+3. Success → `completeTwoFactorLogin` sets `twoFactorDone`, clears pending → 303 to default page or `redirect_url`.
+4. Failure → session flash `twoFactorAuthError` → 303 back to showChallenge (error shown on next GET).
+
+Unauthenticated → 303 `/login`. Already 2FA-complete → 303 default page. Unknown providerId → 303 `/login/selectchallenge`.
 
 ## Client login flow v2
 
@@ -149,6 +172,9 @@ Failed login sets session flash `loginMessages: [[errorCode], []]`.
 - Poll **404** body is `[]`, not an error object.
 - Grant POST requires **fresh password confirmation** (`lastPasswordConfirm` within 30m); stale → 403 + `X-NC-Auth-NotConfirmed: true`.
 - Do not invent grant UX pixels; minimal HTML stubs with `#core-loginflow` marker suffice.
+- 2FA challenge pages use `#twofactor-select` / `#twofactor-challenge` markers; not full TOTP/WebAuthn UI.
+- `POST /login/challenge/*` uses form field `challenge`, not `requesttoken` (legacy `NoCSRFRequired`).
+- Map `auth: session` on 2FA routes means 2FA-pending session, not fully authenticated; failures are 303 redirects, not 401 JSON.
 
 ## Parity extras
 
@@ -171,5 +197,12 @@ Failed login sets session flash `loginMessages: [[errorCode], []]`.
 | Landing valid token | `GET /login/v2/flow/{token}` | 303 to `/login/v2/flow` |
 | Grant unauthenticated | `GET /login/v2/grant` | 403 HTML |
 | Grant missing state | `POST /login/v2/grant` | 403 HTML `State token missing` |
+| Unauthenticated | `GET /login/selectchallenge` | 303 to `/login` |
+| Happy select | `GET /login/selectchallenge` | 200 HTML `#twofactor-select` after 2FA-pending login |
+| Happy show | `GET /login/challenge/parity-totp` | 200 HTML `#twofactor-challenge` + `name="challenge"` |
+| Invalid provider | `GET /login/challenge/unknown` | 303 to `/login/selectchallenge` |
+| Wrong code | `POST /login/challenge/parity-totp` | 303 back; next GET shows `.two-factor-error` |
+| Happy solve | `POST /login/challenge/parity-totp` | 303 to `/index.php/apps/dashboard/` |
+| Already 2FA-complete | `GET /login/challenge/parity-totp` | 303 to default page |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` (not waived).

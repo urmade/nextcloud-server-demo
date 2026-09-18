@@ -11,6 +11,11 @@ export interface SessionData {
 	oneTimeToken?: boolean;
 	lastPasswordConfirm?: number;
 	appApi?: boolean;
+	twoFactorPendingUid?: string;
+	twoFactorDone?: string;
+	twoFactorRememberLogin?: boolean;
+	twoFactorAuthError?: boolean;
+	twoFactorAuthErrorMessage?: string;
 }
 
 const globalForSessions = globalThis as typeof globalThis & {
@@ -84,6 +89,11 @@ export function clearSessionData(session: SessionData): void {
 	session.oneTimeToken = undefined;
 	session.lastPasswordConfirm = undefined;
 	session.appApi = undefined;
+	session.twoFactorPendingUid = undefined;
+	session.twoFactorDone = undefined;
+	session.twoFactorRememberLogin = undefined;
+	session.twoFactorAuthError = undefined;
+	session.twoFactorAuthErrorMessage = undefined;
 	updateSession(session);
 }
 

@@ -577,7 +577,7 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return appPassword;
 	}
 
-	if (method !== 'GET' && method !== 'POST' && method !== 'PUT' && method !== 'DELETE' && method !== 'PROPFIND' && method !== 'OPTIONS') {
+	if (method !== 'GET' && method !== 'POST' && method !== 'PUT' && method !== 'PATCH' && method !== 'DELETE' && method !== 'PROPFIND' && method !== 'OPTIONS') {
 		return jsonSnapshot(404, { message: `Legacy mock has no fixture for ${method} ${pathname}` });
 	}
 

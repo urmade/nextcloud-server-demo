@@ -67,6 +67,16 @@ Cross-cutting. Applies when PHP types a success body as `mixed`, `array`, or pro
 - Success finish → `{ defaultRedirectUrl: string }`; sets login session cookies. Fixture assertion only (`NC_PARITY_WEBAUTHN_PROVIDER`, default on).
 - Seed fixture credential via HTTP `POST /ocs/v2.php/webauthn/parity/register` (admin session, body `{ user }`) — not a mapped endpoint.
 
+## Lost password (core-login-lost)
+
+- Phase-0 `core.Lost#email` listed **303** / **401** — `LostController#email` returns **200 JSON** `{ status: success }` for almost all outcomes.
+- Success JSON does **not** prove mail was sent; unknown users still get `{ status: success }`.
+- `POST /lostpassword/email` and `POST /lostpassword/set/*` require CSRF; `GET /lostpassword/reset/form/*` does not.
+- `setPassword` body `{ password, proceed }` — both required; missing → **400** empty.
+- Token invalid/expired errors on setPassword are **200** JSON `{ status: error, msg }`, not 401/403.
+- Encryption probe when `NC_PARITY_ENCRYPTION=true` and `proceed === false` → `{ status: error, msg: "", encryption: true }`.
+- Parity tokens are deterministic from fixture user email; stores are process-local per HTTP side.
+
 ## Two-factor admin API (core slice 10)
 
 - Success `ocs.data` is `{ [providerId: string]: boolean }` from registry — compare representative provider keys only.

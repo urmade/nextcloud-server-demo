@@ -57,6 +57,18 @@ const nextConfig: NextConfig = {
 				source: '/index.php/heartbeat',
 				destination: '/heartbeat',
 			},
+			{
+				source: '/index.php/lostpassword/email',
+				destination: '/lostpassword/email',
+			},
+			{
+				source: '/index.php/lostpassword/reset/form/:token/:userId',
+				destination: '/lostpassword/reset/form/:token/:userId',
+			},
+			{
+				source: '/index.php/lostpassword/set/:token/:userId',
+				destination: '/lostpassword/set/:token/:userId',
+			},
 		];
 	},
 };

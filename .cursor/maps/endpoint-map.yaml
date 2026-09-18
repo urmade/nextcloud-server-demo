@@ -5259,25 +5259,34 @@ endpoints:
   request:
     params: {}
     query: {}
-    headers: {}
+    headers:
+      requesttoken: optional string
     body:
       user: string
   response:
     success:
-      status: 303
-      shape: Send reset email
+      status: 200
+      content_type: application/json; charset=utf-8
+      shape:
+        status: success
     errors:
-    - status: 401
-      shape: login-failed
+    - status: 200
+      shape:
+        status: error
+        msg: string
+    - status: 412
+      shape:
+        message: CSRF check failed
     - status: 429
-      shape: bruteforce-throttle
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: empty-array
+  status: implemented
+  parity: tested
+  next_path: /lostpassword/email
+  next_handler: app/lostpassword/email/route.ts
+  parity_test: next/parity/tests/core-login-lost.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: PublicPage + CSRF required (OCS-APIRequest bypass). Success JSON does not prove mail sent. Phase-0 303/login-failed was wrong.
 - id: user_status-heartbeat-heartbeat
   feature_ids:
   - core-login
@@ -21431,11 +21440,11 @@ endpoints:
     errors:
     - status: 200
       shape: core/error guest HTML (invalid/expired token or lost_password_link=disabled)
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: implemented
+  parity: tested
+  next_path: /lostpassword/reset/form/{token}/{userId}
+  next_handler: app/lostpassword/reset/form/[token]/[userId]/route.ts
+  parity_test: next/parity/tests/core-login-lost.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: 'PublicPage + NoCSRFRequired + BruteForceProtection(passwordResetEmail) + AnonRateLimit 10/300s. OpenAPI SCOPE_IGNORE. Token errors still HTTP 200 and throttle. Sibling POST /lostpassword/email is already mapped as core.Lost#email.'
@@ -21452,7 +21461,8 @@ endpoints:
       token: string
       userId: string
     query: {}
-    headers: {}
+    headers:
+      requesttoken: optional string
     body:
       password: string
       proceed: boolean
@@ -21470,11 +21480,16 @@ endpoints:
         msg: string
         encryption: optional boolean
       content_type: application/json
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+    - status: 400
+      shape: empty
+    - status: 412
+      shape:
+        message: CSRF check failed
+  status: implemented
+  parity: tested
+  next_path: /lostpassword/set/{token}/{userId}
+  next_handler: app/lostpassword/set/[token]/[userId]/route.ts
+  parity_test: next/parity/tests/core-login-lost.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: 'PublicPage + BruteForceProtection + AnonRateLimit 10/300s. CSRF required. If encryption is enabled and proceed is false and a module needs a detailed access list, returns {status:error, encryption:true}. Failures throttle. Side effects: BeforePasswordResetEvent / PasswordResetEvent, user setPassword, clear 2FA pending, delete core/lostpassword user value, unset magic cookie.'

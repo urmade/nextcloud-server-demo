@@ -37,3 +37,5 @@ Cross-cutting. Phase-0 map `response.success` / `errors` are hypotheses from Ope
 | Login confirm | `auth: mixed`, 401 from controller | `auth: session`; unauth JSON → 401 `{ message }`; wrong password → 403 `[]`; missing password → 400 empty; `lastLogin` is confirm timestamp |
 | CSRF `/index.php` twin | `auth: mixed` | `auth: none`; same `CSRFTokenController#index` as `/csrftoken` |
 | Heartbeat | `legacy_source: core/routes.php heartbeat` (implies controller) | `lib/OC.php handleRequest` path-only early return; empty 200, no Content-Type; not CSRF/user_status |
+| Lost email | 303 “Send reset email”, 401 login-failed | 200 `{ status: success }` (does not prove mail sent); CSRF 412 JSON; overlong user 200 error JSON |
+| Lost setPassword | missing 400/412 in map | missing `password`/`proceed` → 400 empty; CSRF fail → 412 `{ message }` |

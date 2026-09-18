@@ -29,16 +29,20 @@ description: Core session login, logout, CSRF token, and client login flow v2 en
 - `POST /login/webauthn/finish` — complete WebAuthn login (JSON `{ data }`)
 - `POST /login/confirm` — sudo password confirmation (JSON `{ password }`)
 - `GET /heartbeat` — empty 200 keepalive probe (OC.php early return, not a controller)
+- `POST /lostpassword/email` — request reset mail (JSON `{ user }`)
+- `GET /lostpassword/reset/form/{token}/{userId}` — reset form HTML (NoCSRFRequired)
+- `POST /lostpassword/set/{token}/{userId}` — set new password (JSON `{ password, proceed }`)
 
 `/index.php/login/v2` and `/index.php/login/v2/poll` are twins rewritten to `/login/v2*`.
 `/index.php/login/confirm` rewrites to `/login/confirm`.
 `/index.php/csrftoken` rewrites to `/csrftoken` (same handler as `core.CSRFToken#index`).
 `/index.php/heartbeat` rewrites to `/heartbeat`.
+`/index.php/lostpassword/email` rewrites to `/lostpassword/email`.
+`/index.php/lostpassword/reset/form/{token}/{userId}` and `/index.php/lostpassword/set/{token}/{userId}` rewrite to pretty paths.
 
 ## Non-scope (same feature, later slices)
 
 - Settings WebAuthn registration (`/settings/api/personal/webauthn/*`)
-- Lost password
 - `POST /login/v2/apptoken` (app-token redirect path)
 - LDAP, SAML, OIDC, alternative login providers
 - Brute-force throttle timing (status codes only; no delay simulation)
@@ -66,6 +70,9 @@ Map ids with `feature_ids: [core-login]` and `parity: tested`:
 - `core-csrf_token-index` (twin of `core.CSRFToken#index`)
 - `core-login-confirm-password`
 - `core.heartbeat#get`
+- `core.Lost#email`
+- `core.Lost#resetform`
+- `core.Lost#setPassword.post`
 
 ## Auth model
 
@@ -88,6 +95,9 @@ Map ids with `feature_ids: [core-login]` and `parity: tested`:
 | `POST /login/webauthn/finish` | `none` (public); JSON `{ data }` where `data` is stringified assertion; requires prior start session |
 | `POST /login/confirm` | `session` (logged-in user); `NoCSRFRequired`; JSON `{ password }` |
 | `GET /heartbeat` | `none` (public); empty 200, no body; not CSRF keepalive (`GET /csrftoken`) |
+| `POST /lostpassword/email` | `none` (public); CSRF required unless `OCS-APIRequest`; JSON/form `{ user }` |
+| `GET /lostpassword/reset/form/{token}/{userId}` | `none` (public); `NoCSRFRequired` |
+| `POST /lostpassword/set/{token}/{userId}` | `none` (public); CSRF required unless `OCS-APIRequest`; JSON `{ password, proceed }` |
 
 Credentials: env `NC_ADMIN_USER` / `NC_ADMIN_PASSWORD` (defaults `admin` / `parity-test-password`).
 
@@ -109,6 +119,8 @@ src/server/auth/
   webauthn.ts              # start/finish handlers
   confirm-password.ts      # sudo confirm handler
   heartbeat.ts             # OC.php early-return probe
+  lost-password-store.ts   # in-memory verification tokens + mail capture
+  lost-password.ts         # email/resetform/setPassword handlers
 app/
   csrftoken/route.ts
   heartbeat/route.ts
@@ -124,7 +136,35 @@ app/
   login/webauthn/start/route.ts
   login/webauthn/finish/route.ts
   login/confirm/route.ts
+  lostpassword/email/route.ts
+  lostpassword/reset/form/[token]/[userId]/route.ts
+  lostpassword/set/[token]/[userId]/route.ts
 ```
+
+## Lost password cluster
+
+`LostController`. PublicPage. Phase-0 map listed **303 “Send reset email”** and **401 login-failed** — PHP returns **200 JSON** almost always.
+
+| Route | CSRF | Success |
+| --- | --- | --- |
+| `POST /lostpassword/email` | required | 200 `{ status: "success" }` — does **not** prove mail sent |
+| `GET /lostpassword/reset/form/{token}/{userId}` | not required | 200 guest HTML with `#reset-password` markers |
+| `POST /lostpassword/set/{token}/{userId}` | required | 200 `{ status: "success", user }` |
+
+| Condition | HTTP | Body |
+| --- | --- | --- |
+| Any send outcome client may see (found/missing/disabled/no email/rate limit swallowed) | 200 | `{ status: "success" }` |
+| `lost_password_link` system value non-empty | 200 | `{ status: "error", msg: "Password reset is disabled" }` |
+| `strlen(user) > 255` after trim | 200 | `{ status: "error", msg: "Unsupported email length (>255)" }` |
+| CSRF fail (non-HTML Accept) | 412 | `{ message: "CSRF check failed" }` |
+| Strict cookie missing | 303 | redirect to `/` |
+| Invalid/expired reset token (resetform) | 200 | guest error HTML `#reset-password-error` |
+| Invalid/expired token (setPassword) | 200 | `{ status: "error", msg: "<expired|invalid message>" }` |
+| Password > 469 chars | 200 | `{ status: "error", msg: "Password is too long..." }` |
+| Missing `password` or `proceed` on setPassword | 400 | empty body |
+| Encryption enabled + `proceed === false` + module needs access list | 200 | `{ status: "error", msg: "", encryption: true }` |
+
+Parity fixture user: `admin` / email `admin@parity.test`. Tokens are deterministic from `userId+email` in the mock stack (process-local store per side). Mail is captured/no-op — do not assert SMTP or leak user existence. Toggle encryption probe: `NC_PARITY_ENCRYPTION=true`. Toggle disabled link: `NC_PARITY_LOST_PASSWORD_LINK=disabled`.
 
 ## Password confirmation (`POST /login/confirm`)
 
@@ -232,7 +272,8 @@ Failed login sets session flash `loginMessages: [[errorCode], []]`.
 - Confirm 403 body is `[]`, not an error object. Missing password is 400 empty, not 403.
 - `core-csrf_token-index` is the same handler as `core.CSRFToken#index`; map `auth: mixed` was wrong.
 - `/heartbeat` is not CSRF polling (`GET /csrftoken`) and not user_status OCS heartbeat. OC.php path-only early return; empty 200, no Content-Type.
-- Phase-0 map `legacy_source: core/routes.php heartbeat` implies a controller; contract is `lib/OC.php handleRequest` short-circuit.
+- Lost success is 200 `{status:success}` even when nothing was sent; CSRF is on for POST email/set, off for resetform GET.
+- Phase-0 map `core.Lost#email` success 303 was wrong — trust `LostController#email` JSONResponse.
 
 ## Parity extras
 
@@ -274,5 +315,14 @@ Failed login sets session flash `loginMessages: [[errorCode], []]`.
 | Missing password | `POST /login/confirm` | 400 empty |
 | Happy | `GET /heartbeat` | 200 empty body |
 | Twin | `GET /index.php/heartbeat` | same as `GET /heartbeat` |
+| Happy | `POST /lostpassword/email` | 200 `{ status: success }` + CSRF |
+| CSRF fail | `POST /lostpassword/email` | 412 `{ message }` when Accept is JSON |
+| Overlong user | `POST /lostpassword/email` | 200 `{ status: error, msg }` |
+| Happy | `GET /lostpassword/reset/form/{token}/{userId}` | 200 HTML `#reset-password` after email |
+| Invalid token | `GET /lostpassword/reset/form/{token}/{userId}` | 200 error HTML |
+| Happy | `POST /lostpassword/set/{token}/{userId}` | 200 `{ status, user }` |
+| CSRF fail | `POST /lostpassword/set/{token}/{userId}` | 412 `{ message }` |
+| Invalid token / overlong password | `POST /lostpassword/set/{token}/{userId}` | 200 `{ status: error, msg }` |
+| Missing proceed | `POST /lostpassword/set/{token}/{userId}` | 400 empty |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` (not waived).

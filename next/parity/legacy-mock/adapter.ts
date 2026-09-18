@@ -11,6 +11,7 @@ import { generateNavigationETag, getAppsNavigation, getSettingsNavigation } from
 import { handleAppPasswordMock } from './app-password';
 import { handleLegacyMockAuth, parseCookiesFromOptions } from './auth';
 import { handleLoginFlowV2Mock } from './login-flow-v2';
+import { handleLostPasswordMock, isLostPasswordPath } from './lost-password';
 import { handleReferenceMock } from './reference';
 import { handleTaskProcessingMock } from './task-processing';
 import { handleTextProcessingMock } from './text-processing';
@@ -368,6 +369,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return loginFlowV2;
 	}
 
+	const lostPassword = await handleLostPasswordMock(pathname, options);
+
+	if (lostPassword) {
+		return lostPassword;
+	}
+
 	if (method === 'PUT' && pathname.includes('/cloud/capabilities')) {
 		const isV1 = pathname.includes('/ocs/v1.php/');
 
@@ -561,6 +568,7 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 		pathname === '/login'
 		|| pathname === '/login/confirm'
 		|| pathname === '/index.php/login/confirm'
+		|| isLostPasswordPath(pathname, normalizedMethod)
 		|| isTwoFactorChallengePath(pathname)
 		|| isWebAuthnPath(pathname)
 	)) {
@@ -574,7 +582,8 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 		|| pathname === '/login/v2/flow'
 		|| pathname === '/login/v2/grant'
 		|| /^\/login\/v2\/flow\/[^/]+$/.test(pathname)
-		|| isTwoFactorChallengePath(pathname)) {
+		|| isTwoFactorChallengePath(pathname)
+		|| isLostPasswordPath(pathname, normalizedMethod)) {
 		return true;
 	}
 

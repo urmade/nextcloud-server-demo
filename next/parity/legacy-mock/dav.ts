@@ -1,5 +1,6 @@
 import { resolveDavUserIdWithAppPasswords } from '@/src/server/dav/auth-extended';
 import { handleDavRequest } from '@/src/server/dav/handler';
+import { isTreeExtrasMockMethod, isTreeExtrasMockPath } from './dav-tree-extras';
 import { snapshotResponse } from '../compare';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
 
@@ -31,7 +32,13 @@ export function isDavRemotePath(pathname: string): boolean {
 }
 
 export function isDavMockMethod(method: string): boolean {
-	return DAV_MOCK_METHODS.has(method.toUpperCase());
+	const normalized = method.toUpperCase();
+
+	return DAV_MOCK_METHODS.has(normalized) || (isTreeExtrasMockMethod(normalized) && normalized !== 'OPTIONS');
+}
+
+export function isDavTreeExtrasMockPath(pathname: string): boolean {
+	return isTreeExtrasMockPath(pathname);
 }
 
 export async function handleDavMock(

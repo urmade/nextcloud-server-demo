@@ -9,6 +9,7 @@ import {
 	isPublicCalendarDavPath,
 	parseDavRequest,
 } from '@/src/server/dav/remote';
+import { isTreeExtrasDavPath } from '@/src/server/dav/tree-extras';
 
 const DAV_METHODS = new Set([
 	'PROPFIND',
@@ -61,9 +62,12 @@ export async function middleware(request: NextRequest) {
 	const isAddressBookPath = parsed !== null
 		&& (isLegacyCardDavIngress(parsed.ingress)
 			|| (parsed.ingress === 'v2' && isAddressBookDavPath(davPath ?? '')));
+	const isTreeExtrasPath = parsed !== null
+		&& parsed.ingress === 'v2'
+		&& isTreeExtrasDavPath(davPath ?? '');
 	const allowedMethods = isCalendarPath
 		? new Set([...DAV_METHODS, 'GET', 'HEAD', 'DELETE', 'MKCALENDAR', 'REPORT'])
-		: isAddressBookPath
+		: isAddressBookPath || isTreeExtrasPath
 			? new Set([...DAV_METHODS, 'GET', 'HEAD', 'DELETE', 'PUT', 'REPORT'])
 			: DAV_METHODS;
 

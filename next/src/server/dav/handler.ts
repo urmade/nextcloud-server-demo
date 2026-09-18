@@ -50,6 +50,11 @@ import {
 	getAssembledUploadSize,
 } from './uploads';
 import {
+	handleTreeExtrasPropfind,
+	handleTreeExtrasRequest,
+	isTreeExtrasDavPath,
+} from './tree-extras';
+import {
 	buildBadRequestXml,
 	buildForbiddenXml,
 	buildMethodNotAllowedXml,
@@ -441,6 +446,12 @@ function handlePropfind(request: Request, parsed: ReturnType<typeof parseDavRequ
 		return handleAddressBookPropfind(request, parsed, userId);
 	}
 
+	if (parsed!.ingress === 'v2' && isTreeExtrasDavPath(parsed!.davPath)) {
+		const userId = resolveUser(request);
+
+		return handleTreeExtrasPropfind(request, parsed!, userId);
+	}
+
 	if (parsed!.ingress === 'v2' && isPrincipalPath(parsed!)) {
 		if (isPublicPrincipalPath(parsed!.davPath)) {
 			return handlePrincipalPropfind(request, parsed, null);
@@ -615,6 +626,12 @@ export async function handleDavRequest(
 
 	if (parsed.ingress === 'v2' && isAddressBookDavPath(parsed.davPath)) {
 		return handleAddressBookRequest(request, parsed, resolveUser);
+	}
+
+	if (parsed.ingress === 'v2' && isTreeExtrasDavPath(parsed.davPath)) {
+		const userId = resolveUser(request);
+
+		return handleTreeExtrasRequest(request, parsed, userId);
 	}
 
 	if (method === 'PROPFIND') {

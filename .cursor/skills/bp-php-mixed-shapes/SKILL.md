@@ -52,6 +52,12 @@ Cross-cutting. Applies when PHP types a success body as `mixed`, `array`, or pro
 - Provider toggle: `NC_PARITY_TRANSLATION_PROVIDER` (default on). Compare representative catalog paths, not full provider union.
 - Translate success `{ text, from }` — `from` may be `null` in OpenAPI but is set on success when provided or detected.
 
+## Client login flow v2 (core-login-v2)
+
+- Phase-0 map rows for `core.ClientFlowLoginV2#init` / `#poll` listed **303** and **401** — PHP returns **200 JSON** (init) and **404 `[]`** (poll not ready/unknown). Trust `ClientFlowLoginV2Controller` + OpenAPI `/index.php/login/v2*`.
+- Poll body is JSON `{ token }`, not form-encoded. Success `{ server, loginName, appPassword }`; consumed flows return **404** with empty array body.
+- `GET /login/v2/flow` and grant pages are HTML **403** on missing session/state tokens — not 401 JSON.
+
 ## Two-factor admin API (core slice 10)
 
 - Success `ocs.data` is `{ [providerId: string]: boolean }` from registry — compare representative provider keys only.

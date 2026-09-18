@@ -4784,7 +4784,7 @@ endpoints:
   method: POST
   legacy_path: /index.php/login/v2
   legacy_source: openapi.json operationId=core-client_flow_login_v2-init
-  auth: mixed
+  auth: none
   request:
     params: {}
     query: {}
@@ -4801,13 +4801,14 @@ endpoints:
         login: string
       content_type: application/json
     errors: []
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /login/v2
+  next_handler: app/login/v2/route.ts
+  parity_test: next/parity/tests/core-login-v2.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Twin of core.ClientFlowLoginV2#init; /index.php prefix rewritten to /login/v2.
 - id: core-client_flow_login_v2-poll
   feature_ids:
   - core-login
@@ -4815,7 +4816,7 @@ endpoints:
   method: POST
   legacy_path: /index.php/login/v2/poll
   legacy_source: openapi.json operationId=core-client_flow_login_v2-poll
-  auth: mixed
+  auth: none
   request:
     params: {}
     query: {}
@@ -4834,15 +4835,16 @@ endpoints:
       content_type: application/json
     errors:
     - status: 404
-      shape: any
+      shape: []
       content_type: application/json
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /login/v2/poll
+  next_handler: app/login/v2/poll/route.ts
+  parity_test: next/parity/tests/core-login-v2.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Twin of core.ClientFlowLoginV2#poll; 404 body is empty JSON array.
 - id: core.Login#tryLogin
   feature_ids:
   - core-login
@@ -5013,24 +5015,27 @@ endpoints:
   request:
     params: {}
     query: {}
-    headers: {}
+    headers:
+      user-agent: string
     body: null
   response:
     success:
-      status: 303
-      shape: Start poll-based client login
-    errors:
-    - status: 401
-      shape: login-failed
-    - status: 429
-      shape: bruteforce-throttle
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      status: 200
+      shape:
+        poll:
+          token: string
+          endpoint: string
+        login: string
+      content_type: application/json
+    errors: []
+  status: parity
+  parity: tested
+  next_path: /login/v2
+  next_handler: app/login/v2/route.ts
+  parity_test: next/parity/tests/core-login-v2.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Stores client user-agent; returns absolute poll endpoint and login landing URL.
 - id: core.ClientFlowLoginV2#flow
   feature_ids:
   - core-login
@@ -5038,29 +5043,30 @@ endpoints:
   method: GET
   legacy_path: /login/v2/flow
   legacy_source: index.php FrontpageRoute core.ClientFlowLoginV2#flow
-  auth: none
+  auth: session
   request:
     params: {}
     query:
-      token: string?
+      user: optional string
+      direct: optional int
     headers: {}
     body: null
   response:
     success:
       status: 200
-      shape: Browser grant page
+      content_type: text/html; charset=UTF-8
+      shape: login-flow-auth-html
     errors:
-    - status: 401
-      shape: login-failed
-    - status: 429
-      shape: bruteforce-throttle
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+    - status: 403
+      shape: login-token-forbidden-html
+  status: parity
+  parity: tested
+  next_path: /login/v2/flow
+  next_handler: app/login/v2/flow/route.ts
+  parity_test: next/parity/tests/core-login-v2.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Requires session key client.flow.v2.login.token set by GET /login/v2/flow/{token} landing. Also serves landing redirect target.
 - id: core.ClientFlowLoginV2#grant
   feature_ids:
   - core-login
@@ -5071,27 +5077,31 @@ endpoints:
   auth: session
   request:
     params: {}
-    query: {}
+    query:
+      stateToken: optional string
     headers:
       requesttoken: string
     body:
-      token: string
+      content_type: application/x-www-form-urlencoded
+      shape:
+        stateToken: string
+        requesttoken: string
   response:
     success:
-      status: 303
-      shape: User confirms client login
+      status: 200
+      content_type: text/html; charset=UTF-8
+      shape: login-flow-done-html
     errors:
-    - status: 401
-      shape: login-failed
-    - status: 429
-      shape: bruteforce-throttle
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+    - status: 403
+      shape: state-token-or-password-confirm-forbidden-html
+  status: parity
+  parity: tested
+  next_path: /login/v2/grant
+  next_handler: app/login/v2/grant/route.ts
+  parity_test: next/parity/tests/core-login-v2.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: GET grant page on same path requires stateToken query + session login flow token. POST needs fresh password confirm (last-password-confirm within 30m).
 - id: core.ClientFlowLoginV2#poll
   feature_ids:
   - core-login
@@ -5105,23 +5115,29 @@ endpoints:
     query: {}
     headers: {}
     body:
-      token: string
+      content_type: application/json
+      shape:
+        token: string
   response:
     success:
-      status: 303
-      shape: Poll for app password
+      status: 200
+      shape:
+        server: string
+        loginName: string
+        appPassword: string
+      content_type: application/json
     errors:
-    - status: 401
-      shape: login-failed
-    - status: 429
-      shape: bruteforce-throttle
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+    - status: 404
+      shape: []
+      content_type: application/json
+  status: parity
+  parity: tested
+  next_path: /login/v2/poll
+  next_handler: app/login/v2/poll/route.ts
+  parity_test: next/parity/tests/core-login-v2.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Consumes flow on success; poll before grant completes returns 404 [].
 - id: core.WebAuthn#finish
   feature_ids:
   - core-login

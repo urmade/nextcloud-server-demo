@@ -10,6 +10,7 @@ import { SECURITY_TXT_BODY } from '@/src/server/well-known/handlers';
 import { generateNavigationETag, getAppsNavigation, getSettingsNavigation } from '@/src/server/ocs/navigation';
 import { handleAppPasswordMock } from './app-password';
 import { handleLegacyMockAuth, parseCookiesFromOptions } from './auth';
+import { handleLoginFlowV2Mock } from './login-flow-v2';
 import { handleReferenceMock } from './reference';
 import { handleTaskProcessingMock } from './task-processing';
 import { handleTextProcessingMock } from './text-processing';
@@ -347,6 +348,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return authResponse;
 	}
 
+	const loginFlowV2 = await handleLoginFlowV2Mock(pathname, search, options);
+
+	if (loginFlowV2) {
+		return loginFlowV2;
+	}
+
 	if (method === 'PUT' && pathname.includes('/cloud/capabilities')) {
 		const isV1 = pathname.includes('/ocs/v1.php/');
 
@@ -534,6 +541,16 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (normalizedMethod === 'POST' && pathname === '/login') {
+		return true;
+	}
+
+	if (pathname === '/login/v2'
+		|| pathname === '/index.php/login/v2'
+		|| pathname === '/login/v2/poll'
+		|| pathname === '/index.php/login/v2/poll'
+		|| pathname === '/login/v2/flow'
+		|| pathname === '/login/v2/grant'
+		|| /^\/login\/v2\/flow\/[^/]+$/.test(pathname)) {
 		return true;
 	}
 

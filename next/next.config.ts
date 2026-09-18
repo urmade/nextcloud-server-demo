@@ -37,6 +37,14 @@ const nextConfig: NextConfig = {
 				source: '/index.php/core/:path*',
 				destination: '/core/:path*',
 			},
+			{
+				source: '/index.php/login/v2/:path*',
+				destination: '/login/v2/:path*',
+			},
+			{
+				source: '/index.php/login/v2',
+				destination: '/login/v2',
+			},
 		];
 	},
 };

@@ -4,6 +4,8 @@ export interface SessionData {
 	userId?: string;
 	loginName?: string;
 	loginToken?: string;
+	loginFlowV2Token?: string;
+	loginFlowV2StateToken?: string;
 	loginMessages?: [ string[], string[] ];
 	appPassword?: string;
 	oneTimeToken?: boolean;
@@ -74,6 +76,8 @@ export function clearSessionData(session: SessionData): void {
 	session.userId = undefined;
 	session.loginName = undefined;
 	session.loginToken = undefined;
+	session.loginFlowV2Token = undefined;
+	session.loginFlowV2StateToken = undefined;
 	session.loginMessages = undefined;
 	session.csrfToken = undefined;
 	session.appPassword = undefined;

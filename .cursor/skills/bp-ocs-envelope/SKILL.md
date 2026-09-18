@@ -52,6 +52,14 @@ v1 success adds `totalitems` and `itemsperpage` (empty strings) to `meta`.
 
 **Trap:** Reference resolve-one endpoints add `Cache-Control: private, max-age=3600, immutable` on success via `ocsSuccessResponse` extra headers.
 
+**Trap:** TaskProcessing `schedule` validation failures use HTTP **400** or **412** with `data: { message: string }` — not empty `data`. Unknown task type → **412** (`The given provider is not available`).
+
+**Trap:** TaskProcessing `getTaskQueuePosition` success puts a bare **integer** in `ocs.data` (queue index), not an object wrapper.
+
+**Trap:** TaskProcessing `deleteTask` returns HTTP **200** + `data: null` even when the task id does not exist (idempotent delete).
+
+**Trap:** TaskProcessing 404 messages are **not uniform**: `getTask` / `queue_position` → `Task not found`; `cancel` / `getFileContents` → `Not found`.
+
 ## Implementation
 
 - Shared helpers: `src/server/ocs/envelope.ts` (`buildOcsSuccessEnvelope`, `buildOcsFailureEnvelope`, `getOcsHttpStatus`); `src/server/ocs/respond.ts` (`ocsBadRequestStringResponse` for string `data` on 400).

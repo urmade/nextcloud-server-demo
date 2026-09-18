@@ -54,7 +54,7 @@ export function ocsFailureResponse(
 	ocsVersion: OcsApiVersion,
 	statuscode: number,
 	message = '',
-	data: Record<string, never> | unknown[] = {},
+	data: Record<string, unknown> | unknown[] = {},
 ): Response {
 	const envelope = {
 		ocs: {

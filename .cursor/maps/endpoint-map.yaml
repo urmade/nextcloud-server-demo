@@ -2502,12 +2502,12 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/taskprocessing/queue_stats
+  next_handler: app/ocs/v2.php/taskprocessing/queue_stats/route.ts
+  parity_test: next/parity/tests/core-task-processing.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -2569,12 +2569,12 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/taskprocessing/schedule
+  next_handler: app/ocs/v2.php/taskprocessing/schedule/route.ts
+  parity_test: next/parity/tests/core-task-processing.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -2615,12 +2615,12 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/taskprocessing/task/{id}
+  next_handler: app/ocs/v2.php/taskprocessing/task/[id]/route.ts
+  parity_test: next/parity/tests/core-task-processing.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -2669,12 +2669,12 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/taskprocessing/task/{id}
+  next_handler: app/ocs/v2.php/taskprocessing/task/[id]/route.ts
+  parity_test: next/parity/tests/core-task-processing.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -2718,12 +2718,12 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/taskprocessing/tasks
+  next_handler: app/ocs/v2.php/taskprocessing/tasks/route.ts
+  parity_test: next/parity/tests/core-task-processing.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -2767,12 +2767,12 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/taskprocessing/tasks/app/{appId}
+  next_handler: app/ocs/v2.php/taskprocessing/tasks/app/[appId]/route.ts
+  parity_test: next/parity/tests/core-task-processing.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -2821,12 +2821,12 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/taskprocessing/tasks/{taskId}/cancel
+  next_handler: app/ocs/v2.php/taskprocessing/tasks/[taskId]/cancel/route.ts
+  parity_test: next/parity/tests/core-task-processing.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -2872,12 +2872,12 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/taskprocessing/tasks/{taskId}/file/{fileId}
+  next_handler: app/ocs/v2.php/taskprocessing/tasks/[taskId]/file/[fileId]/route.ts
+  parity_test: next/parity/tests/core-task-processing.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -2932,12 +2932,12 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/taskprocessing/tasks/{taskId}/queue_position
+  next_handler: app/ocs/v2.php/taskprocessing/tasks/[taskId]/queue_position/route.ts
+  parity_test: next/parity/tests/core-task-processing.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -3693,12 +3693,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/taskprocessing/tasktypes
+  next_handler: app/ocs/v2.php/taskprocessing/tasktypes/route.ts
+  parity_test: next/parity/tests/core-task-processing.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.

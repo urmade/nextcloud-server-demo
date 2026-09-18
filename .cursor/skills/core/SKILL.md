@@ -75,11 +75,29 @@ Binary-ish HTTP endpoints with high fan-in after navigation:
 
 Legacy paths use `/index.php/…`; Next.js rewrites to `/avatar/…` and `/core/…`.
 
+### Slice 6 — task processing (user session) (done)
+
+User-session TaskProcessing OCS endpoints:
+
+- `GET /ocs/v2.php/taskprocessing/tasktypes` — available task types catalog
+- `GET /ocs/v2.php/taskprocessing/queue_stats` — scheduled/running counts (`taskTypeIds[]` filter)
+- `POST /ocs/v2.php/taskprocessing/schedule` — schedule task (`input`, `type`, `appId`, …)
+- `GET /ocs/v2.php/taskprocessing/task/{id}` — get one task
+- `DELETE /ocs/v2.php/taskprocessing/task/{id}` — delete task (idempotent 200 + `data: null`)
+- `GET /ocs/v2.php/taskprocessing/tasks` — list by optional `taskType` / `customId`
+- `GET /ocs/v2.php/taskprocessing/tasks/app/{appId}` — list by app (+ optional `customId`)
+- `POST /ocs/v2.php/taskprocessing/tasks/{taskId}/cancel` — cancel task
+- `GET /ocs/v2.php/taskprocessing/tasks/{taskId}/file/{fileId}` — stream referenced file (binary)
+- `GET /ocs/v2.php/taskprocessing/tasks/{taskId}/queue_position` — queue index for scheduled task
+
+Parity registers fixture task types `core:text2text` and `parity:file-read`. Real Nextcloud registers providers dynamically; this slice models the OCS contract only. Ex-App worker routes are a later slice.
+
 ## Non-scope (later core sub-slices)
 
 | Sub-slice | Endpoint ids (prefix / theme) |
 | --- | --- |
-| **core-ai-tasks** | `core-task_processing_api-*`, `core-text_processing_api-*`, `core-text_to_image_api-*` |
+| **core-task-processing-exapp** | `core-task_processing_api-*-ex-app*`, `get-next-scheduled-task*`, `set-progress`, `set-result`, `set-intermediate-result`, `set-file-contents-ex-app` |
+| **core-ai-tasks** | `core-text_processing_api-*`, `core-text_to_image_api-*` |
 | **core-translation** | `core-translation_api-*` |
 | **core-2fa** | `core-two_factor_api-*` |
 | **core-wipe** | `core-wipe-*` |
@@ -136,6 +154,19 @@ Slice 2:
 - `core-preview-get-mime-icon-url`
 - `core-reference-preview`
 
+Slice 6:
+
+- `core-task_processing_api-task-types`
+- `core-task_processing_api-queue-stats`
+- `core-task_processing_api-schedule`
+- `core-task_processing_api-get-task`
+- `core-task_processing_api-list-tasks`
+- `core-task_processing_api-list-tasks-by-app`
+- `core-task_processing_api-cancel-task`
+- `core-task_processing_api-delete-task`
+- `core-task_processing_api-get-file-contents`
+- `core-task_processing_api-get-task-queue-position`
+
 ## Auth model
 
 | Route | Auth |
@@ -148,6 +179,7 @@ Slice 2:
 | Preview by file id / path | `session` or Basic — unauthenticated → **401** JSON `{ message }` |
 | Mime icon redirect | `none` — public |
 | Reference preview | `none` — public |
+| Task processing (user session) | `mixed` — session or Basic |
 
 Unauthenticated OCS calls → v2 HTTP **401**, `ocs.meta.statuscode` **997**, empty `data`.
 
@@ -169,6 +201,10 @@ src/server/
   reference/
     api.ts                     # extract/resolve/providers/touch handlers
     preview.ts                 # reference cache lookup
+  task-processing/
+    catalog.ts                 # parity task types (core:text2text, parity:file-read)
+    store.ts                   # in-memory task queue + seedParityTask for mock sync
+    api.ts                     # schedule/get/list/cancel/file handlers
   fixtures/
     binary.ts                  # deterministic PNG bytes (no real photos)
   http/
@@ -196,6 +232,15 @@ app/
   ocs/v2.php/references/resolvePublic/route.ts
   ocs/v2.php/references/providers/route.ts
   ocs/v2.php/references/provider/[providerId]/route.ts
+  ocs/v2.php/taskprocessing/tasktypes/route.ts
+  ocs/v2.php/taskprocessing/queue_stats/route.ts
+  ocs/v2.php/taskprocessing/schedule/route.ts
+  ocs/v2.php/taskprocessing/task/[id]/route.ts
+  ocs/v2.php/taskprocessing/tasks/route.ts
+  ocs/v2.php/taskprocessing/tasks/app/[appId]/route.ts
+  ocs/v2.php/taskprocessing/tasks/[taskId]/cancel/route.ts
+  ocs/v2.php/taskprocessing/tasks/[taskId]/file/[fileId]/route.ts
+  ocs/v2.php/taskprocessing/tasks/[taskId]/queue_position/route.ts
 ```
 
 Config:
@@ -238,6 +283,14 @@ Config:
 - Public extract/resolve cap `limit` at **15** (`LIMIT_MAX` in PHP)
 - Resolved reference `thumb` points at `/index.php/core/references/preview/{md5(url)}`
 - Default extract/resolve `limit` is **1**
+- Task type catalog empty shape slots serialize as `{}` objects, not `[]` (PHP `stdClass`)
+- Schedule unknown `type` → HTTP **412**, `data.message` `"The given provider is not available"`
+- Schedule validation → HTTP **400**, `data.message` from `ValidationException` (e.g. `Missing key: "input"`)
+- `getTask` / `queue_position` 404 → `"Task not found"`; `cancel` / `getFileContents` 404 → `"Not found"`
+- `deleteTask` missing task still returns HTTP **200** with `data: null` (idempotent)
+- `queue_position` success returns raw integer in `ocs.data` (not wrapped in an object)
+- `getFileContents` is binary OCS-adjacent — 404/500 still use OCS JSON envelope; success is raw bytes + `Content-Disposition`
+- Generated task `id` / timestamps are unstable — use `unstableIdPaths` in parity; seed mock store via `seedParityTask` for stateful cases
 
 ## Parity extras
 
@@ -284,5 +337,15 @@ Config:
 | Happy | reference touch provider | 200 `{ success: true }` |
 | Validation | reference touch provider | unknown id → `{ success: false }` |
 | Happy | reference resolve-one | 200 + `cache-control` immutable 3600 |
+| Auth failure | task processing user endpoints | 401 OCS 997 |
+| Happy | task types | 200 `types` map with `core:text2text` |
+| Validation | schedule | unknown `type` → 412 `The given provider is not available` |
+| Happy | schedule / get / list / cancel | 200 task payload; unstable id/timestamps |
+| Validation | get / cancel / queue_position | unknown id → 404 with endpoint-specific message |
+| Happy | queue_stats | 200 `scheduled_count` + `running_count` |
+| Happy | queue_position | 200 integer `ocs.data` for scheduled task |
+| Happy | delete task | 200 `data: null` even when task missing |
+| Validation | get file contents | file not referenced → 404 `Not found` |
+| Happy | get file contents | 200 binary; size class only (see `bp-binary-parity`) |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` fixtures (not waived).

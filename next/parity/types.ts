@@ -1,6 +1,7 @@
 export interface ParityEnv {
 	legacyBaseUrl: string;
 	newBaseUrl: string;
+	legacyUsesMock: boolean;
 }
 
 export interface ParityWaived {
@@ -29,6 +30,7 @@ export interface ParityCompareOptions {
 	unstableIdPaths?: string[];
 	unorderedListPaths?: string[];
 	fixtures?: Record<string, unknown>;
+	includeBodyPaths?: string[];
 }
 
 export interface ParityMismatch {

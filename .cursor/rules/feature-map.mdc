@@ -1,0 +1,11 @@
+---
+description: Feature ownership map for the Nextcloud→Next.js refactor
+globs:
+alwaysApply: false
+---
+
+# Feature map
+
+| id | skill | status | notes |
+| --- | --- | --- | --- |
+| core-status | `.cursor/skills/core-status/SKILL.md` | parity | `status.php` + OCS `/cloud/capabilities` (core-owned keys) |

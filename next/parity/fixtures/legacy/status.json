@@ -1,0 +1,10 @@
+{
+  "installed": true,
+  "maintenance": false,
+  "needsDbUpgrade": false,
+  "version": "36.0.0",
+  "versionstring": "36.0.0 dev",
+  "edition": "",
+  "productname": "Nextcloud",
+  "extendedSupport": false
+}

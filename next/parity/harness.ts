@@ -1,5 +1,6 @@
 import { compareParityResponses, snapshotResponse } from './compare';
 import { getParityEnv } from './env';
+import { fetchLegacyMockSnapshot, hasLegacyMockFixture } from './legacy-mock/adapter';
 import type { ParityCompareOptions, ParityMismatch, ParityRequestOptions } from './types';
 
 export interface ParityCaseDefinition {
@@ -15,7 +16,11 @@ export interface ParityCaseResult {
 	mismatches: ParityMismatch[];
 }
 
-async function fetchSnapshot(baseUrl: string, path: string, options: ParityRequestOptions = {}) {
+function pathOnly(path: string): string {
+	return path.split('?')[0];
+}
+
+async function fetchHttpSnapshot(baseUrl: string, path: string, options: ParityRequestOptions = {}) {
 	const url = `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
 	const response = await fetch(url, {
 		method: options.method ?? 'GET',
@@ -28,11 +33,21 @@ async function fetchSnapshot(baseUrl: string, path: string, options: ParityReque
 	return snapshotResponse(response, rawBody);
 }
 
+async function fetchLegacySnapshot(path: string, options: ParityRequestOptions = {}) {
+	const env = getParityEnv();
+
+	if (env.legacyUsesMock && hasLegacyMockFixture(pathOnly(path), options.method ?? 'GET')) {
+		return fetchLegacyMockSnapshot(pathOnly(path), options);
+	}
+
+	return fetchHttpSnapshot(env.legacyBaseUrl, path, options);
+}
+
 export async function runParityCase(definition: ParityCaseDefinition): Promise<ParityCaseResult> {
 	const env = getParityEnv();
 	const [legacy, newResponse] = await Promise.all([
-		fetchSnapshot(env.legacyBaseUrl, definition.path, definition.options),
-		fetchSnapshot(env.newBaseUrl, definition.path, definition.options),
+		fetchLegacySnapshot(definition.path, definition.options),
+		fetchHttpSnapshot(env.newBaseUrl, definition.path, definition.options),
 	]);
 
 	const mismatches = compareParityResponses(legacy, newResponse, definition.compare);

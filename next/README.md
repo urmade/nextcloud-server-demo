@@ -25,6 +25,12 @@ Placeholder endpoints:
 - `GET /api/health` — liveness payload `{ status: "ok", service: "nextcloud-next" }`
 - `GET /api/ready` — readiness payload `{ ready: true, service: "nextcloud-next" }`
 
+Core status slice:
+
+- `GET /status.php` — install/version/maintenance JSON
+- `GET /ocs/v1.php/cloud/capabilities?format=json` — OCS v1 capabilities (core-owned keys)
+- `GET /ocs/v2.php/cloud/capabilities?format=json` — OCS v2 capabilities (core-owned keys)
+
 ## Tests
 
 Unit tests (helpers + server modules):
@@ -51,8 +57,8 @@ bash scripts/ci.sh
 
 | Variable | Required for | Description |
 | --- | --- | --- |
-| `LEGACY_BASE_URL` | `npm run test:parity` | Base URL of the legacy Nextcloud instance (no trailing slash). |
-| `NEW_BASE_URL` | `npm run test:parity` | Base URL of the new Next.js app (no trailing slash). |
+| `LEGACY_BASE_URL` | optional for `npm run test:parity` | Base URL of the legacy Nextcloud instance (no trailing slash). When unset, core-status endpoints use recorded fixtures in `parity/fixtures/legacy/` via `parity/legacy-mock/`. Other tests fall back to self-parity against `NEW_BASE_URL`. |
+| `NEW_BASE_URL` | optional for `npm run test:parity` | Base URL of the new Next.js app (no trailing slash). When unset, `parity/tests/setup.ts` builds and starts the app on `PORT` (default `3100`). |
 
 Optional:
 

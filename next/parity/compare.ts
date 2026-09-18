@@ -252,6 +252,17 @@ export function compareParityResponses(
 		newBody = applyFixtureReplacements(newBody, timestampFixtureMap);
 	}
 
+	if (options.includeBodyPaths?.length) {
+		for (const includePath of options.includeBodyPaths) {
+			const legacyValues = collectValuesAtPaths(legacyBody, [includePath]);
+			const newValues = collectValuesAtPaths(newBody, [includePath]);
+
+			compareValues(`body.${includePath}`, legacyValues.get(includePath), newValues.get(includePath), options, mismatches);
+		}
+
+		return mismatches;
+	}
+
 	compareValues('body', legacyBody, newBody, options, mismatches);
 
 	return mismatches;

@@ -1,0 +1,166 @@
+version: 1
+endpoints:
+  - id: core.OCS#getCapabilities
+    feature_ids: [core-status]
+    protocol: ocs
+    ocs_version: v2
+    method: GET
+    legacy_path: /ocs/v2.php/cloud/capabilities
+    legacy_source: core/Controller/OCSController.php#getCapabilities
+    auth: mixed
+    request:
+      params: {}
+      query:
+        format: json
+      headers:
+        OCS-APIRequest: true
+      body: null
+    response:
+      success:
+        status: 200
+        content_type: application/json; charset=utf-8
+        shape:
+          ocs:
+            meta:
+              status: ok
+              statuscode: 200
+              message: OK
+            data:
+              version:
+                major: int
+                minor: int
+                micro: int
+                string: string
+                edition: string
+                extendedSupport: boolean
+              capabilities:
+                core:
+                  pollinterval: int
+                  webdav-root: string
+                  reference-api: boolean
+                  reference-regex: string
+                  mod-rewrite-working: boolean
+                  user:
+                    language: string
+                    locale: string
+                    timezone: string
+                  can-create-app-token: boolean
+      errors:
+        - status: 405
+          shape:
+            ocs:
+              meta:
+                status: failure
+                statuscode: 405
+                message: string
+              data: {}
+    status: parity
+    parity: tested
+    next_path: /ocs/v2.php/cloud/capabilities
+    next_handler: app/ocs/v2.php/cloud/capabilities/route.ts
+    parity_test: next/parity/tests/core-status.parity.test.ts
+    waiver_reason: null
+    waiver_owner: null
+    notes: Authenticated callers may receive core.user and core.can-create-app-token; slice implements core-owned keys only. Live legacy includes additional app capabilities — parity compares core subset via includeBodyPaths.
+
+  - id: core.OCS#getCapabilities.v1
+    feature_ids: [core-status]
+    protocol: ocs
+    ocs_version: v1
+    method: GET
+    legacy_path: /ocs/v1.php/cloud/capabilities
+    legacy_source: core/Controller/OCSController.php#getCapabilities
+    auth: mixed
+    request:
+      params: {}
+      query:
+        format: json
+      headers:
+        OCS-APIRequest: true
+      body: null
+    response:
+      success:
+        status: 200
+        content_type: application/json; charset=utf-8
+        shape:
+          ocs:
+            meta:
+              status: ok
+              statuscode: 100
+              message: OK
+              totalitems: string
+              itemsperpage: string
+            data:
+              version:
+                major: int
+                minor: int
+                micro: int
+                string: string
+                edition: string
+                extendedSupport: boolean
+              capabilities:
+                core:
+                  pollinterval: int
+                  webdav-root: string
+                  reference-api: boolean
+                  reference-regex: string
+                  mod-rewrite-working: boolean
+                  user:
+                    language: string
+                    locale: string
+                    timezone: string
+                  can-create-app-token: boolean
+      errors:
+        - status: 200
+          shape:
+            ocs:
+              meta:
+                status: failure
+                statuscode: 405
+                message: string
+              data: {}
+    status: parity
+    parity: tested
+    next_path: /ocs/v1.php/cloud/capabilities
+    next_handler: app/ocs/v1.php/cloud/capabilities/route.ts
+    parity_test: next/parity/tests/core-status.parity.test.ts
+    waiver_reason: null
+    waiver_owner: null
+    notes: v1 success uses HTTP 200 with meta.statuscode 100. Validation failures also return HTTP 200 except 401.
+
+  - id: core.status#get
+    feature_ids: [core-status]
+    protocol: http
+    method: GET
+    legacy_path: /status.php
+    legacy_source: status.php
+    auth: none
+    request:
+      params: {}
+      query: {}
+      headers: {}
+      body: null
+    response:
+      success:
+        status: 200
+        content_type: application/json
+        shape:
+          installed: boolean
+          maintenance: boolean
+          needsDbUpgrade: boolean
+          version: string
+          versionstring: string
+          edition: string
+          productname: string
+          extendedSupport: boolean
+      errors:
+        - status: 500
+          shape: empty-body
+    status: parity
+    parity: tested
+    next_path: /status.php
+    next_handler: app/status.php/route.ts
+    parity_test: next/parity/tests/core-status.parity.test.ts
+    waiver_reason: null
+    waiver_owner: null
+    notes: Public; Access-Control-Allow-Origin * on success.

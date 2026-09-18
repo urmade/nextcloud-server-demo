@@ -1,13 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { SESSION_COOKIE } from '@/src/server/auth/cookies';
 import { resetSessionStore } from '@/src/server/auth/session-store';
 import { formatParityMismatches, runParityCase } from '../harness';
 import { compareBinarySnapshots, snapshotBinaryResponse } from '../helpers/binary';
-import { cookieJarToHeader } from '../helpers/cookies';
+import { cookieJarToHeader, mergeResponseCookies } from '../helpers/cookies';
 import { resetParityFilesStores } from '../helpers/files';
 import { resetParityShareStores } from '../helpers/files-sharing';
 import { getParityEnv } from '../env';
 import {
-	fetchParityCsrfToken,
+	fetchParityGuestCsrfToken,
 	loginParitySession,
 	OCS_JSON_HEADERS,
 } from '../helpers/session';
@@ -77,9 +78,12 @@ async function createLinkShare(
 			cookie: cookieJarToHeader(jar) ?? '',
 		},
 	});
-	const body = await response.json() as { ocs: { data: { token: string } } };
+	const body = await response.json() as { ocs: { data: Array<{ token: string }> } };
+	const token = body.ocs.data[0]?.token;
 
-	return body.ocs.data.token;
+	expect(typeof token, `seeded link share has no token: ${JSON.stringify(body)}`).toBe('string');
+
+	return token;
 }
 
 describe('parity: files-sharing-public-link', () => {
@@ -110,6 +114,18 @@ describe('parity: files-sharing-public-link', () => {
 		});
 
 		expect(result.mismatches, formatParityMismatches(result.mismatches)).toEqual([]);
+
+		const env = getParityEnv();
+		const response = await fetch(`${env.newBaseUrl}/s/${token}`, {
+			redirect: 'manual',
+			headers: {
+				Accept: 'text/html',
+			},
+		});
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get('content-type')).toBe('text/html; charset=UTF-8');
+		expect(await response.text()).toContain(`data-share-token="${token}"`);
 	});
 
 	it('GET /s/{token} returns 404 guest HTML for unknown token', async () => {
@@ -125,6 +141,18 @@ describe('parity: files-sharing-public-link', () => {
 		});
 
 		expect(result.mismatches, formatParityMismatches(result.mismatches)).toEqual([]);
+
+		const env = getParityEnv();
+		const response = await fetch(`${env.newBaseUrl}/s/does-not-exist-token`, {
+			redirect: 'manual',
+			headers: {
+				Accept: 'text/html',
+			},
+		});
+
+		expect(response.status).toBe(404);
+		expect(response.headers.get('content-type')).toBe('text/html; charset=UTF-8');
+		expect(await response.text()).toContain('class="guest"');
 	});
 
 	it('GET password-protected share redirects 303 to authenticate', async () => {
@@ -177,12 +205,27 @@ describe('parity: files-sharing-public-link', () => {
 		});
 
 		expect(result.mismatches, formatParityMismatches(result.mismatches)).toEqual([]);
+
+		const env = getParityEnv();
+		const response = await fetch(`${env.newBaseUrl}/s/${token}/authenticate/showShare`, {
+			method: 'POST',
+			redirect: 'manual',
+			headers: {
+				'content-type': 'application/x-www-form-urlencoded',
+			},
+			body: new URLSearchParams({
+				password: 'secret',
+				passwordRequest: 'no',
+			}).toString(),
+		});
+
+		expect(response.status).toBe(412);
 	});
 
 	it('POST authenticate with wrong password returns 200 wrongpw HTML', async () => {
 		const jar = await loginParitySession();
 		const token = await createLinkShare(jar, { path: '/welcome.txt', password: 'secret' });
-		const csrf = await fetchParityCsrfToken({});
+		const csrf = await fetchParityGuestCsrfToken();
 
 		const result = await runParityCase({
 			name: 'authenticate-wrong-password',
@@ -221,6 +264,83 @@ describe('parity: files-sharing-public-link', () => {
 
 		expect(response.status).toBe(200);
 		expect(await response.text()).toContain('data-wrongpw="true"');
+	});
+
+	it('POST authenticate with the correct password unlocks showShare for the guest session', async () => {
+		const jar = await loginParitySession();
+		const token = await createLinkShare(jar, { path: '/welcome.txt', password: 'secret' });
+		const csrf = await fetchParityGuestCsrfToken();
+
+		const result = await runParityCase({
+			name: 'authenticate-correct-password',
+			path: `/s/${token}/authenticate/showShare`,
+			options: {
+				method: 'POST',
+				headers: {
+					'content-type': 'application/x-www-form-urlencoded',
+					cookie: cookieJarToHeader(csrf.jar) ?? '',
+					requesttoken: csrf.token,
+				},
+				body: new URLSearchParams({
+					password: 'secret',
+					passwordRequest: 'no',
+				}).toString(),
+			},
+			compare: {
+				...REDIRECT_COMPARE,
+				// The regenerated session id differs per process.
+				ignoreHeaders: ['location', 'set-cookie'],
+			},
+		});
+
+		expect(result.mismatches, formatParityMismatches(result.mismatches)).toEqual([]);
+
+		// A successful authenticate regenerates the session id, so the parity
+		// case above already retired csrf.jar. Use a fresh guest session here.
+		const env = getParityEnv();
+		const roundTrip = await fetchParityGuestCsrfToken();
+		const authResponse = await fetch(`${env.newBaseUrl}/s/${token}/authenticate/showShare`, {
+			method: 'POST',
+			redirect: 'manual',
+			headers: {
+				'content-type': 'application/x-www-form-urlencoded',
+				cookie: cookieJarToHeader(roundTrip.jar) ?? '',
+				requesttoken: roundTrip.token,
+			},
+			body: new URLSearchParams({
+				password: 'secret',
+				passwordRequest: 'no',
+			}).toString(),
+		});
+
+		expect(authResponse.status).toBe(303);
+		expect(normalizeLocation(authResponse.headers.get('location'))).toBe(`/s/${token}`);
+
+		const authenticatedJar = mergeResponseCookies(roundTrip.jar, authResponse);
+
+		expect(authenticatedJar[SESSION_COOKIE]).not.toBe(roundTrip.jar[SESSION_COOKIE]);
+
+		const showResponse = await fetch(`${env.newBaseUrl}/s/${token}`, {
+			redirect: 'manual',
+			headers: {
+				Accept: 'text/html',
+				cookie: cookieJarToHeader(authenticatedJar) ?? '',
+			},
+		});
+
+		expect(showResponse.status).toBe(200);
+		expect(showResponse.headers.get('content-type')).toBe('text/html; charset=UTF-8');
+		expect(await showResponse.text()).toContain(`data-share-token="${token}"`);
+
+		const staleResponse = await fetch(`${env.newBaseUrl}/s/${token}`, {
+			redirect: 'manual',
+			headers: {
+				Accept: 'text/html',
+				cookie: cookieJarToHeader(roundTrip.jar) ?? '',
+			},
+		});
+
+		expect(staleResponse.status).toBe(303);
 	});
 
 	it('GET downloadShare redirects 303 to public DAV path', async () => {
@@ -277,6 +397,14 @@ describe('parity: files-sharing-public-link', () => {
 		});
 
 		expect(result.mismatches, formatParityMismatches(result.mismatches)).toEqual([]);
+
+		const env = getParityEnv();
+		const response = await fetch(`${env.newBaseUrl}/s/${token}/preview`, {
+			redirect: 'manual',
+		});
+
+		expect(response.status).toBe(400);
+		expect(await response.json()).toEqual([]);
 	});
 
 	it('GET /index.php/s/{token}/preview matches /s/{token}/preview for file share', async () => {
@@ -307,6 +435,8 @@ describe('parity: files-sharing-public-link', () => {
 		);
 
 		expect(mismatches, mismatches.map((m) => m.message).join('\n')).toEqual([]);
+		expect(newResponse.status).toBe(200);
+		expect(newResponse.headers.get('content-type')).toBe('image/png');
 	});
 
 	it('owner session does not bypass password-protected showShare', async () => {
@@ -321,11 +451,22 @@ describe('parity: files-sharing-public-link', () => {
 					Accept: 'text/html',
 					cookie: cookieJarToHeader(jar) ?? '',
 				},
-				redirect: 'manual',
 			},
 			compare: REDIRECT_COMPARE,
 		});
 
 		expect(result.mismatches, formatParityMismatches(result.mismatches)).toEqual([]);
+
+		const env = getParityEnv();
+		const response = await fetch(`${env.newBaseUrl}/s/${token}`, {
+			redirect: 'manual',
+			headers: {
+				Accept: 'text/html',
+				cookie: cookieJarToHeader(jar) ?? '',
+			},
+		});
+
+		expect(response.status).toBe(303);
+		expect(normalizeLocation(response.headers.get('location'))).toBe(`/s/${token}/authenticate/showShare`);
 	});
 });

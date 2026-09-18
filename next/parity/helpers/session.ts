@@ -1,22 +1,42 @@
 import { SESSION_COOKIE, USERNAME_COOKIE } from '@/src/server/auth/cookies';
 import { decryptCsrfToken } from '@/src/server/auth/csrf';
-import { getOrCreateSession, updateSession } from '@/src/server/auth/session-store';
+import { getOrCreateSession, type SessionData, updateSession } from '@/src/server/auth/session-store';
 import { getParityEnv } from '../env';
 import { cookieJarToHeader, mergeResponseCookies } from '../helpers/cookies';
 
-export function seedParitySessionFromJar(jar: Record<string, string>, csrfToken: string): void {
+/**
+ * Mirror a browser session into the in-process legacy-mock session store without
+ * logging it in. The mock and the Next.js server keep separate stores, so a CSRF
+ * token minted over HTTP is unknown to the mock until it is seeded here.
+ */
+export function seedParityGuestSessionFromJar(
+	jar: Record<string, string>,
+	csrfToken: string,
+): SessionData | null {
 	const sessionId = jar[SESSION_COOKIE];
 
 	if (!sessionId) {
-		return;
+		return null;
 	}
 
 	const session = getOrCreateSession(sessionId);
 	const rawToken = decryptCsrfToken(csrfToken);
 
+	session.csrfToken = rawToken || csrfToken;
+	updateSession(session);
+
+	return session;
+}
+
+export function seedParitySessionFromJar(jar: Record<string, string>, csrfToken: string): void {
+	const session = seedParityGuestSessionFromJar(jar, csrfToken);
+
+	if (!session) {
+		return;
+	}
+
 	session.userId = jar[USERNAME_COOKIE] ?? 'admin';
 	session.loginName = session.userId;
-	session.csrfToken = rawToken || csrfToken;
 	updateSession(session);
 }
 
@@ -37,6 +57,16 @@ export async function fetchParityCsrfToken(
 		jar: nextJar,
 		token: csrfBody.token,
 	};
+}
+
+export async function fetchParityGuestCsrfToken(
+	baseUrl = getParityEnv().newBaseUrl,
+): Promise<{ jar: Record<string, string>; token: string }> {
+	const csrf = await fetchParityCsrfToken({}, baseUrl);
+
+	seedParityGuestSessionFromJar(csrf.jar, csrf.token);
+
+	return csrf;
 }
 
 export async function loginParitySessionWithCsrf(baseUrl = getParityEnv().newBaseUrl): Promise<{

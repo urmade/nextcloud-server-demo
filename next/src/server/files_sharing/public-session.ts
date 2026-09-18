@@ -4,13 +4,21 @@ export const PUBLIC_LINK_AUTHENTICATED_FRONTEND = 'public_link_authenticated_fro
 export const PUBLIC_LINK_AUTHENTICATED_DAV = 'public_link_authenticated';
 export const PUBLIC_LINK_AUTHENTICATE_REDIRECT = 'public_link_authenticate_redirect';
 
+/**
+ * Must stay a JSON object: an array default silently drops the token keys,
+ * because JSON.stringify ignores non-index properties on arrays.
+ */
 function readFrontendTokens(session: SessionData): Record<string, string> {
-	const raw = session.publicLinkAuthenticatedFrontend ?? '[]';
+	const raw = session.publicLinkAuthenticatedFrontend ?? '{}';
 
 	try {
-		const parsed = JSON.parse(raw) as Record<string, string>;
+		const parsed = JSON.parse(raw) as unknown;
 
-		return typeof parsed === 'object' && parsed !== null ? parsed : {};
+		if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+			return {};
+		}
+
+		return parsed as Record<string, string>;
 	} catch {
 		return {};
 	}

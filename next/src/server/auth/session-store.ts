@@ -79,6 +79,19 @@ export function updateSession(session: SessionData): void {
 	getSessionMap().set(session.id, session);
 }
 
+/**
+ * PHP `session_regenerate_id()`: keep the session data, move it to a fresh id
+ * and drop the old entry. Callers must send the new session cookie.
+ */
+export function regenerateSessionId(session: SessionData): SessionData {
+	const regenerated: SessionData = { ...session, id: generateSessionId() };
+
+	getSessionMap().delete(session.id);
+	getSessionMap().set(regenerated.id, regenerated);
+
+	return regenerated;
+}
+
 export function deleteSession(sessionId: string): void {
 	getSessionMap().delete(sessionId);
 }

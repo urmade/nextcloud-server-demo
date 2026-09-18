@@ -1,5 +1,3 @@
-import { SESSION_COOKIE } from '@/src/server/auth/cookies';
-import { getOrCreateSession, updateSession } from '@/src/server/auth/session-store';
 import {
 	handleAuthenticate,
 	handleDirectLink,
@@ -9,7 +7,6 @@ import {
 } from '@/src/server/files_sharing/public-link';
 import { snapshotResponse } from '../compare';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
-import { parseCookiesFromOptions } from './auth';
 
 const SHOW_SHARE_PATH = /^\/s\/([^/]+)\/?$/;
 const AUTHENTICATE_PATH = /^\/s\/([^/]+)\/authenticate\/([^/]+)\/?$/;
@@ -30,18 +27,6 @@ async function responseToSnapshot(response: Response): Promise<ParityResponseSna
 	const rawBody = await response.text();
 
 	return snapshotResponse(response, rawBody);
-}
-
-function ensureSessionFromCookies(options: ParityRequestOptions): void {
-	const cookies = parseCookiesFromOptions(options);
-	const sessionId = cookies[SESSION_COOKIE];
-
-	if (!sessionId) {
-		return;
-	}
-
-	getOrCreateSession(sessionId);
-	updateSession(getOrCreateSession(sessionId));
 }
 
 export function isFilesSharingPublicLinkMockPath(pathname: string, method = 'GET'): boolean {
@@ -69,8 +54,6 @@ export async function handleFilesSharingPublicLinkMock(
 	options: ParityRequestOptions,
 ): Promise<ParityResponseSnapshot | null> {
 	const method = (options.method ?? 'GET').toUpperCase();
-
-	ensureSessionFromCookies(options);
 
 	const previewMatch = PREVIEW_PATH.exec(pathname);
 

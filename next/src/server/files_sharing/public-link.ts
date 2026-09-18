@@ -1,12 +1,12 @@
+import { buildSessionCookieHeader } from '@/src/server/auth/cookies';
 import { isCsrfTokenValid } from '@/src/server/auth/csrf';
-import { parseCookieHeader, SESSION_COOKIE } from '@/src/server/auth/cookies';
 import {
 	appendSetCookieHeaders,
 	createSessionCookieForNew,
 	resolveSession,
 	type ResolvedSession,
 } from '@/src/server/auth/session';
-import { getSession, updateSession } from '@/src/server/auth/session-store';
+import { regenerateSessionId, updateSession } from '@/src/server/auth/session-store';
 import { getPreviewFixture } from '@/src/server/fixtures/binary';
 import { binaryResponse, cacheForSeconds, jsonArrayResponse } from '@/src/server/http/binary';
 import { PERMISSION_READ } from './constants';
@@ -280,18 +280,23 @@ export async function handleAuthenticate(
 		}
 	}
 
+	const session = regenerateSessionId(resolved.session);
+
 	if (share.password) {
-		storePublicShareAuth(resolved.session, token, share.password);
+		storePublicShareAuth(session, token, share.password);
 	}
 
-	storeDavAuthenticatedShare(resolved.session, share.id);
-	updateSession(resolved.session);
+	storeDavAuthenticatedShare(session, share.id);
+	updateSession(session);
 
 	const location = redirect === 'downloadShare'
 		? `/s/${encodeURIComponent(token)}/download/`
 		: buildPostAuthRedirectLocation(token, storedParams);
 
-	return redirect303(location, resolved.sameSiteCookieHeaders);
+	return redirect303(location, [
+		buildSessionCookieHeader(session.id),
+		...resolved.sameSiteCookieHeaders,
+	]);
 }
 
 export function handleDownloadShare(request: Request, token: string, filename = ''): Response {
@@ -400,15 +405,4 @@ export function handleDirectLink(request: Request, token: string): Response {
 	const response = binaryResponse(bytes, 200, 'image/png');
 
 	return cacheForSeconds(response, 60 * 60 * 24);
-}
-
-export function ensurePublicLinkSessionFromCookies(cookieHeader: string | null): void {
-	const cookies = parseCookieHeader(cookieHeader);
-	const sessionId = cookies[SESSION_COOKIE];
-
-	if (!sessionId) {
-		return;
-	}
-
-	getSession(sessionId);
 }

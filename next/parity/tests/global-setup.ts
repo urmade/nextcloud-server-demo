@@ -28,11 +28,14 @@ async function waitForServer(baseUrl: string, attempts = 60): Promise<void> {
 }
 
 export async function setup(): Promise<void> {
+	process.env.NC_PARITY_EXAPP = 'true';
+
 	if (process.env.NEW_BASE_URL?.trim()) {
 		return;
 	}
 
 	process.env.NEW_BASE_URL = defaultBaseUrl;
+	process.env.NC_PARITY_EXAPP = 'true';
 
 	try {
 		const probe = await fetch(`${defaultBaseUrl}/status.php`);
@@ -71,6 +74,10 @@ export async function setup(): Promise<void> {
 	serverProcess = spawn(nextBinary, ['start', '--port', String(defaultPort)], {
 		cwd: rootDir,
 		stdio: 'pipe',
+		env: {
+			...process.env,
+			NC_PARITY_EXAPP: 'true',
+		},
 	});
 
 	await waitForServer(defaultBaseUrl);

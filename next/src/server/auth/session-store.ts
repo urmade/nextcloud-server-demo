@@ -8,6 +8,7 @@ export interface SessionData {
 	appPassword?: string;
 	oneTimeToken?: boolean;
 	lastPasswordConfirm?: number;
+	appApi?: boolean;
 }
 
 const globalForSessions = globalThis as typeof globalThis & {
@@ -78,6 +79,7 @@ export function clearSessionData(session: SessionData): void {
 	session.appPassword = undefined;
 	session.oneTimeToken = undefined;
 	session.lastPasswordConfirm = undefined;
+	session.appApi = undefined;
 	updateSession(session);
 }
 

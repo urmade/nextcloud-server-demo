@@ -58,7 +58,13 @@ v1 success adds `totalitems` and `itemsperpage` (empty strings) to `meta`.
 
 **Trap:** TaskProcessing `deleteTask` returns HTTP **200** + `data: null` even when the task id does not exist (idempotent delete).
 
-**Trap:** TaskProcessing 404 messages are **not uniform**: `getTask` / `queue_position` → `Task not found`; `cancel` / `getFileContents` → `Not found`.
+**Trap:** TaskProcessing 404 messages are **not uniform**: `getTask` / `queue_position` → `Task not found`; `cancel` / `getFileContents` / provider callbacks → `Not found`.
+
+**Trap:** `#[ExAppRequired]` auth failure is **not** OCS-wrapped: HTTP **412** + plain JSON `{ message: "ExApp required" }` from SecurityMiddleware (OpenAPI may list 401/403 — PHP behavior wins).
+
+**Trap:** OCS **204** responses (`getNextScheduledTask` empty queue) have **no body** — not `{ ocs: … }`.
+
+**Trap:** `setFileContentsExApp` success uses HTTP **201** with OCS envelope and `meta.statuscode` **201**.
 
 ## Implementation
 

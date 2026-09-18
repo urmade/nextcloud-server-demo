@@ -12,7 +12,7 @@ export interface ParityWaived {
 export interface ParityRequestOptions {
 	method?: string;
 	headers?: Record<string, string>;
-	body?: string;
+	body?: string | FormData;
 }
 
 export interface ParityResponseSnapshot {

@@ -1,5 +1,6 @@
 import {
 	getTaskType,
+	intersectTaskTypesAndProviders,
 	isFileShapeType,
 	PARITY_TEXT_TASK_TYPE_ID,
 } from '@/src/server/task-processing/catalog';
@@ -10,7 +11,9 @@ import type {
 } from '@/src/server/task-processing/types';
 
 const tasks = new Map<number, TaskProcessingTask>();
+const uploadedFiles = new Map<number, { bytes: Uint8Array; mime: string; name: string }>();
 let nextTaskId = 1;
+let nextUploadedFileId = 1000;
 
 function nowSeconds(): number {
 	return Math.floor(Date.now() / 1000);
@@ -44,7 +47,7 @@ function validateWebhook(uri: string | null | undefined, method: string | null |
 	return null;
 }
 
-function validateInput(taskTypeId: string, input: TaskProcessingIo): string | null {
+function validateInputForUserContext(taskTypeId: string, input: TaskProcessingIo, userId: string | null): string | null {
 	const taskType = getTaskType(taskTypeId);
 
 	if (!taskType) {
@@ -60,8 +63,14 @@ function validateInput(taskTypeId: string, input: TaskProcessingIo): string | nu
 			return `Failed to validate input key "${key}": Expected text value`;
 		}
 
-		if (isFileShapeType(descriptor.type) && typeof input[key] !== 'number') {
-			return `Failed to validate input key "${key}": Expected file id`;
+		if (isFileShapeType(descriptor.type)) {
+			if (userId === null) {
+				return 'Cannot schedule task with files referenced without user context';
+			}
+
+			if (typeof input[key] !== 'number') {
+				return `Failed to validate input key "${key}": Expected file id`;
+			}
 		}
 	}
 
@@ -70,7 +79,9 @@ function validateInput(taskTypeId: string, input: TaskProcessingIo): string | nu
 
 export function resetTaskStore(): void {
 	tasks.clear();
+	uploadedFiles.clear();
 	nextTaskId = 1;
+	nextUploadedFileId = 1000;
 }
 
 export function seedParityTask(task: TaskProcessingTask): void {
@@ -82,6 +93,14 @@ export function seedParityTask(task: TaskProcessingTask): void {
 }
 
 export function scheduleTask(userId: string, request: ScheduleTaskRequest): TaskProcessingTask {
+	return scheduleTaskInternal(userId, request);
+}
+
+export function scheduleExAppTask(request: ScheduleTaskRequest): TaskProcessingTask {
+	return scheduleTaskInternal(null, request);
+}
+
+function scheduleTaskInternal(userId: string | null, request: ScheduleTaskRequest): TaskProcessingTask {
 	const taskType = getTaskType(request.type);
 
 	if (!taskType) {
@@ -94,9 +113,13 @@ export function scheduleTask(userId: string, request: ScheduleTaskRequest): Task
 		throw new ValidationError(webhookError);
 	}
 
-	const inputError = validateInput(request.type, request.input);
+	const inputError = validateInputForUserContext(request.type, request.input, userId);
 
 	if (inputError) {
+		if (inputError === 'Cannot schedule task with files referenced without user context') {
+			throw new UnauthorizedError(inputError);
+		}
+
 		throw new ValidationError(inputError);
 	}
 
@@ -128,7 +151,7 @@ export function scheduleTask(userId: string, request: ScheduleTaskRequest): Task
 	return serializeTask(task);
 }
 
-export function getUserTask(taskId: number, userId: string): TaskProcessingTask {
+export function getUserTask(taskId: number, userId: string | null): TaskProcessingTask {
 	const task = tasks.get(taskId);
 
 	if (!task || task.userId !== userId) {
@@ -136,6 +159,192 @@ export function getUserTask(taskId: number, userId: string): TaskProcessingTask 
 	}
 
 	return serializeTask(task);
+}
+
+export function getTaskById(taskId: number): TaskProcessingTask {
+	const task = tasks.get(taskId);
+
+	if (!task) {
+		throw new NotFoundError('Not found');
+	}
+
+	return serializeTask(task);
+}
+
+export function deleteTaskById(taskId: number): void {
+	if (!tasks.has(taskId)) {
+		return;
+	}
+
+	tasks.delete(taskId);
+}
+
+export function cancelTaskById(taskId: number): TaskProcessingTask {
+	const task = tasks.get(taskId);
+
+	if (!task) {
+		throw new NotFoundError('Not found');
+	}
+
+	task.status = 'STATUS_CANCELLED';
+	task.lastUpdated = nowSeconds();
+	task.endedAt = task.lastUpdated;
+
+	return serializeTask(task);
+}
+
+export function claimNextScheduledTask(taskTypeIds: string[]): TaskProcessingTask | null {
+	const eligible = [...tasks.values()]
+		.filter((task) => task.status === 'STATUS_SCHEDULED')
+		.filter((task) => taskTypeIds.length === 0 || taskTypeIds.includes(task.type))
+		.sort((left, right) => (left.scheduledAt ?? 0) - (right.scheduledAt ?? 0));
+
+	const task = eligible[0];
+
+	if (!task) {
+		return null;
+	}
+
+	task.status = 'STATUS_RUNNING';
+	task.startedAt = nowSeconds();
+	task.lastUpdated = task.startedAt;
+
+	return serializeTask(task);
+}
+
+export function hasMoreScheduledTasks(taskTypeIds: string[]): boolean {
+	return [...tasks.values()].some((task) => {
+		return task.status === 'STATUS_SCHEDULED'
+			&& (taskTypeIds.length === 0 || taskTypeIds.includes(task.type));
+	});
+}
+
+export function claimNextScheduledTaskBatch(
+	providerIds: string[],
+	taskTypeIds: string[],
+	numberOfTasks: number,
+): { tasks: Array<{ task: TaskProcessingTask; provider: string }>; hasMore: boolean } {
+	const { providerIds: possibleProviderIds, taskTypeIds: possibleTaskTypeIds } = intersectTaskTypesAndProviders(
+		taskTypeIds,
+		providerIds,
+	);
+
+	if (possibleProviderIds.length === 0 || possibleTaskTypeIds.length === 0) {
+		return { tasks: [], hasMore: false };
+	}
+
+	const claimed: Array<{ task: TaskProcessingTask; provider: string }> = [];
+
+	while (claimed.length < numberOfTasks) {
+		const task = claimNextScheduledTask(possibleTaskTypeIds);
+
+		if (!task) {
+			break;
+		}
+
+		claimed.push({ task, provider: task.type });
+	}
+
+	const hasMore = hasMoreScheduledTasks(possibleTaskTypeIds);
+
+	return { tasks: claimed, hasMore };
+}
+
+export function setTaskProgress(taskId: number, progress: number): TaskProcessingTask {
+	const task = tasks.get(taskId);
+
+	if (!task) {
+		throw new NotFoundError('Not found');
+	}
+
+	if (task.status === 'STATUS_CANCELLED') {
+		return serializeTask(task);
+	}
+
+	if (task.status === 'STATUS_SCHEDULED') {
+		task.startedAt = nowSeconds();
+	}
+
+	task.status = 'STATUS_RUNNING';
+
+	if (progress >= 0 && progress <= 1.0) {
+		task.progress = progress;
+	}
+
+	task.lastUpdated = nowSeconds();
+
+	return serializeTask(task);
+}
+
+export function setTaskResult(
+	taskId: number,
+	output: TaskProcessingIo | null,
+	errorMessage: string | null,
+	userFacingErrorMessage: string | null,
+): TaskProcessingTask {
+	const task = tasks.get(taskId);
+
+	if (!task) {
+		throw new NotFoundError('Not found');
+	}
+
+	if (task.status === 'STATUS_CANCELLED') {
+		return serializeTask(task);
+	}
+
+	if (errorMessage !== null) {
+		task.status = 'STATUS_FAILED';
+		task.output = null;
+		task.userFacingErrorMessage = userFacingErrorMessage;
+	} else {
+		task.status = 'STATUS_SUCCESSFUL';
+		task.output = output ? structuredClone(output) : null;
+		task.userFacingErrorMessage = null;
+	}
+
+	task.endedAt = nowSeconds();
+	task.lastUpdated = task.endedAt;
+
+	return serializeTask(task);
+}
+
+export function setTaskIntermediateOutput(taskId: number, output: TaskProcessingIo): TaskProcessingTask {
+	const task = tasks.get(taskId);
+
+	if (!task) {
+		throw new NotFoundError('Not found');
+	}
+
+	if (task.status !== 'STATUS_RUNNING') {
+		return serializeTask(task);
+	}
+
+	task.output = structuredClone(output);
+	task.lastUpdated = nowSeconds();
+
+	return serializeTask(task);
+}
+
+export function uploadTaskFile(bytes: Uint8Array, filename: string, mime = 'application/octet-stream'): number {
+	const fileId = nextUploadedFileId;
+	nextUploadedFileId += 1;
+	uploadedFiles.set(fileId, { bytes, mime, name: filename });
+
+	return fileId;
+}
+
+export function getUploadedFile(fileId: number): { bytes: Uint8Array; mime: string; name: string } | null {
+	return uploadedFiles.get(fileId) ?? null;
+}
+
+export function getTaskFileById(task: TaskProcessingTask, fileId: number): { bytes: Uint8Array; mime: string; name: string } | null {
+	const referencedIds = extractFileIdsFromTask(task);
+
+	if (!referencedIds.includes(fileId)) {
+		return null;
+	}
+
+	return getUploadedFile(fileId);
 }
 
 export function deleteUserTask(taskId: number, userId: string): void {
@@ -277,7 +486,7 @@ export function buildSeedTask(
 		lastUpdated: overrides.lastUpdated ?? timestamp,
 		type: overrides.type ?? PARITY_TEXT_TASK_TYPE_ID,
 		status: overrides.status ?? 'STATUS_SCHEDULED',
-		userId,
+		userId: overrides.userId !== undefined ? overrides.userId : userId,
 		appId: overrides.appId ?? 'core',
 		input: overrides.input,
 		output: overrides.output ?? null,
@@ -312,5 +521,12 @@ export class ValidationError extends Error {
 	constructor(message: string) {
 		super(message);
 		this.name = 'ValidationError';
+	}
+}
+
+export class UnauthorizedError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = 'UnauthorizedError';
 	}
 }

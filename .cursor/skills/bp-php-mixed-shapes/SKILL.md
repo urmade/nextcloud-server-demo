@@ -31,6 +31,13 @@ Cross-cutting. Applies when PHP types a success body as `mixed`, `array`, or pro
 - Parity compares representative paths per task type id (name, one shape slot type) — not the full provider-registered catalog.
 - Task payloads (`CoreTaskProcessingTask`) have unstable `id` and unix timestamps; auth/validation errors are stable.
 
+## TaskProcessing Ex-App (core slice 7)
+
+- Consumer schedule sets `userId: null`; file-shaped inputs without user → **401** with stable `data.message`.
+- Provider batch success shape: `{ tasks: [{ task, provider: string }], has_more: boolean }` — compare paths, not full task bodies.
+- Uploaded result files get generated `fileId` values — treat as unstable in parity except auth/validation cases.
+- `getNextScheduledTask` empty → HTTP **204** empty body; do not expect OCS JSON.
+
 ## Parity
 
 - Happy path: fixture-backed partial paths.

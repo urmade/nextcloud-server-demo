@@ -48,3 +48,10 @@ export const OCS_META_PATHS = [
 	'ocs.meta.statuscode',
 	'ocs.meta.message',
 ];
+
+export function exAppAuthHeaders(): Record<string, string> {
+	return {
+		...OCS_JSON_HEADERS,
+		Authorization: 'Bearer parity-ex-app',
+	};
+}

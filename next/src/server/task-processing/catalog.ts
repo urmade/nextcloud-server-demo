@@ -3,6 +3,8 @@ import type { TaskProcessingTaskType } from '@/src/server/task-processing/types'
 export const PARITY_TEXT_TASK_TYPE_ID = 'core:text2text';
 export const PARITY_FILE_TASK_TYPE_ID = 'parity:file-read';
 export const PARITY_TASK_APP_ID = 'core';
+export const PARITY_TEXT_PROVIDER_ID = PARITY_TEXT_TASK_TYPE_ID;
+export const PARITY_FILE_PROVIDER_ID = PARITY_FILE_TASK_TYPE_ID;
 
 const EMPTY_OBJECT = {} as Record<string, never>;
 
@@ -69,4 +71,35 @@ export function getTaskType(taskTypeId: string): TaskProcessingTaskType | undefi
 
 export function isFileShapeType(type: string): boolean {
 	return type === 'File' || type === 'Image' || type === 'Audio' || type === 'Video';
+}
+
+export function getPreferredProviderId(taskTypeId: string): string | null {
+	if (taskTypeId in PARITY_TASK_TYPES) {
+		return taskTypeId;
+	}
+
+	return null;
+}
+
+export function intersectTaskTypesAndProviders(
+	taskTypeIds: string[],
+	providerIds: string[],
+): { providerIds: string[]; taskTypeIds: string[] } {
+	const providerIdsBasedOnTaskTypes = taskTypeIds
+		.map((taskTypeId) => getPreferredProviderId(taskTypeId))
+		.filter((providerId): providerId is string => providerId !== null);
+
+	const possibleProviderIds = [...new Set(providerIdsBasedOnTaskTypes)]
+		.filter((providerId) => providerIds.includes(providerId));
+
+	const possibleTaskTypeIds = taskTypeIds.filter((taskTypeId) => {
+		const providerForTaskType = getPreferredProviderId(taskTypeId);
+
+		return providerForTaskType !== null && possibleProviderIds.includes(providerForTaskType);
+	});
+
+	return {
+		providerIds: possibleProviderIds,
+		taskTypeIds: possibleTaskTypeIds,
+	};
 }

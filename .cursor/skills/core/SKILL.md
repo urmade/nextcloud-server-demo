@@ -90,13 +90,36 @@ User-session TaskProcessing OCS endpoints:
 - `GET /ocs/v2.php/taskprocessing/tasks/{taskId}/file/{fileId}` — stream referenced file (binary)
 - `GET /ocs/v2.php/taskprocessing/tasks/{taskId}/queue_position` — queue index for scheduled task
 
-Parity registers fixture task types `core:text2text` and `parity:file-read`. Real Nextcloud registers providers dynamically; this slice models the OCS contract only. Ex-App worker routes are a later slice.
+Parity registers fixture task types `core:text2text` and `parity:file-read`. Real Nextcloud registers providers dynamically; this slice models the OCS contract only.
+
+### Slice 7 — task processing (Ex-App / worker) (done)
+
+Ex-App consumer + provider TaskProcessing OCS endpoints (`#[ExAppRequired]`):
+
+**Consumer (`tasks_consumer/`)** — schedule/read/cancel without user context:
+
+- `GET /ocs/v2.php/taskprocessing/tasks_consumer/tasktypes`
+- `POST /ocs/v2.php/taskprocessing/tasks_consumer/schedule` — `userId` null; file inputs → **401**
+- `GET /ocs/v2.php/taskprocessing/tasks_consumer/task/{id}`
+- `DELETE /ocs/v2.php/taskprocessing/tasks_consumer/task/{id}` — idempotent `data: null`
+- `POST /ocs/v2.php/taskprocessing/tasks_consumer/tasks/{taskId}/cancel`
+
+**Provider (`tasks_provider/`)** — claim queue + worker callbacks:
+
+- `GET /ocs/v2.php/taskprocessing/tasks_provider/next` — atomically claims one task; **204** empty body when none
+- `GET /ocs/v2.php/taskprocessing/tasks_provider/next_batch` — batch claim + `has_more`
+- `POST /ocs/v2.php/taskprocessing/tasks_provider/{taskId}/progress`
+- `POST /ocs/v2.php/taskprocessing/tasks_provider/{taskId}/result`
+- `POST /ocs/v2.php/taskprocessing/tasks_provider/{taskId}/stream-result`
+- `POST /ocs/v2.php/taskprocessing/tasks_provider/{taskId}/file` — multipart field `file`; **201** + `fileId`
+- `GET /ocs/v2.php/taskprocessing/tasks_provider/{taskId}/file/{fileId}` — binary stream
+
+Parity uses in-memory store with `claimNextScheduledTask` / provider intersection matching PHP `Manager` semantics. No DB persistence.
 
 ## Non-scope (later core sub-slices)
 
 | Sub-slice | Endpoint ids (prefix / theme) |
 | --- | --- |
-| **core-task-processing-exapp** | `core-task_processing_api-*-ex-app*`, `get-next-scheduled-task*`, `set-progress`, `set-result`, `set-intermediate-result`, `set-file-contents-ex-app` |
 | **core-ai-tasks** | `core-text_processing_api-*`, `core-text_to_image_api-*` |
 | **core-translation** | `core-translation_api-*` |
 | **core-2fa** | `core-two_factor_api-*` |
@@ -167,6 +190,21 @@ Slice 6:
 - `core-task_processing_api-get-file-contents`
 - `core-task_processing_api-get-task-queue-position`
 
+Slice 7:
+
+- `core-task_processing_api-task-types-ex-app-endpoint`
+- `core-task_processing_api-schedule-ex-app-endpoint`
+- `core-task_processing_api-get-task-ex-app-endpoint`
+- `core-task_processing_api-delete-task-ex-app-endpoint`
+- `core-task_processing_api-cancel-task-ex-app-endpoint`
+- `core-task_processing_api-get-next-scheduled-task`
+- `core-task_processing_api-get-next-scheduled-task-batch`
+- `core-task_processing_api-set-progress`
+- `core-task_processing_api-set-result`
+- `core-task_processing_api-set-intermediate-result`
+- `core-task_processing_api-set-file-contents-ex-app`
+- `core-task_processing_api-get-file-contents-ex-app`
+
 ## Auth model
 
 | Route | Auth |
@@ -180,8 +218,11 @@ Slice 6:
 | Mime icon redirect | `none` — public |
 | Reference preview | `none` — public |
 | Task processing (user session) | `mixed` — session or Basic |
+| Task processing (Ex-App / worker) | `ExAppRequired` — session `app_api === true`; parity harness also accepts `Authorization: Bearer parity-ex-app` when `NC_PARITY_EXAPP=true` |
 
 Unauthenticated OCS calls → v2 HTTP **401**, `ocs.meta.statuscode` **997**, empty `data`.
+
+Missing Ex-App session on `#[ExAppRequired]` routes → HTTP **412** plain JSON `{ message: "ExApp required" }` — **not** OCS envelope (SecurityMiddleware before OCS wrap).
 
 ## Conceptual Next.js shape
 
@@ -202,9 +243,10 @@ src/server/
     api.ts                     # extract/resolve/providers/touch handlers
     preview.ts                 # reference cache lookup
   task-processing/
-    catalog.ts                 # parity task types (core:text2text, parity:file-read)
-    store.ts                   # in-memory task queue + seedParityTask for mock sync
-    api.ts                     # schedule/get/list/cancel/file handlers
+    catalog.ts                 # parity task types + provider intersection
+    store.ts                   # in-memory queue, claim/provider path, uploaded files
+    api.ts                     # user-session handlers
+    ex-app-api.ts              # Ex-App consumer + provider handlers
   fixtures/
     binary.ts                  # deterministic PNG bytes (no real photos)
   http/
@@ -241,6 +283,17 @@ app/
   ocs/v2.php/taskprocessing/tasks/[taskId]/cancel/route.ts
   ocs/v2.php/taskprocessing/tasks/[taskId]/file/[fileId]/route.ts
   ocs/v2.php/taskprocessing/tasks/[taskId]/queue_position/route.ts
+  ocs/v2.php/taskprocessing/tasks_consumer/tasktypes/route.ts
+  ocs/v2.php/taskprocessing/tasks_consumer/schedule/route.ts
+  ocs/v2.php/taskprocessing/tasks_consumer/task/[id]/route.ts
+  ocs/v2.php/taskprocessing/tasks_consumer/tasks/[taskId]/cancel/route.ts
+  ocs/v2.php/taskprocessing/tasks_provider/next/route.ts
+  ocs/v2.php/taskprocessing/tasks_provider/next_batch/route.ts
+  ocs/v2.php/taskprocessing/tasks_provider/[taskId]/progress/route.ts
+  ocs/v2.php/taskprocessing/tasks_provider/[taskId]/result/route.ts
+  ocs/v2.php/taskprocessing/tasks_provider/[taskId]/stream-result/route.ts
+  ocs/v2.php/taskprocessing/tasks_provider/[taskId]/file/route.ts
+  ocs/v2.php/taskprocessing/tasks_provider/[taskId]/file/[fileId]/route.ts
 ```
 
 Config:
@@ -291,6 +344,12 @@ Config:
 - `queue_position` success returns raw integer in `ocs.data` (not wrapped in an object)
 - `getFileContents` is binary OCS-adjacent — 404/500 still use OCS JSON envelope; success is raw bytes + `Content-Disposition`
 - Generated task `id` / timestamps are unstable — use `unstableIdPaths` in parity; seed mock store via `seedParityTask` for stateful cases
+- Ex-App schedule with file-shaped input and no user context → **401** `Cannot schedule task with files referenced without user context`
+- Ex-App auth failure → **412** `{ message: "ExApp required" }` (plain JSON, not OCS)
+- `getNextScheduledTask` empty queue → **204** with empty body (no OCS envelope)
+- `setFileContentsExApp` success → HTTP **201** with `ocs.meta.statuscode` **201**
+- Provider `getFileContentsExApp` uses `getTask` (any owner); consumer routes filter `userId === null`
+- Batch claim returns `tasks[].provider` as string id; single claim returns `provider.name`
 
 ## Parity extras
 
@@ -347,5 +406,12 @@ Config:
 | Happy | delete task | 200 `data: null` even when task missing |
 | Validation | get file contents | file not referenced → 404 `Not found` |
 | Happy | get file contents | 200 binary; size class only (see `bp-binary-parity`) |
+| Auth failure | Ex-App endpoints | 412 plain `{ message: "ExApp required" }` |
+| Happy | Ex-App task types / schedule / get / cancel / delete | 200 OCS; ex-app tasks have `userId: null` |
+| Validation | Ex-App schedule file input | 401 file-without-user message |
+| Happy | claim next / next_batch | 200 claimed task + provider; 204 when empty |
+| Happy | set progress / result / stream-result | 200 updated task payload |
+| Happy | set file contents | 201 `fileId`; unstable id |
+| Happy | provider get file contents | 200 binary; size class only |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` fixtures (not waived).

@@ -161,7 +161,7 @@ export function handleLegacyMockAuth(pathname: string, options: ParityRequestOpt
 
 	if (pathname === '/login' && method === 'POST') {
 		const session = getMockSession(requestCookies[SESSION_COOKIE]);
-		const params = new URLSearchParams(options.body ?? '');
+		const params = new URLSearchParams(typeof options.body === 'string' ? options.body : '');
 		const user = params.get('user') ?? '';
 		const password = params.get('password') ?? '';
 		const requesttoken = params.get('requesttoken');

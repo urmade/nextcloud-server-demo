@@ -6081,15 +6081,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: implemented
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/dav/api/v1/direct
+  next_handler: src/server/dav/direct.ts
+  parity_test: next/parity/tests/dav-direct.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. expirationTime optional (default 8h, max 24h). Requires shareApiAllowLinks.
 - id: dav-upcoming_events-get-events
   feature_ids:
   - dav
@@ -7467,29 +7467,27 @@ endpoints:
     params:
       token: string
     query: {}
-    headers:
-      Authorization: Basic|Bearer
-      Content-Type: application/xml|octet-stream
+    headers: {}
     body: null
   response:
     success:
-      status: 207
-      content_type: application/xml
-      shape: multistatus-or-bytes
+      status: 200
+      content_type: application/octet-stream
+      shape: bytes
     errors:
-    - status: 401
+    - status: 403
       shape: sabre-exception
     - status: 404
       shape: sabre-exception
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: implemented
+  parity: tested
+  next_path: /remote.php/direct/{token}
+  next_handler: src/server/dav/direct.ts
+  parity_test: next/parity/tests/dav-direct.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   dav_ns: DAV:, urn:ietf:params:xml:ns:caldav, urn:ietf:params:xml:ns:carddav, http://owncloud.org/ns, http://nextcloud.org/ns
-  notes: 'Tokenized single-file download. Methods: OPTIONS GET HEAD PUT POST DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK REPORT SEARCH'
+  notes: 'Tokenized single-file download. GET/HEAD 200 file bytes (MIME, Content-Length, ETag, Last-Modified). No session auth. PUT/DELETE 403. Unknown/expired token 404 Sabre XML. Collection listing 405.'
 - id: dav.LegacyWebDAV#files
   feature_ids:
   - dav

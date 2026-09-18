@@ -25,6 +25,7 @@ import { handleWebAuthnMock, isWebAuthnPath } from './webauthn';
 import { handleUnifiedSearchMock } from './unified-search';
 import { handleWipeMock } from './wipe';
 import { handleDavMock, isDavMockMethod } from './dav';
+import { handleDavDirectMock, isDavDirectMockPath } from './dav-direct';
 import { handleFilesApiMock, isFilesApiPath, isFilesApiWritePath } from './files';
 import { snapshotResponse } from '../compare';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
@@ -391,6 +392,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return dav;
 	}
 
+	const davDirect = await handleDavDirectMock(pathname, search, options);
+
+	if (davDirect) {
+		return davDirect;
+	}
+
 	const filesApi = await handleFilesApiMock(fullPath, options);
 
 	if (filesApi) {
@@ -634,6 +641,10 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 		|| pathname === '/index.php/core/wipe/success'
 		|| pathname === '/core/wipe/success'
 	)) {
+		return true;
+	}
+
+	if (isDavDirectMockPath(pathname, normalizedMethod)) {
 		return true;
 	}
 

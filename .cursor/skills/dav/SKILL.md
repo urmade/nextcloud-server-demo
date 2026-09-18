@@ -123,6 +123,18 @@ Parity extras (`next/parity/tests/dav-uploads.parity.test.ts`): unauthenticated 
 
 **Public calendars:** unauthenticated PROPFIND/GET by token name; not public **file** shares.
 
+#### Direct walkthrough — `dav-direct-get-url` + `dav.Direct#get` (`parity: tested`)
+
+Next.js: `src/server/dav/direct.ts` + `src/server/dav/direct-store.ts`; OCS route `app/ocs/v2.php/apps/dav/api/v1/direct/route.ts`; GET route `app/remote.php/direct/[token]/route.ts`.
+
+| Step | Method | Path | Notes |
+| --- | --- | --- | --- |
+| Mint | POST | `/ocs/v2.php/apps/dav/api/v1/direct?format=json` | Logged-in (`bp-ocs-envelope`). Body `{fileId, expirationTime?}` default TTL **28800** (8h), max **86400**. Returns `{url}` with `/remote.php/direct/{60-alnum}`. |
+| Download | GET | `/remote.php/direct/{token}` | **200** file bytes. `Content-Type` = MIME. `Content-Length`, `ETag`, `Last-Modified`. **No** session/Basic/Bearer. HEAD same headers, empty body. |
+| Block write | PUT | same token path | **403** Sabre XML Forbidden |
+
+Parity extras (`next/parity/tests/dav-direct.parity.test.ts`): anonymous mint → **401/997**; folder `fileId` → **400**; unknown/expired token GET → **404**; closed pair mint→GET uses `bp-binary-parity` (status + MIME + size class + contract headers, not raw bytes).
+
 **Direct:** no Sabre login. `DirectHome::getChild` unknown token → throttle `directlink`. Child is GET-stream only; PUT/DELETE Forbidden. Expiry vs `ITimeFactory`.
 
 ### v1 servers

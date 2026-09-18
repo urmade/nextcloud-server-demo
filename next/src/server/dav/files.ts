@@ -133,6 +133,30 @@ export function collectPropfindResponses(
 	return responses;
 }
 
+export function findNodeByFileId(userId: string, fileId: number): DavFileNode | null {
+	if (userId !== getDefaultDavUserId()) {
+		return null;
+	}
+
+	function walk(node: DavFileNode): DavFileNode | null {
+		if (node.fileId === fileId) {
+			return node;
+		}
+
+		for (const child of node.children ?? []) {
+			const found = walk(child);
+
+			if (found) {
+				return found;
+			}
+		}
+
+		return null;
+	}
+
+	return walk(getAdminFilesHome());
+}
+
 export function parseDepthHeader(value: string | null): number {
 	const normalized = value?.trim().toLowerCase();
 

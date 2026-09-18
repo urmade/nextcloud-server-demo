@@ -52,6 +52,7 @@ Existing resets:
 | DAV addressbooks store | `/api/parity/reset-dav-addressbooks-store` | `resetParityAddressBooksStores()` in `dav-addressbooks.parity.test.ts`, `dav-legacy-carddav.parity.test.ts`, and `dav-cal-contacts-io.parity.test.ts`; seed via `/api/parity/seed-dav-addressbooks` |
 | DAV tree-extras store | `/api/parity/reset-dav-tree-extras-store` | `resetParityTreeExtrasStores()` in `dav-tree-extras.parity.test.ts` |
 | DAV example content store | `/api/parity/reset-dav-example-content-store` | `resetParityExampleContentStores()` in `dav-example-content.parity.test.ts` |
+| Provisioning user accounts | `/api/parity/reset-provisioning-store` | `resetParityProvisioningStores()` in `provisioning-self-read.parity.test.ts` |
 
 `set-files-sharing-config` parity route toggles `incomingServer2ServerShareEnabled` (ExternalShares) and `outgoingServer2ServerShareEnabled` (ShareInfo) on both sides. `set-sharing-v1-config` toggles `sharing.unified_api_enable` on both sides — seed via `seedShareOnBothSides` after enable, or delete/get cases diverge across mock vs HTTP.
 

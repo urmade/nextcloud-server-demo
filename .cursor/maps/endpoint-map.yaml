@@ -13940,12 +13940,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/cloud/user
+  next_handler: app/ocs/v2.php/cloud/user/route.ts
+  parity_test: next/parity/tests/provisioning-self-read.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -13980,12 +13980,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/cloud/user/apps
+  next_handler: app/ocs/v2.php/cloud/user/apps/route.ts
+  parity_test: next/parity/tests/provisioning-self-read.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -14019,12 +14019,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/cloud/user/fields
+  next_handler: app/ocs/v2.php/cloud/user/fields/route.ts
+  parity_test: next/parity/tests/provisioning-self-read.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -14059,12 +14059,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/cloud/user/fields/{userId}
+  next_handler: app/ocs/v2.php/cloud/user/fields/[userId]/route.ts
+  parity_test: next/parity/tests/provisioning-self-read.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -14372,12 +14372,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/cloud/users/{userId}
+  next_handler: app/ocs/v2.php/cloud/users/[userId]/route.ts
+  parity_test: next/parity/tests/provisioning-self-read.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.

@@ -1,6 +1,6 @@
 ---
 name: files_sharing
-description: Legacy Share OCS API and sharee search. Use when implementing /ocs/v2.php/apps/files_sharing/api/v1.
+description: Legacy Share OCS API, sharee search, and public link /s/{token} pages. Use when implementing /ocs/v2.php/apps/files_sharing/api/v1 or the public share, authenticate, download and preview routes.
 ---
 
 <!--
@@ -12,7 +12,7 @@ description: Legacy Share OCS API and sharee search. Use when implementing /ocs/
 
 ## Purpose
 
-Logged-in legacy Share OCS (`ShareAPIController`, `ShareesAPIController`) under `/ocs/v2.php/apps/files_sharing/api/v1`. Public `/s/{token}` routes are a separate slice.
+Logged-in legacy Share OCS (`ShareAPIController`, `ShareesAPIController`) under `/ocs/v2.php/apps/files_sharing/api/v1`, and the public link pages under `/s/{token}` (`ShareController`, `PublicPreviewController`).
 
 ## Auth
 
@@ -59,6 +59,41 @@ Logged-in legacy Share OCS (`ShareAPIController`, `ShareesAPIController`) under 
 - `findRecommended`: missing `itemType` → **400** (not search's OCSBadRequest message).
 - generate-token success `{token: string}`; charset `a-z0-9-`, max 32.
 
+## Public links (slice 2)
+
+`ShareController` extends `AuthPublicShareController` (password gate). `PublicPreviewController` extends `PublicShareController` (no auth page).
+
+| id | Method | Path |
+| --- | --- | --- |
+| `files_sharing.Share#showShare` | GET | `/s/{token}` |
+| `files_sharing.Share#showAuthenticate` | GET | `/s/{token}/authenticate/{redirect}` |
+| `files_sharing.Share#authenticate.post` | POST | `/s/{token}/authenticate/{redirect}` |
+| `files_sharing.Share#downloadShare` | GET | `/s/{token}/download/{filename}` |
+| `files_sharing.PublicPreview#directLink` | GET | `/s/{token}/preview` |
+| `files_sharing-public_preview-direct-link` | GET | `/index.php/s/{token}/preview` |
+
+The last two are the same handler; the OpenAPI twin's `auth: mixed` is wrong (`#[PublicPage]`).
+
+### Auth is a second session, not the owner's
+
+These routes run incognito (`OC_User::setIncognitoMode(true)`). **The owner's login cookie never authenticates `/s/{token}`** — an owner hitting their own password-protected link still gets the 303 to the password form. Public state lives in two session keys:
+
+- `public_link_authenticated_frontend` — token → password hash, for the HTML pages.
+- `public_link_authenticated` — list of share **ids** (not tokens), set in `authSucceeded`, for public DAV.
+
+A successful `authenticate` POST regenerates the session id and must persist both keys onto the regenerated session, then send the new session cookie. The retired session id must stop working.
+
+### Status traps
+
+- Missing or invalid token is guest **404 HTML** from `PublicShareMiddleware`, never JSON 401. Same for `shareapi_enabled` / `shareapi_allow_links` off.
+- Password required on an `AuthPublicShareController` route is **303** to `showAuthenticate`, never 401.
+- `authenticate` POST is `#[PublicPage]` + `#[UseSession]` **without** `NoCSRFRequired`: no request token is **412**. Wrong password is **200** `wrongpw` HTML plus throttling (`publicLinkAuth`), not 401. Success is **303**.
+- `passwordRequest === ''` is the TYPE_EMAIL identity flow, not a boolean.
+- `downloadShare` success is **303** to `/public.php/dav/files/{token}{davPath}`; folders add `accept=zip`. No READ or `permissions.download === false` is a **403** plain string; `hideDownload` raises `NotFoundException` and surfaces as middleware **404 HTML**.
+- `directLink` has no authenticate redirect. Password-protected without a public session is middleware **404 HTML** (it must not leak). If the method runs: password / no READ / `!canSeeContent()` is **403** `[]`, a folder share is **400** `[]`, an empty token is **400**. Success caches 24h (`bp-binary-parity`).
+- `NoSameSiteCookieRequired` on `downloadShare` and `directLink`.
+- `showShare` on a file share with an extra `path` is **404**.
+
 ## Implementation layout
 
 ```
@@ -70,6 +105,8 @@ src/server/files_sharing/
   format.ts
   share-api.ts
   sharees-api.ts
+  public-link.ts
+  public-session.ts
 app/ocs/v2.php/apps/files_sharing/api/v1/
   shares/route.ts
   shares/inherited/route.ts
@@ -80,8 +117,16 @@ app/ocs/v2.php/apps/files_sharing/api/v1/
   token/route.ts
   sharees/route.ts
   sharees_recommended/route.ts
+app/s/[token]/
+  route.ts
+  authenticate/[redirect]/route.ts
+  download/[[...filename]]/route.ts
+  preview/route.ts
+app/index.php/s/[token]/preview/route.ts
 parity/legacy-mock/files-sharing-ocs.ts
+parity/legacy-mock/files-sharing-public-link.ts
 parity/tests/files-sharing-share-ocs.parity.test.ts
+parity/tests/files-sharing-public-link.parity.test.ts
 ```
 
 ## Parity notes
@@ -96,5 +141,17 @@ parity/tests/files-sharing-share-ocs.parity.test.ts
 | Sharees missing itemType | 400 |
 | Sharees empty search | 200 empty arrays |
 | generate-token | 200 `{token}` |
+| `GET /s/{token}` good token | 200 HTML |
+| `GET /s/{token}` unknown token | 404 guest HTML |
+| `GET /s/{token}` password share | 303 to `/authenticate/showShare` |
+| Same, with the owner cookie | still 303 |
+| authenticate POST no CSRF | 412 |
+| authenticate POST wrong password | 200 `wrongpw` HTML |
+| authenticate POST correct password | 303, new session cookie, then `GET /s/{token}` is 200 and the old cookie is 303 |
+| `GET /s/{token}/download/` | 303 to `/public.php/dav/files/{token}` |
+| `directLink` password, no session | 404 HTML (or 403 `[]` if the method runs) |
+| `directLink` folder share | 400 `[]` |
 
-Depends on `dav` for file nodes. Use `bp-ocs-envelope`, `bp-observe-php-contract`, `bp-feature-map-edit`.
+Seeding a link share for a public-link test needs slice 1: `POST /shares` with `shareType: 3`, then read the token back. `GET /shares/{id}` returns `ocs.data` as a **one-element array**, so the token is `ocs.data[0].token`. Create the share through the parity case so the mock and the Next.js server both hold it, and never send the owner cookie on the `/s/{token}` request.
+
+Depends on `dav` for file nodes. Use `bp-ocs-envelope`, `bp-observe-php-contract`, `bp-feature-map-edit`, `bp-binary-parity`, `bp-session-map-serialization`.

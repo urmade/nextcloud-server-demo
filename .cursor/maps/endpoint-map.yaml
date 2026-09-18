@@ -10960,7 +10960,7 @@ endpoints:
   method: GET
   legacy_path: /index.php/s/{token}/preview
   legacy_source: openapi.json operationId=files_sharing-public_preview-direct-link
-  auth: mixed
+  auth: public-share
   request:
     params:
       token: string
@@ -10971,7 +10971,7 @@ endpoints:
     success:
       status: 200
       shape: binary
-      content_type: '*/*'
+      content_type: image/png
     errors:
     - status: 400
       shape: any
@@ -10980,15 +10980,20 @@ endpoints:
       shape: any
       content_type: application/json
     - status: 404
-      shape: any
-      content_type: application/json
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: guest-share-not-found-html
+      content_type: text/html
+  status: parity
+  parity: tested
+  next_path: /index.php/s/{token}/preview
+  next_handler: src/server/files_sharing/public-link.ts
+  parity_test: next/parity/tests/files-sharing-public-link.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: >-
+    OpenAPI twin of files_sharing.PublicPreview#directLink; same PublicPreview
+    directLink handler. OpenAPI auth mixed is wrong: the method is PublicPage,
+    so there is no login. OpenAPI also omits the middleware 404 guest HTML for a
+    password-protected share.
 - id: files_sharing-deleted_shareapi-index
   feature_ids:
   - files_sharing
@@ -12040,19 +12045,25 @@ endpoints:
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: public-share-page-html
+      content_type: text/html
     errors:
-    - status: 401
-      shape: login-or-json
+    - status: 303
+      shape: redirect-to-authenticate-when-password-required
     - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: guest-share-not-found-html
+      content_type: text/html
+  status: parity
+  parity: tested
+  next_path: /s/{token}
+  next_handler: src/server/files_sharing/public-link.ts
+  parity_test: next/parity/tests/files-sharing-public-link.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: >-
+    AuthPublicShareController. Unknown or invalid token is guest 404 HTML, not
+    JSON 401; a password-protected share is 303 to showAuthenticate, not 401.
+    Runs incognito, so the owner session cookie does not authenticate the share.
 - id: files_sharing.Share#showAuthenticate
   feature_ids:
   - files_sharing
@@ -12071,19 +12082,22 @@ endpoints:
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: public-share-auth-page-html
+      content_type: text/html
     errors:
-    - status: 401
-      shape: login-or-json
     - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: guest-share-not-found-html
+      content_type: text/html
+  status: parity
+  parity: tested
+  next_path: /s/{token}/authenticate/{redirect}
+  next_handler: src/server/files_sharing/public-link.ts
+  parity_test: next/parity/tests/files-sharing-public-link.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: >-
+    Always renders the password form for a resolvable token; there is no 401.
+    Missing or invalid token is guest 404 HTML from PublicShareMiddleware.
 - id: files_sharing.Share#authenticate.post
   feature_ids:
   - files_sharing
@@ -12097,24 +12111,40 @@ endpoints:
       token: string
       redirect: string
     query: {}
-    headers: {}
-    body: controller-specific
+    headers:
+      requesttoken: string
+    body:
+      content_type: application/x-www-form-urlencoded
+      shape:
+        password: string
+        passwordRequest: string
   response:
     success:
-      status: 200
-      shape: html-or-json
+      status: 303
+      shape: redirect-to-share-after-session-regenerate
     errors:
-    - status: 401
-      shape: login-or-json
+    - status: 200
+      shape: public-share-auth-page-html-wrongpw
+      content_type: text/html
+    - status: 412
+      shape: csrf-check-failed
     - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: guest-share-not-found-html
+      content_type: text/html
+  status: parity
+  parity: tested
+  next_path: /s/{token}/authenticate/{redirect}
+  next_handler: src/server/files_sharing/public-link.ts
+  parity_test: next/parity/tests/files-sharing-public-link.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: >-
+    PublicPage + UseSession without NoCSRFRequired, so a missing request token
+    is 412, not 401. Wrong password is 200 wrongpw HTML plus throttling, not
+    401. Success regenerates the session id and persists
+    public_link_authenticated_frontend (token to password hash) and
+    public_link_authenticated (share ids, set in authSucceeded). An empty
+    passwordRequest is the TYPE_EMAIL identity flow, not a boolean.
 - id: files_sharing.Share#downloadShare
   feature_ids:
   - files_sharing
@@ -12132,20 +12162,30 @@ endpoints:
     body: null
   response:
     success:
-      status: 200
-      shape: html-or-json
+      status: 303
+      shape: redirect-to-public-dav-files-token
     errors:
-    - status: 401
-      shape: login-or-json
+    - status: 303
+      shape: redirect-to-authenticate-when-password-required
+    - status: 403
+      shape: string
+      content_type: text/plain
     - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: guest-share-not-found-html
+      content_type: text/html
+  status: parity
+  parity: tested
+  next_path: /s/{token}/download/{filename}
+  next_handler: src/server/files_sharing/public-link.ts
+  parity_test: next/parity/tests/files-sharing-public-link.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: >-
+    Deprecated redirect, not an HTML or JSON body. Success is 303 to
+    /public.php/dav/files/{token}{davPath}; folders append accept=zip. No READ
+    permission or download disabled is a 403 string; hideDownload raises
+    NotFoundException and surfaces as middleware 404 HTML.
+    NoSameSiteCookieRequired applies.
 - id: files_sharing.PublicPreview#directLink
   feature_ids:
   - files_sharing
@@ -12163,19 +12203,32 @@ endpoints:
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: binary
+      content_type: image/png
     errors:
-    - status: 401
-      shape: login-or-json
+    - status: 400
+      shape: any
+      content_type: application/json
+    - status: 403
+      shape: any
+      content_type: application/json
     - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: guest-share-not-found-html
+      content_type: text/html
+  status: parity
+  parity: tested
+  next_path: /s/{token}/preview
+  next_handler: src/server/files_sharing/public-link.ts
+  parity_test: next/parity/tests/files-sharing-public-link.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: >-
+    PublicShareController, not AuthPublicShareController, so there is no
+    authenticate redirect. A password-protected share without a public frontend
+    session is middleware 404 HTML and does not leak. If the method runs,
+    password-protected or no READ or !canSeeContent is 403 [], a folder share is
+    400 [] and an empty token is 400. Success caches for 24h.
+    NoSameSiteCookieRequired applies.
 - id: files_trashbin.Preview#getPreview
   feature_ids:
   - files_trashbin

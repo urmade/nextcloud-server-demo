@@ -24,6 +24,7 @@ import {
 	ViewConfigValidationError,
 } from './view-config';
 import { getRecentFiles } from './recent';
+import { getThumbnailResponse } from './thumbnail';
 import { resetFilesViewConfigStore } from './view-config-store';
 
 const JSON_HEADERS = {
@@ -146,6 +147,16 @@ export function handleGetRecentFiles(request: Request): Response {
 	}
 
 	return jsonDataResponse({ files: getRecentFiles(auth) });
+}
+
+export function handleGetThumbnail(request: Request, x: string, y: string, filePath: string): Response {
+	const auth = requireFilesApiUser(request);
+
+	if (auth instanceof Response) {
+		return auth;
+	}
+
+	return getThumbnailResponse(auth, x, y, filePath);
 }
 
 function csrfFailure(): Response {

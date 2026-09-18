@@ -4,6 +4,7 @@ import {
 	handleGetGridView,
 	handleGetRecentFiles,
 	handleGetStorageStats,
+	handleGetThumbnail,
 	handleGetViewConfigs,
 	handleSetConfig,
 	handleSetViewConfig,
@@ -22,6 +23,8 @@ const FILES_API_GET_HANDLERS: Record<string, (request: Request) => Response> = {
 	'/apps/files/api/v1/recent': handleGetRecentFiles,
 	'/apps/files/api/v1/recent/': handleGetRecentFiles,
 };
+
+const THUMBNAIL_PATH = /^\/(?:index\.php\/)?apps\/files\/api\/v1\/thumbnail\/([^/]+)\/([^/]+)\/(.+)$/;
 
 const FILES_API_WRITE_HANDLERS: Array<{
 	method: 'PUT' | 'POST';
@@ -80,7 +83,11 @@ const FILES_API_WRITE_HANDLERS: Array<{
 ];
 
 export function isFilesApiPath(pathname: string): boolean {
-	return pathname in FILES_API_GET_HANDLERS;
+	if (pathname in FILES_API_GET_HANDLERS) {
+		return true;
+	}
+
+	return THUMBNAIL_PATH.test(pathname);
 }
 
 export function isFilesApiWritePath(pathname: string, method: string): boolean {
@@ -106,6 +113,22 @@ export async function handleFilesApiMock(
 		const rawBody = await response.text();
 
 		return snapshotResponse(response, rawBody);
+	}
+
+	if (method === 'GET') {
+		const thumbnailMatch = THUMBNAIL_PATH.exec(pathname);
+
+		if (thumbnailMatch) {
+			const [, x, y, encodedFile] = thumbnailMatch;
+			const request = new Request(`http://127.0.0.1:3100${fullPath.startsWith('/') ? fullPath : `/${fullPath}`}`, {
+				method,
+				headers: options.headers,
+			});
+			const response = handleGetThumbnail(request, x, y, decodeURIComponent(encodedFile));
+			const rawBody = await response.text();
+
+			return snapshotResponse(response, rawBody);
+		}
 	}
 
 	const writeHandler = FILES_API_WRITE_HANDLERS.find((entry) => entry.method === method && entry.match(pathname));

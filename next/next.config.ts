@@ -58,6 +58,10 @@ const nextConfig: NextConfig = {
 				destination: '/heartbeat',
 			},
 			{
+				source: '/index.php/apps/files/api/v1/thumbnail/:path*',
+				destination: '/apps/files/api/v1/thumbnail/:path*',
+			},
+			{
 				source: '/index.php/lostpassword/email',
 				destination: '/lostpassword/email',
 			},

@@ -8816,19 +8816,27 @@ endpoints:
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: binary
+      content_type: image/png
     errors:
+    - status: 400
+      shape: '{message}'
+    - status: 400
+      shape: '[]'
     - status: 401
-      shape: login-or-json
+      shape: '{message}'
     - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: '{message:File not found.}'
+    - status: 303
+      shape: redirect-root-strict-cookie
+  status: parity
+  parity: tested
+  next_path: /apps/files/api/v1/thumbnail/{x}/{y}/{file}
+  next_handler: src/server/files/thumbnail.ts
+  parity_test: next/parity/tests/files-json-thumbnail.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Binary parity compares status + content-type + size class, not pixel bytes (see bp-binary-parity). x<1 or y<1 → 400 {message}. Missing/not-file → 404 {message}. Preview failure → 400 [].
 - id: files.Api#getViewConfigs
   feature_ids:
   - files
@@ -9083,7 +9091,7 @@ endpoints:
   method: GET
   legacy_path: /index.php/apps/files/api/v1/thumbnail/{x}/{y}/{file}
   legacy_source: openapi.json operationId=files-api-get-thumbnail
-  auth: mixed
+  auth: session
   request:
     params:
       x: integer
@@ -9096,27 +9104,26 @@ endpoints:
     success:
       status: 200
       shape: binary
-      content_type: '*/*'
+      content_type: image/png
     errors:
     - status: 400
-      shape:
-        message: string
-      content_type: application/json
+      shape: '{message}'
+    - status: 400
+      shape: '[]'
     - status: 401
-      shape:
-        message: string
-      content_type: application/json
+      shape: '{message}'
     - status: 404
-      shape:
-        message: string
-      content_type: application/json
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: '{message:File not found.}'
+    - status: 303
+      shape: redirect-root-strict-cookie
+  status: parity
+  parity: tested
+  next_path: /apps/files/api/v1/thumbnail/{x}/{y}/{file}
+  next_handler: src/server/files/thumbnail.ts
+  parity_test: next/parity/tests/files-json-thumbnail.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Twin of files.Api#getThumbnail via rewrite; same handler. Binary parity compares status + content-type + size class (see bp-binary-parity).
 - id: files-conversion_api-convert
   feature_ids:
   - files

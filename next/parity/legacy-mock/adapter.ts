@@ -25,6 +25,7 @@ import { handleWebAuthnMock, isWebAuthnPath } from './webauthn';
 import { handleUnifiedSearchMock } from './unified-search';
 import { handleWipeMock } from './wipe';
 import { handleDavMock, isDavMockMethod } from './dav';
+import { handleFilesApiMock, isFilesApiPath } from './files';
 import { snapshotResponse } from '../compare';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
 
@@ -390,6 +391,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return dav;
 	}
 
+	const filesApi = await handleFilesApiMock(fullPath, options);
+
+	if (filesApi) {
+		return filesApi;
+	}
+
 	if (method === 'PUT' && pathname.includes('/cloud/capabilities')) {
 		const isV1 = pathname.includes('/ocs/v1.php/');
 
@@ -634,6 +641,10 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 		|| pathname.startsWith('/remote.php/webdav')
 		|| pathname.startsWith('/remote.php/files')) {
 		return isDavMockMethod(normalizedMethod);
+	}
+
+	if (normalizedMethod === 'GET' && isFilesApiPath(pathname)) {
+		return true;
 	}
 
 	if (normalizedMethod !== 'GET' && normalizedMethod !== 'DELETE' && normalizedMethod !== 'PROPFIND' && normalizedMethod !== 'OPTIONS') {

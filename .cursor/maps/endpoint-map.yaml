@@ -8565,17 +8565,17 @@ endpoints:
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: '{message:ok,data:UserConfig}'
     errors:
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: '{message}'
+    - status: 303
+      shape: redirect-root-strict-cookie
+  status: parity
+  parity: tested
+  next_path: /apps/files/api/v1/configs
+  next_handler: src/server/files/api.ts
+  parity_test: next/parity/tests/files-json-config.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: files.Api#cropImagePreviews.post
@@ -8682,17 +8682,17 @@ endpoints:
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: '{gridview:bool}'
     errors:
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: '{message}'
+    - status: 303
+      shape: redirect-root-strict-cookie
+  status: parity
+  parity: tested
+  next_path: /apps/files/api/v1/showgridview
+  next_handler: src/server/files/api.ts
+  parity_test: next/parity/tests/files-json-config.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: files.Api#showGridView.post
@@ -8763,23 +8763,24 @@ endpoints:
   auth: session
   request:
     params: {}
-    query: {}
+    query:
+      dir: string
     headers: {}
     body: null
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: '{message:ok,data:StorageInfo}'
     errors:
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: '{message}'
+    - status: 303
+      shape: redirect-root-strict-cookie
+  status: parity
+  parity: tested
+  next_path: /apps/files/api/v1/stats
+  next_handler: src/server/files/api.ts
+  parity_test: next/parity/tests/files-json-config.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: files.Api#getThumbnail
@@ -8830,17 +8831,17 @@ endpoints:
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: '{message:ok,data:ViewConfigMap}'
     errors:
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: '{message}'
+    - status: 303
+      shape: redirect-root-strict-cookie
+  status: parity
+  parity: tested
+  next_path: /apps/files/api/v1/views
+  next_handler: src/server/files/api.ts
+  parity_test: next/parity/tests/files-json-config.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: files.Api#setViewConfig.put.2

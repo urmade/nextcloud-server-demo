@@ -40,3 +40,4 @@ Cross-cutting. Phase-0 map `response.success` / `errors` are hypotheses from Ope
 | Lost email | 303 “Send reset email”, 401 login-failed | 200 `{ status: success }` (does not prove mail sent); CSRF 412 JSON; overlong user 200 error JSON |
 | Lost setPassword | missing 400/412 in map | missing `password`/`proceed` → 400 empty; CSRF fail → 412 `{ message }` |
 | Well-known caldav/carddav | `success.status: 200`, shape "301 redirect" | Apache `.htaccess` **301** → `/remote.php/dav/`; no `X-NEXTCLOUD-WELL-KNOWN` on happy path; 404 JSON is missing-rewrite misconfig, not product contract |
+| Files Api JSON GET | 401 login-or-json, 404 not-found | `NoAdminRequired` + no `NoCSRFRequired`: strict cookie missing → **303 `/`**; JSON unauth → 401 `{ message }`; `getGridView` body is `{ gridview }` not `{ message, data }`; `getStorageStats` sets 5 min cache |

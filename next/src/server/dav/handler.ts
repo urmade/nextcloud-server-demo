@@ -1,6 +1,17 @@
 import { resolveLegacyCalDavUserId } from './auth-legacy-caldav';
 import { davUnauthorizedResponse, resolveDavUserId } from './auth-basic';
 import {
+	addressBookForbiddenResponse,
+	addressBookMethodNotAllowedResponse,
+	addressBookNotFoundResponse,
+	buildAddressBookPropfindBody,
+	handleAddressBookGet,
+	handleAddressBookPut,
+	isAddressBookDavPath,
+	parseAddressBookDepth,
+	parseAddressBookPath,
+} from './addressbooks';
+import {
 	buildCalendarPropfindBody,
 	calendarMethodNotAllowedResponse,
 	calendarNotFoundResponse,
@@ -77,17 +88,89 @@ function emptyResponse(status: number, extraHeaders: Record<string, string> = {}
 	});
 }
 
-function handleOptions(isPublicCalendar = false): Response {
+function handleOptions(options: { isPublicCalendar?: boolean; isAddressBook?: boolean } = {}): Response {
+	const { isPublicCalendar = false, isAddressBook = false } = options;
+
 	return new Response(null, {
 		status: 200,
 		headers: {
 			allow: isPublicCalendar
 				? 'OPTIONS, GET, HEAD, PROPFIND, REPORT'
 				: 'OPTIONS, GET, HEAD, PUT, DELETE, PROPFIND, PROPPATCH, MKCOL, MKCALENDAR, COPY, MOVE, REPORT',
-			dav: '1, 3, extended-mkcol, calendar-access',
+			dav: isAddressBook
+				? '1, 3, extended-mkcol, addressbook'
+				: '1, 3, extended-mkcol, calendar-access',
 			'content-length': '0',
 		},
 	});
+}
+
+async function handleAddressBookRequest(
+	request: Request,
+	parsed: ReturnType<typeof parseDavRequest>,
+	resolveUser: ResolveUser,
+): Promise<Response> {
+	const addressBookPath = parseAddressBookPath(parsed!);
+
+	if (!addressBookPath) {
+		return addressBookNotFoundResponse();
+	}
+
+	const method = request.method.toUpperCase();
+	const userId = resolveUser(request);
+
+	if (!userId) {
+		return davUnauthorizedResponse();
+	}
+
+	if (method === 'OPTIONS') {
+		return handleOptions({ isAddressBook: true });
+	}
+
+	if (method === 'PROPFIND') {
+		return handleAddressBookPropfind(request, parsed, userId);
+	}
+
+	if (method === 'GET' || method === 'HEAD') {
+		const result = handleAddressBookGet(addressBookPath, userId);
+
+		if (result === 'not-found') {
+			return addressBookNotFoundResponse();
+		}
+
+		if (result === 'forbidden') {
+			return addressBookForbiddenResponse();
+		}
+
+		if (method === 'HEAD') {
+			return new Response(null, {
+				status: result.status,
+				headers: result.headers,
+			});
+		}
+
+		return result;
+	}
+
+	if (method === 'PUT') {
+		const result = await handleAddressBookPut(request, addressBookPath, userId);
+
+		if (result === 'not-found') {
+			return addressBookNotFoundResponse();
+		}
+
+		if (result === 'forbidden') {
+			return addressBookForbiddenResponse();
+		}
+
+		return result;
+	}
+
+	if (method === 'DELETE' || method === 'MKCOL' || method === 'COPY' || method === 'MOVE' || method === 'REPORT') {
+		return addressBookForbiddenResponse();
+	}
+
+	return addressBookMethodNotAllowedResponse('Method not allowed');
 }
 
 async function handleCalendarRequest(
@@ -110,7 +193,7 @@ async function handleCalendarRequest(
 	}
 
 	if (method === 'OPTIONS') {
-		return handleOptions(isPublic);
+		return handleOptions({ isPublicCalendar: isPublic });
 	}
 
 	if (method === 'PROPFIND') {
@@ -278,6 +361,31 @@ function handleUploadPropfind(request: Request, parsed: ReturnType<typeof parseD
 	});
 }
 
+function handleAddressBookPropfind(
+	request: Request,
+	parsed: ReturnType<typeof parseDavRequest>,
+	userId: string,
+): Response {
+	const addressBookPath = parseAddressBookPath(parsed!);
+
+	if (!addressBookPath) {
+		return addressBookNotFoundResponse();
+	}
+
+	const depth = parseAddressBookDepth(request);
+	const body = buildAddressBookPropfindBody(addressBookPath, depth, userId);
+
+	if (body === 'not-found') {
+		return addressBookNotFoundResponse();
+	}
+
+	if (body === 'forbidden') {
+		return addressBookForbiddenResponse();
+	}
+
+	return xmlResponse(body, 207, { 'x-user-id': userId });
+}
+
 function handleCalendarPropfind(
 	request: Request,
 	parsed: ReturnType<typeof parseDavRequest>,
@@ -316,6 +424,16 @@ function handlePropfind(request: Request, parsed: ReturnType<typeof parseDavRequ
 		}
 
 		return handleCalendarPropfind(request, parsed, userId);
+	}
+
+	if (parsed!.ingress === 'v2' && isAddressBookDavPath(parsed!.davPath)) {
+		const userId = resolveUser(request);
+
+		if (!userId) {
+			return davUnauthorizedResponse();
+		}
+
+		return handleAddressBookPropfind(request, parsed, userId);
 	}
 
 	if (parsed!.ingress === 'v2' && isPrincipalPath(parsed!)) {
@@ -452,7 +570,17 @@ export async function handleDavRequest(
 
 	if (method === 'OPTIONS') {
 		if (parsed.ingress === 'v2' && isPublicCalendarDavPath(parsed.davPath)) {
-			return handleOptions(true);
+			return handleOptions({ isPublicCalendar: true });
+		}
+
+		if (parsed.ingress === 'v2' && isAddressBookDavPath(parsed.davPath)) {
+			const userId = resolveUser(request);
+
+			if (!userId) {
+				return davUnauthorizedResponse();
+			}
+
+			return handleOptions({ isAddressBook: true });
 		}
 
 		if (parsed.ingress === 'v2' && isPublicPrincipalPath(parsed.davPath)) {
@@ -474,6 +602,10 @@ export async function handleDavRequest(
 
 	if (parsed.ingress === 'v2' && isCalendarDavPath(parsed)) {
 		return handleCalendarRequest(request, parsed, resolveUser);
+	}
+
+	if (parsed.ingress === 'v2' && isAddressBookDavPath(parsed.davPath)) {
+		return handleAddressBookRequest(request, parsed, resolveUser);
 	}
 
 	if (method === 'PROPFIND') {

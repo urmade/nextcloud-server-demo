@@ -171,6 +171,46 @@ export function buildCalendarPropfindMultistatus(responses: Array<{
 		+ `</d:multistatus>`;
 }
 
+export function buildAddressBookPropfindMultistatus(responses: Array<{
+	href: string;
+	displayName: string;
+	isCollection: boolean;
+	isAddressBook?: boolean;
+	etag?: string;
+	size?: number;
+	contentType?: string;
+}>): string {
+	const parts = responses.map((entry) => {
+		const resourceType = entry.isAddressBook
+			? `<d:resourcetype><d:collection/><card:addressbook/></d:resourcetype>`
+			: entry.isCollection
+				? `<d:resourcetype><d:collection/></d:resourcetype>`
+				: `<d:resourcetype/>`;
+		const etag = entry.etag ? `<d:getetag>${escapeXml(entry.etag)}</d:getetag>` : '';
+		const length = entry.size !== undefined ? `<d:getcontentlength>${entry.size}</d:getcontentlength>` : '';
+		const contentType = entry.contentType ? `<d:getcontenttype>${escapeXml(entry.contentType)}</d:getcontenttype>` : '';
+
+		return `<d:response>`
+			+ `<d:href>${escapeXml(entry.href)}</d:href>`
+			+ `<d:propstat>`
+			+ `<d:prop>`
+			+ resourceType
+			+ `<d:displayname>${escapeXml(entry.displayName)}</d:displayname>`
+			+ etag
+			+ length
+			+ contentType
+			+ `</d:prop>`
+			+ `<d:status>HTTP/1.1 200 OK</d:status>`
+			+ `</d:propstat>`
+			+ `</d:response>`;
+	});
+
+	return `<?xml version="1.0" encoding="utf-8"?>`
+		+ `<d:multistatus xmlns:d="${NS_DAV}" xmlns:card="${NS_CARDDAV}" xmlns:oc="${NS_OC}" xmlns:nc="${NS_NC}">`
+		+ parts.join('')
+		+ `</d:multistatus>`;
+}
+
 export function buildCalendarReportMultistatus(entries: Array<{ href: string; etag: string }>): string {
 	const parts = entries.map((entry) => `<d:response>`
 		+ `<d:href>${escapeXml(entry.href)}</d:href>`

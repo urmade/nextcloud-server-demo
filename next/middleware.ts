@@ -1,7 +1,13 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { handleDavRequest } from '@/src/server/dav/handler';
 import { handlePublicDavRequest } from '@/src/server/dav/public-handler';
-import { isCalendarDavPath, isLegacyCalDavIngress, isPublicCalendarDavPath, parseDavRequest } from '@/src/server/dav/remote';
+import {
+	isAddressBookDavPath,
+	isCalendarDavPath,
+	isLegacyCalDavIngress,
+	isPublicCalendarDavPath,
+	parseDavRequest,
+} from '@/src/server/dav/remote';
 
 const DAV_METHODS = new Set([
 	'PROPFIND',
@@ -49,9 +55,14 @@ export async function middleware(request: NextRequest) {
 	const isCalendarPath = parsed !== null
 		&& (isLegacyCalDavIngress(parsed.ingress)
 			|| (parsed.ingress === 'v2' && (isCalendarDavPath(davPath ?? '') || isPublicCalendarDavPath(davPath ?? ''))));
+	const isAddressBookPath = parsed !== null
+		&& parsed.ingress === 'v2'
+		&& isAddressBookDavPath(davPath ?? '');
 	const allowedMethods = isCalendarPath
 		? new Set([...DAV_METHODS, 'GET', 'HEAD', 'DELETE', 'MKCALENDAR', 'REPORT'])
-		: DAV_METHODS;
+		: isAddressBookPath
+			? new Set([...DAV_METHODS, 'GET', 'HEAD', 'DELETE', 'REPORT'])
+			: DAV_METHODS;
 
 	if (!allowedMethods.has(method)) {
 		return NextResponse.next();

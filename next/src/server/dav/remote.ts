@@ -86,11 +86,18 @@ export function buildDavHref(requestPath: string, isCollection: boolean): string
 }
 
 const CALENDAR_ROOTS = new Set(['calendars', 'public-calendars', 'remote-calendars', 'system-calendars']);
+const ADDRESSBOOK_ROOTS = new Set(['addressbooks']);
 
 export function isCalendarDavPath(davPath: string): boolean {
 	const root = davPath.split('/').filter(Boolean)[0];
 
 	return root !== undefined && CALENDAR_ROOTS.has(root);
+}
+
+export function isAddressBookDavPath(davPath: string): boolean {
+	const root = davPath.split('/').filter(Boolean)[0];
+
+	return root !== undefined && ADDRESSBOOK_ROOTS.has(root);
 }
 
 export function isPublicCalendarDavPath(davPath: string): boolean {

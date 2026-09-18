@@ -46,9 +46,11 @@ v1 success adds `totalitems` and `itemsperpage` (empty strings) to `meta`.
 
 **Trap:** `OCSForbiddenException` and `DataResponse` with HTTP 403 both become v2 HTTP **403** with `meta.statuscode` **403** and `data: {}` (or `[]` for confirm-password failure).
 
+**Trap:** Some endpoints return HTTP **400** with `meta.message` **empty** and `data` as a **plain string** (not an object), e.g. unified search filter errors (`"No valid filters provided"`). Use `ocsBadRequestStringResponse` in `respond.ts`.
+
 ## Implementation
 
-- Shared helpers: `src/server/ocs/envelope.ts` (`buildOcsSuccessEnvelope`, `buildOcsFailureEnvelope`, `getOcsHttpStatus`).
+- Shared helpers: `src/server/ocs/envelope.ts` (`buildOcsSuccessEnvelope`, `buildOcsFailureEnvelope`, `getOcsHttpStatus`); `src/server/ocs/respond.ts` (`ocsBadRequestStringResponse` for string `data` on 400).
 - `ocs_version` on map entries must be `v1`, `v2`, or `both`.
 - Parity compares `ocs.meta.status`, `ocs.meta.statuscode`, `ocs.meta.message` at minimum.
 

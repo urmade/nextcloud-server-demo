@@ -1,0 +1,25 @@
+{
+  "ocs": {
+    "meta": {
+      "status": "ok",
+      "statuscode": 200,
+      "message": "OK"
+    },
+    "data": {
+      "name": "Users",
+      "isPaginated": false,
+      "entries": [
+        {
+          "thumbnailUrl": "",
+          "title": "Alice",
+          "subline": "alice",
+          "resourceUrl": "/index.php/settings/users/alice",
+          "icon": "",
+          "rounded": false,
+          "attributes": {}
+        }
+      ],
+      "cursor": null
+    }
+  }
+}

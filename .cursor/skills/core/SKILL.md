@@ -36,6 +36,15 @@ OCS endpoints for device/app token lifecycle:
 - `POST /ocs/v2.php/core/apppassword/rotate` — rotate current app-password session token
 - `PUT /ocs/v2.php/core/apppassword/confirm` — confirm account password (`lastLogin` unix timestamp)
 
+### Slice 4 — unified search (done)
+
+OCS endpoints for the header unified-search UI:
+
+- `GET /ocs/v2.php/search/providers` — list search providers (+ ETag)
+- `GET /ocs/v2.php/search/providers/{providerId}/search` — run one provider (`term`, `limit`, `cursor`, `from`)
+
+Parity ships one fixture provider `parity-users` (searches `NC_PARITY_USERS`). Real Nextcloud registers app providers dynamically; this slice models the OCS contract only.
+
 ### Slice 2 — avatars + preview (done)
 
 Binary-ish HTTP endpoints with high fan-in after navigation:
@@ -55,7 +64,6 @@ Legacy paths use `/index.php/…`; Next.js rewrites to `/avatar/…` and `/core/
 
 | Sub-slice | Endpoint ids (prefix / theme) |
 | --- | --- |
-| **core-unified-search** | `core-unified_search-*` |
 | **core-reference** | `core-reference_api-*` |
 | **core-ai-tasks** | `core-task_processing_api-*`, `core-text_processing_api-*`, `core-text_to_image_api-*` |
 | **core-translation** | `core-translation_api-*` |
@@ -87,6 +95,11 @@ Slice 3:
 - `core-app_password-rotate-app-password`
 - `core-app_password-confirm-user-password`
 
+Slice 4:
+
+- `core-unified_search-get-providers`
+- `core-unified_search-search`
+
 Slice 2:
 
 - `core-avatar-get-avatar`
@@ -104,7 +117,7 @@ Slice 2:
 | --- | --- |
 | Well-known | `none` — public |
 | `/ocs-provider/` | `none` — public catalog |
-| Navigation / autocomplete / hover card / app passwords | `mixed` — session or Basic |
+| Navigation / autocomplete / hover card / app passwords / unified search | `mixed` — session or Basic |
 | User / guest avatars | `none` — `@PublicPage` in legacy |
 | Preview by file id / path | `session` or Basic — unauthenticated → **401** JSON `{ message }` |
 | Mime icon redirect | `none` — public |
@@ -120,6 +133,7 @@ src/server/
   ocs/                         # auth, navigation, autocomplete, hover card, app passwords, …
     app-password.ts            # create/rotate/delete/confirm handlers
     app-password-store.ts      # in-memory token store for parity
+    unified-search.ts          # parity providers + search
   avatar/
     user.ts                    # user avatar + guestFallback
     guest.ts                   # generated guest avatars (201)
@@ -147,6 +161,8 @@ app/
   ocs/v2.php/core/apppassword/route.ts
   ocs/v2.php/core/apppassword/rotate/route.ts
   ocs/v2.php/core/apppassword/confirm/route.ts
+  ocs/v2.php/search/providers/route.ts
+  ocs/v2.php/search/providers/[providerId]/search/route.ts
 ```
 
 Config:
@@ -157,6 +173,8 @@ Config:
 | `NC_PARITY_USERS` | admin + alice JSON | Autocomplete, hover card, avatar lookup |
 | `NC_PARITY_PREVIEW_FILES` | `[{"id":100,"path":"welcome.png","mime":"image/png","readable":true}]` | Preview happy path |
 | `NC_APP_*_ENABLED` | all `true` for parity | OCS provider optional services |
+| `NC_UNIFIED_SEARCH_MIN_LENGTH` | `1` | Ignore `term` shorter than this |
+| `NC_UNIFIED_SEARCH_MAX_RESULTS` | `25` | Cap per-request `limit` |
 
 ## Traps
 
@@ -176,6 +194,10 @@ Config:
 - `confirm` wrong password → 403 OCS with `data: []`; success returns `lastLogin` as unix seconds (not ISO)
 - Generated `apppassword` values are not byte-compared in parity (unstable id)
 - One-time flow: Basic auth with one-time token on `getapppassword-onetime` sets `one_time_token` session flag
+- `getProviders` sets ETag from `md5(JSON.stringify(providers))`
+- Search with no valid filters (e.g. missing/short `term`) → HTTP **400**, `meta.message` empty, `data` string `"No valid filters provided"`
+- Unknown `providerId` → HTTP **500** OCS 996 (legacy throws `InvalidArgumentException`)
+- Default `limit` is **5**; capped by `NC_UNIFIED_SEARCH_MAX_RESULTS` (min 1)
 
 ## Parity extras
 
@@ -209,5 +231,9 @@ Config:
 | Validation | confirm password | wrong password → 403, `data: []` |
 | Happy | getapppassword-onetime | 200 after one-time Basic auth on same path |
 | Validation | getapppassword-onetime | missing one_time_token → 403 |
+| Happy | unified search providers | 200 provider array + ETag |
+| Auth failure | unified search | 401 OCS 997 |
+| Happy | unified search `parity-users` | 200 entries for `term=ali` |
+| Validation | unified search | no `term` → 400 string data |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` fixtures (not waived).

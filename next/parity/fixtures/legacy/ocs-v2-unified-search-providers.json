@@ -1,0 +1,26 @@
+{
+  "ocs": {
+    "meta": {
+      "status": "ok",
+      "statuscode": 200,
+      "message": "OK"
+    },
+    "data": [
+      {
+        "id": "parity-users",
+        "appId": "core",
+        "name": "Users",
+        "icon": "/core/img/places/default-app-icon.svg",
+        "order": 5,
+        "isExternalProvider": false,
+        "triggers": [
+          "parity-users"
+        ],
+        "filters": {
+          "term": "string"
+        },
+        "inAppSearch": false
+      }
+    ]
+  }
+}

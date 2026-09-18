@@ -10,6 +10,7 @@ import { SECURITY_TXT_BODY } from '@/src/server/well-known/handlers';
 import { generateNavigationETag, getAppsNavigation, getSettingsNavigation } from '@/src/server/ocs/navigation';
 import { handleAppPasswordMock } from './app-password';
 import { handleLegacyMockAuth, parseCookiesFromOptions } from './auth';
+import { handleUnifiedSearchMock } from './unified-search';
 import { snapshotResponse } from '../compare';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
 
@@ -393,6 +394,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return hoverCard;
 	}
 
+	const unifiedSearch = handleUnifiedSearchMock(fullPath, options, isMockAuthenticated(options), unauthorizedSnapshot);
+
+	if (unifiedSearch) {
+		return unifiedSearch;
+	}
+
 	const avatar = handleAvatarMock(pathname, search);
 
 	if (avatar) {
@@ -439,6 +446,7 @@ const MOCKED_GET_PREFIXES = [
 	'/ocs-provider',
 	'/ocs/v2.php/core/navigation/',
 	'/ocs/v2.php/core/autocomplete/',
+	'/ocs/v2.php/search/providers',
 	'/ocs/v2.php/hovercard/v1/',
 	'/avatar/',
 	'/index.php/avatar/',
@@ -467,7 +475,8 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (pathname.startsWith('/ocs/v2.php/core/getapppassword')
-		|| pathname.startsWith('/ocs/v2.php/core/apppassword')) {
+		|| pathname.startsWith('/ocs/v2.php/core/apppassword')
+		|| pathname.startsWith('/ocs/v2.php/search/providers')) {
 		return true;
 	}
 

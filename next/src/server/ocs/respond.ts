@@ -95,3 +95,25 @@ export function ocsNotModifiedResponse(): Response {
 		status: 304,
 	});
 }
+
+export function ocsBadRequestStringResponse(
+	ocsVersion: OcsApiVersion,
+	message: string,
+): Response {
+	const envelope = {
+		ocs: {
+			meta: {
+				status: 'failure' as const,
+				statuscode: 400,
+				message: '',
+				...(ocsVersion === 1 ? { totalitems: '', itemsperpage: '' } : {}),
+			},
+			data: message,
+		},
+	};
+
+	return Response.json(envelope, {
+		status: getOcsHttpStatus(ocsVersion, 400),
+		headers: OCS_JSON_HEADERS,
+	});
+}

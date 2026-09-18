@@ -5811,16 +5811,16 @@ endpoints:
     body: null
   response:
     success:
-      status: 200
-      shape: 301 redirect
+      status: 301
+      shape: redirect /remote.php/dav/
     errors:
     - status: 404
       shape: not-supported
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /.well-known/caldav
+  next_handler: src/server/well-known/handlers.ts
+  parity_test: next/parity/tests/dav-well-known.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: core.WellKnown#handle.carddav
@@ -5839,16 +5839,16 @@ endpoints:
     body: null
   response:
     success:
-      status: 200
-      shape: 301 redirect
+      status: 301
+      shape: redirect /remote.php/dav/
     errors:
     - status: 404
       shape: not-supported
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /.well-known/carddav
+  next_handler: src/server/well-known/handlers.ts
+  parity_test: next/parity/tests/dav-well-known.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: dav.birthday_calendar#disable.post

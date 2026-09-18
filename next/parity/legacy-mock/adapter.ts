@@ -108,10 +108,14 @@ function textSnapshot(status: number, body: string, extraHeaders: Record<string,
 	);
 }
 
-function redirectSnapshot(location: string, extraHeaders: Record<string, string> = {}): ParityResponseSnapshot {
+function redirectSnapshot(
+	location: string,
+	extraHeaders: Record<string, string> = {},
+	status = 303,
+): ParityResponseSnapshot {
 	return snapshotResponse(
 		new Response(null, {
-			status: 303,
+			status,
 			headers: {
 				location,
 				...extraHeaders,
@@ -136,6 +140,10 @@ function handleWellKnownMock(pathname: string, options: ParityRequestOptions): P
 		return textSnapshot(200, SECURITY_TXT_BODY, {
 			'x-nextcloud-well-known': '1',
 		});
+	}
+
+	if (pathname === '/.well-known/caldav' || pathname === '/.well-known/carddav') {
+		return redirectSnapshot('http://127.0.0.1:3100/remote.php/dav/', {}, 301);
 	}
 
 	if (pathname.startsWith('/.well-known/')) {

@@ -18,7 +18,20 @@ Policy: https://hackerone.com/nextcloud
 Preferred-Languages: en
 `;
 
+const DAV_WELL_KNOWN_SERVICES = new Set(['caldav', 'carddav']);
+
 export function handleWellKnown(service: string, request: Request): Response {
+	if (DAV_WELL_KNOWN_SERVICES.has(service)) {
+		const origin = getRequestOrigin(request);
+
+		return new Response(null, {
+			status: 301,
+			headers: {
+				location: `${origin}/remote.php/dav/`,
+			},
+		});
+	}
+
 	if (service === 'change-password') {
 		const origin = getRequestOrigin(request);
 

@@ -1,3 +1,5 @@
+import { findParityUser } from '@/src/server/config/users';
+
 export interface BasicAuthCredentials {
 	username: string;
 	password: string;
@@ -36,8 +38,21 @@ export function isValidBasicAuth(credentials: BasicAuthCredentials | null): bool
 		return false;
 	}
 
-	const expectedUser = process.env.NC_ADMIN_USER?.trim() || 'admin';
 	const expectedPassword = process.env.NC_ADMIN_PASSWORD?.trim() || 'parity-test-password';
 
-	return credentials.username === expectedUser && credentials.password === expectedPassword;
+	if (credentials.password !== expectedPassword) {
+		return false;
+	}
+
+	const expectedUser = process.env.NC_ADMIN_USER?.trim() || 'admin';
+
+	if (credentials.username === expectedUser) {
+		return true;
+	}
+
+	if (process.env.NC_PARITY_EXAPP === 'true') {
+		return findParityUser(credentials.username) !== undefined;
+	}
+
+	return false;
 }

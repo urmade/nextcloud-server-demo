@@ -1,3 +1,4 @@
+import { findParityGroup, isUserInGroup } from '@/src/server/config/groups';
 import { findParityUser } from '@/src/server/config/users';
 import { requireAuthenticatedUser } from '@/src/server/ocs/auth';
 import {
@@ -42,6 +43,7 @@ const WRONG_PASSWORD = 'Wrong password';
 const NO_UPDATE_PARAM = 'Wrong or no update parameter given';
 const NO_MAIL_PROVIDER = 'No mail notification configured for this share type';
 const FAILED_TOKEN = 'Failed to generate a unique token';
+const INVALID_GROUP = 'Please specify a valid group';
 
 function getOrigin(request: Request): string {
 	const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '127.0.0.1:3100';
@@ -63,9 +65,19 @@ function canAccessShare(share: ReturnType<typeof getShareById>, userId: string):
 		return false;
 	}
 
-	return share.shareOwner === userId
-		|| share.sharedBy === userId
-		|| share.sharedWith === userId;
+	if (share.shareOwner === userId || share.sharedBy === userId) {
+		return true;
+	}
+
+	if (share.shareType === SHARE_TYPE_USER && share.sharedWith === userId) {
+		return true;
+	}
+
+	if (share.shareType === SHARE_TYPE_GROUP && share.sharedWith) {
+		return isUserInGroup(userId, share.sharedWith);
+	}
+
+	return false;
 }
 
 function canEditShare(share: NonNullable<ReturnType<typeof getShareById>>, userId: string): boolean {
@@ -73,10 +85,15 @@ function canEditShare(share: NonNullable<ReturnType<typeof getShareById>>, userI
 }
 
 function canDeleteShareFromSelf(share: NonNullable<ReturnType<typeof getShareById>>, userId: string): boolean {
-	return share.shareType === SHARE_TYPE_GROUP
-		&& share.sharedWith === userId
-		&& share.shareOwner !== userId
-		&& share.sharedBy !== userId;
+	if (share.shareType !== SHARE_TYPE_GROUP || !share.sharedWith) {
+		return false;
+	}
+
+	if (share.shareOwner === userId || share.sharedBy === userId) {
+		return false;
+	}
+
+	return findParityGroup(share.sharedWith)?.members.includes(userId) ?? false;
 }
 
 export function handleGetShares(request: Request): Response {
@@ -162,6 +179,32 @@ export async function handleCreateShare(request: Request): Promise<Response> {
 
 		if (!shareWith || !findParityUser(shareWith)) {
 			return ocsFailureResponse(ocsVersion, 404, INVALID_USER);
+		}
+
+		const permissions = body?.permissions ?? computeDefaultPermissions(shareType, node.kind);
+		const share = createShareRecord({
+			shareType,
+			sharedBy: auth,
+			shareOwner: auth,
+			sharedWith: shareWith,
+			permissions,
+			nodeId: node.fileId,
+			path: normalizedPath,
+			target,
+			note: body?.note ?? '',
+			mailSend: body?.sendMail === 'true',
+		});
+
+		const formatted = formatShare(share, auth, origin);
+
+		return ocsSuccessResponse(formatted, ocsVersion);
+	}
+
+	if (shareType === SHARE_TYPE_GROUP) {
+		const shareWith = body?.shareWith;
+
+		if (!shareWith || !findParityGroup(shareWith)) {
+			return ocsFailureResponse(ocsVersion, 404, INVALID_GROUP);
 		}
 
 		const permissions = body?.permissions ?? computeDefaultPermissions(shareType, node.kind);

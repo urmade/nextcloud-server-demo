@@ -91,6 +91,33 @@ export interface FormattedShare {
 	via_path?: string;
 }
 
+export interface FormattedDeletedShare {
+	id: string;
+	share_type: number;
+	uid_owner: string;
+	displayname_owner: string;
+	permissions: number;
+	stime: number;
+	parent: null;
+	expiration: string | null;
+	token: null;
+	uid_file_owner: string;
+	displayname_file_owner: string;
+	path: string;
+	item_type: 'file' | 'folder';
+	mimetype: string;
+	storage_id: string;
+	storage: number;
+	item_source: number;
+	file_source: number;
+	file_parent: number;
+	file_target: string;
+	item_size: number;
+	item_mtime: number;
+	share_with?: string;
+	share_with_displayname?: string;
+}
+
 export interface ShareesSearchResult {
 	exact: {
 		users: unknown[];

@@ -1,3 +1,5 @@
+import { findParityUser } from '@/src/server/config/users';
+import { isUserInGroup } from '@/src/server/config/groups';
 import {
 	DEFAULT_SHARE_PERMISSIONS,
 	PERMISSION_CREATE,
@@ -12,6 +14,8 @@ import {
 	TOKEN_MAX_LENGTH,
 } from './constants';
 import type { ShareRecord } from './types';
+
+const DELETED_SHARE_TYPES = new Set([SHARE_TYPE_GROUP]);
 
 let nextShareId = 1;
 const shares: ShareRecord[] = [];
@@ -38,6 +42,16 @@ export function resetShareStore(): void {
 
 export function getShareById(id: number): ShareRecord | undefined {
 	return shares.find((share) => share.id === id);
+}
+
+export function getShareByFullId(id: string): ShareRecord | undefined {
+	const match = /^ocinternal:(\d+)$/.exec(id);
+
+	if (!match) {
+		return undefined;
+	}
+
+	return getShareById(Number.parseInt(match[1], 10));
 }
 
 export function getShareByToken(token: string): ShareRecord | undefined {
@@ -205,4 +219,40 @@ export function getSharesSharedWith(userId: string): ShareRecord[] {
 		share.sharedWith === userId
 		&& !share.deletedFromSelf.includes(userId)
 	));
+}
+
+export function listDeletedSharesForUser(userId: string): ShareRecord[] {
+	return shares.filter((share) => {
+		if (!DELETED_SHARE_TYPES.has(share.shareType) || !share.deletedFromSelf.includes(userId)) {
+			return false;
+		}
+
+		if (!findParityUser(share.shareOwner)) {
+			return false;
+		}
+
+		if (share.shareType === SHARE_TYPE_GROUP && share.sharedWith) {
+			return isUserInGroup(userId, share.sharedWith);
+		}
+
+		return false;
+	});
+}
+
+export function restoreDeletedShare(id: number, userId: string): boolean {
+	const share = getShareById(id);
+
+	if (!share) {
+		return false;
+	}
+
+	const index = share.deletedFromSelf.indexOf(userId);
+
+	if (index < 0) {
+		return false;
+	}
+
+	share.deletedFromSelf.splice(index, 1);
+
+	return true;
 }

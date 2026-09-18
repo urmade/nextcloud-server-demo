@@ -94,6 +94,24 @@ A successful `authenticate` POST regenerates the session id and must persist bot
 - `NoSameSiteCookieRequired` on `downloadShare` and `directLink`.
 - `showShare` on a file share with an extra `path` is **404**.
 
+## Deleted shares (slice 3)
+
+`DeletedShareAPIController`. Map `auth: mixed` is wrong — **session required** (Basic auth works in parity).
+
+| id | Method | Path |
+| --- | --- | --- |
+| `files_sharing-deleted_shareapi-index` | GET | `/deletedshares` |
+| `files_sharing-deleted_shareapi-undelete` | POST | `/deletedshares/{id}` |
+
+### Traps
+
+- Index lists GROUP/CIRCLE/ROOM/DECK shares the recipient removed from self (`permissions===0` in PHP; `deletedFromSelf` in parity). USER shares are not listed.
+- Formatted `permissions` is always **0**. `id` is `ocinternal:{numericId}`.
+- Group delete-from-self: recipient must be in the group and not the owner/sharer. `DELETE /shares/{id}` records the removal; `GET /deletedshares` lists it.
+- Undelete missing id → **404** `"Share not found"`. Active share → **404** `"No deleted share found"`.
+- Success undelete → **200** `data: []`.
+- Parity fixture group: `parity-users` (`admin`, `alice`). Use Basic auth for `alice` on recipient-only calls.
+
 ## Implementation layout
 
 ```
@@ -105,6 +123,7 @@ src/server/files_sharing/
   format.ts
   share-api.ts
   sharees-api.ts
+  deleted-share-api.ts
   public-link.ts
   public-session.ts
 app/ocs/v2.php/apps/files_sharing/api/v1/
@@ -117,6 +136,8 @@ app/ocs/v2.php/apps/files_sharing/api/v1/
   token/route.ts
   sharees/route.ts
   sharees_recommended/route.ts
+  deletedshares/route.ts
+  deletedshares/[id]/route.ts
 app/s/[token]/
   route.ts
   authenticate/[redirect]/route.ts
@@ -127,6 +148,7 @@ parity/legacy-mock/files-sharing-ocs.ts
 parity/legacy-mock/files-sharing-public-link.ts
 parity/tests/files-sharing-share-ocs.parity.test.ts
 parity/tests/files-sharing-public-link.parity.test.ts
+parity/tests/files-sharing-deleted-ocs.parity.test.ts
 ```
 
 ## Parity notes
@@ -151,6 +173,14 @@ parity/tests/files-sharing-public-link.parity.test.ts
 | `GET /s/{token}/download/` | 303 to `/public.php/dav/files/{token}` |
 | `directLink` password, no session | 404 HTML (or 403 `[]` if the method runs) |
 | `directLink` folder share | 400 `[]` |
+| `GET /deletedshares` unauth | 401/997 |
+| `GET /deletedshares` empty | 200 `[]` |
+| Group share delete-from-self then index | 200, `permissions: 0`, `id: ocinternal:1` |
+| `POST /deletedshares/ocinternal:1` after restore | 200 `[]` |
+| Undelete unknown id | 404 |
+| Undelete active share | 404 `"No deleted share found"` |
+
+Reset `resetDavFileStore()` with files + sharing stores in deleted-ocs parity `beforeEach` so file-id counters do not leak across suites.
 
 Seeding a link share for a public-link test needs slice 1: `POST /shares` with `shareType: 3`, then read the token back. `GET /shares/{id}` returns `ocs.data` as a **one-element array**, so the token is `ocs.data[0].token`. Create the share through the parity case so the mock and the Next.js server both hold it, and never send the owner cookie on the `/s/{token}` request.
 

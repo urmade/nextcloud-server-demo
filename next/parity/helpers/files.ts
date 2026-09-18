@@ -1,7 +1,9 @@
 import { resetFilesApiStores } from '@/src/server/files/api';
+import { resetDavFileStore } from '@/src/server/dav/store';
 import { getParityEnv } from '../env';
 
 export async function resetParityFilesStores(): Promise<void> {
+	resetDavFileStore();
 	resetFilesApiStores();
 
 	const env = getParityEnv();

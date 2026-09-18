@@ -26,6 +26,7 @@ Existing resets:
 | --- | --- | --- |
 | Task processing | `/api/parity/reset-task-store` | `resetParityTaskStores()` |
 | Auth/session/2FA/credentials | `/api/parity/reset-auth-store` | `resetParityAuthStores()` |
+| Files API + DAV file ids | `/api/parity/reset-files-store` | `resetParityFilesStores()` (includes `resetDavFileStore()`) |
 
 ## Do not
 

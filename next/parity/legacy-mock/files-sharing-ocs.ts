@@ -1,6 +1,10 @@
 import { SESSION_COOKIE, USERNAME_COOKIE } from '@/src/server/auth/cookies';
 import { getOrCreateSession, updateSession } from '@/src/server/auth/session-store';
 import {
+	handleGetDeletedShares,
+	handleUndeleteShare,
+} from '@/src/server/files_sharing/deleted-share-api';
+import {
 	handleAcceptShare,
 	handleCreateShare,
 	handleDeleteShare,
@@ -29,6 +33,8 @@ const SHAREES_RECOMMENDED_PATH = '/ocs/v2.php/apps/files_sharing/api/v1/sharees_
 const SHARE_ID_PATH = /^\/ocs\/v2\.php\/apps\/files_sharing\/api\/v1\/shares\/(\d+)$/;
 const PENDING_ID_PATH = /^\/ocs\/v2\.php\/apps\/files_sharing\/api\/v1\/shares\/pending\/(\d+)$/;
 const SEND_EMAIL_PATH = /^\/ocs\/v2\.php\/apps\/files_sharing\/api\/v1\/shares\/(\d+)\/send-email$/;
+const DELETED_SHARES_PATH = '/ocs/v2.php/apps/files_sharing/api/v1/deletedshares';
+const DELETED_SHARE_ID_PATH = /^\/ocs\/v2\.php\/apps\/files_sharing\/api\/v1\/deletedshares\/([^/]+)$/;
 
 function buildRequest(pathname: string, search: string, options: ParityRequestOptions): Request {
 	const origin = 'http://127.0.0.1:3100';
@@ -98,6 +104,16 @@ export async function handleFilesSharingOcsMock(
 		return responseToSnapshot(handleShareesFindRecommended(buildRequest(pathname, search, options)));
 	}
 
+	if (method === 'GET' && pathname === DELETED_SHARES_PATH) {
+		return responseToSnapshot(handleGetDeletedShares(buildRequest(pathname, search, options)));
+	}
+
+	const deletedShareMatch = DELETED_SHARE_ID_PATH.exec(pathname);
+
+	if (method === 'POST' && deletedShareMatch) {
+		return responseToSnapshot(handleUndeleteShare(buildRequest(pathname, search, options), deletedShareMatch[1]));
+	}
+
 	const pendingMatch = PENDING_ID_PATH.exec(pathname);
 
 	if (method === 'POST' && pendingMatch) {
@@ -141,6 +157,7 @@ export function isFilesSharingOcsMockPath(pathname: string, method = 'GET'): boo
 		|| pathname === TOKEN_PATH
 		|| pathname === SHAREES_PATH
 		|| pathname === SHAREES_RECOMMENDED_PATH
+		|| pathname === DELETED_SHARES_PATH
 		|| SHARE_ID_PATH.test(pathname)
 	)) {
 		return true;
@@ -150,6 +167,7 @@ export function isFilesSharingOcsMockPath(pathname: string, method = 'GET'): boo
 		pathname === SHARES_PATH
 		|| PENDING_ID_PATH.test(pathname)
 		|| SEND_EMAIL_PATH.test(pathname)
+		|| DELETED_SHARE_ID_PATH.test(pathname)
 	)) {
 		return true;
 	}

@@ -14,9 +14,9 @@ alwaysApply: true
 One row per sliceable domain. `feature_id` equals endpoint-map `feature_ids[]` entries.
 First `feature_ids` value on an endpoint owns that row.
 Skill path is created when that slice starts (slice-workflow step 1), except `core-status` which already exists.
-Status is `inventoried` until a slice moves it. Features: 32. Endpoints: 548. `parity: tested`: 169.
+Status is `inventoried` until a slice moves it. Features: 32. Endpoints: 548. `parity: tested`: 171.
 
-Locked implementation: `files-sharing-public-link` on `cursor/files-sharing-public-link-e1af` from ShareAPI harvest `048e1eaf`. Six endpoints tested: showShare, showAuthenticate, authenticate.post, downloadShare, PublicPreview#directLink and its OpenAPI twin.
+Locked implementation: `files-sharing-deleted-ocs` on `cursor/files-sharing-deleted-ocs-e1af` from public-link harvest `dd333401`. Two endpoints tested: deleted_shareapi-index, deleted_shareapi-undelete.
 
 Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then **core-login** (session/login/CSRF).
 

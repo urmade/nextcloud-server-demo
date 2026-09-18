@@ -16817,7 +16817,7 @@ endpoints:
   method: DELETE
   legacy_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/recipient
   legacy_source: openapi.json operationId=sharing-api_v1-remove-share-recipient
-  auth: mixed
+  auth: session
   request:
     params:
       id: string
@@ -16855,15 +16855,21 @@ endpoints:
           meta: OCSMeta
           data: string
       content_type: application/json
-  status: discovered
-  parity: pending
+    - status: 501
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: object
+      content_type: application/json
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/recipient
+  next_handler: app/ocs/v2.php/apps/sharing/api/v1/share/[id]/recipient/route.ts
+  parity_test: next/parity/tests/sharing-v1-sources-recipients.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. NoAdminRequired; DELETE via query class/value/instance, not body.
 - id: sharing-api_v1-add-share-recipient
   feature_ids:
   - sharing
@@ -16871,7 +16877,7 @@ endpoints:
   method: POST
   legacy_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/recipient
   legacy_source: openapi.json operationId=sharing-api_v1-add-share-recipient
-  auth: mixed
+  auth: session
   request:
     params:
       id: string
@@ -16917,15 +16923,21 @@ endpoints:
           meta: OCSMeta
           data: string
       content_type: application/json
-  status: discovered
-  parity: pending
+    - status: 501
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: object
+      content_type: application/json
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/recipient
+  next_handler: app/ocs/v2.php/apps/sharing/api/v1/share/[id]/recipient/route.ts
+  parity_test: next/parity/tests/sharing-v1-sources-recipients.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. NoAdminRequired; missing required body fields → raw HTTP 400 empty body.
 - id: sharing-api_v1-update-share-recipient-permission
   feature_ids:
   - sharing
@@ -16933,7 +16945,7 @@ endpoints:
   method: PUT
   legacy_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/recipient/permission
   legacy_source: openapi.json operationId=sharing-api_v1-update-share-recipient-permission
-  auth: mixed
+  auth: session
   request:
     params:
       id: string
@@ -16975,15 +16987,21 @@ endpoints:
           meta: OCSMeta
           data: string
       content_type: application/json
-  status: discovered
-  parity: pending
+    - status: 501
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: object
+      content_type: application/json
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/recipient/permission
+  next_handler: app/ocs/v2.php/apps/sharing/api/v1/share/[id]/recipient/permission/route.ts
+  parity_test: next/parity/tests/sharing-v1-sources-recipients.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. NoAdminRequired; no ShareInvalidException catch; missing required body fields → raw HTTP 400 empty body.
 - id: sharing-api_v1-update-share-recipient-secret
   feature_ids:
   - sharing
@@ -16991,7 +17009,7 @@ endpoints:
   method: PUT
   legacy_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/recipient/secret
   legacy_source: openapi.json operationId=sharing-api_v1-update-share-recipient-secret
-  auth: mixed
+  auth: session
   request:
     params:
       id: string
@@ -17038,15 +17056,21 @@ endpoints:
           meta: OCSMeta
           data: string
       content_type: application/json
-  status: discovered
-  parity: pending
+    - status: 501
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: object
+      content_type: application/json
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/recipient/secret
+  next_handler: app/ocs/v2.php/apps/sharing/api/v1/share/[id]/recipient/secret/route.ts
+  parity_test: next/parity/tests/sharing-v1-sources-recipients.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. NoAdminRequired; missing required body fields → raw HTTP 400 empty body.
 - id: sharing-api_v1-remove-share-source
   feature_ids:
   - sharing
@@ -17054,7 +17078,7 @@ endpoints:
   method: DELETE
   legacy_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/source
   legacy_source: openapi.json operationId=sharing-api_v1-remove-share-source
-  auth: mixed
+  auth: session
   request:
     params:
       id: string
@@ -17091,15 +17115,21 @@ endpoints:
           meta: OCSMeta
           data: string
       content_type: application/json
-  status: discovered
-  parity: pending
+    - status: 501
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: object
+      content_type: application/json
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/source
+  next_handler: app/ocs/v2.php/apps/sharing/api/v1/share/[id]/source/route.ts
+  parity_test: next/parity/tests/sharing-v1-sources-recipients.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. NoAdminRequired; DELETE via query class/value, not body; missing query → raw HTTP 400 empty body.
 - id: sharing-api_v1-add-share-source
   feature_ids:
   - sharing
@@ -17107,7 +17137,7 @@ endpoints:
   method: POST
   legacy_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/source
   legacy_source: openapi.json operationId=sharing-api_v1-add-share-source
-  auth: mixed
+  auth: session
   request:
     params:
       id: string
@@ -17152,15 +17182,21 @@ endpoints:
           meta: OCSMeta
           data: string
       content_type: application/json
-  status: discovered
-  parity: pending
+    - status: 501
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: object
+      content_type: application/json
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/source
+  next_handler: app/ocs/v2.php/apps/sharing/api/v1/share/[id]/source/route.ts
+  parity_test: next/parity/tests/sharing-v1-sources-recipients.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. NoAdminRequired; missing required body fields → raw HTTP 400 empty body.
 - id: sharing-api_v1-update-share-state
   feature_ids:
   - sharing

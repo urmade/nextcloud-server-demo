@@ -64,6 +64,8 @@ v1 success adds `totalitems` and `itemsperpage` (empty strings) to `meta`.
 
 **Trap:** OCS **204** responses (`getNextScheduledTask` empty queue, unified `deleteShare`) have **no body** — not `{ ocs: … }`.
 
+**Trap:** Unified sharing v1 missing required controller parameters (source/recipient mutations) → raw HTTP **400** with **empty body** from Dispatcher `TypeError`, not an OCS envelope.
+
 **Trap:** Unified sharing API disabled → HTTP **501** with `meta.message` `The Unified Sharing API is not enabled.` and `data: {}`. On `NoAdminRequired` routes, unauthenticated callers get **401/997** first (SecurityMiddleware before the 501 gate); `PublicPage` routes get **501** without login.
 
 **Trap:** `setFileContentsExApp` success uses HTTP **201** with OCS envelope and `meta.statuscode` **201**.

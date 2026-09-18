@@ -1,13 +1,19 @@
 import { SESSION_COOKIE, USERNAME_COOKIE } from '@/src/server/auth/cookies';
 import { getOrCreateSession, updateSession } from '@/src/server/auth/session-store';
 import {
+	handleAddShareRecipient,
+	handleAddShareSource,
 	handleCreateShare,
 	handleDeleteShare,
 	handleGenerateSecret,
 	handleGetShare,
 	handleGetShareMethodNotAllowed,
 	handleGetShares,
+	handleRemoveShareRecipient,
+	handleRemoveShareSource,
 	handleSearchRecipients,
+	handleUpdateShareRecipientPermission,
+	handleUpdateShareRecipientSecret,
 } from '@/src/server/sharing/api-v1';
 import { snapshotResponse } from '../compare';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
@@ -18,6 +24,10 @@ const SHARE_PATH = '/ocs/v2.php/apps/sharing/api/v1/share';
 const SHARES_PATH = '/ocs/v2.php/apps/sharing/api/v1/shares';
 const RECIPIENTS_PATH = '/ocs/v2.php/apps/sharing/api/v1/recipients';
 const SHARE_ID_PATH = /^\/ocs\/v2\.php\/apps\/sharing\/api\/v1\/share\/([^/]+)$/;
+const SHARE_SOURCE_PATH = /^\/ocs\/v2\.php\/apps\/sharing\/api\/v1\/share\/([^/]+)\/source$/;
+const SHARE_RECIPIENT_PATH = /^\/ocs\/v2\.php\/apps\/sharing\/api\/v1\/share\/([^/]+)\/recipient$/;
+const SHARE_RECIPIENT_SECRET_PATH = /^\/ocs\/v2\.php\/apps\/sharing\/api\/v1\/share\/([^/]+)\/recipient\/secret$/;
+const SHARE_RECIPIENT_PERMISSION_PATH = /^\/ocs\/v2\.php\/apps\/sharing\/api\/v1\/share\/([^/]+)\/recipient\/permission$/;
 
 function buildRequest(pathname: string, search: string, options: ParityRequestOptions): Request {
 	const origin = 'http://127.0.0.1:3100';
@@ -75,6 +85,54 @@ export async function handleSharingV1Mock(
 		return responseToSnapshot(handleSearchRecipients(buildRequest(pathname, search, options)));
 	}
 
+	const sourceMatch = SHARE_SOURCE_PATH.exec(pathname);
+
+	if (sourceMatch) {
+		const id = sourceMatch[1];
+		const request = buildRequest(pathname, search, options);
+
+		if (method === 'POST') {
+			return responseToSnapshot(await handleAddShareSource(request, id));
+		}
+
+		if (method === 'DELETE') {
+			return responseToSnapshot(handleRemoveShareSource(request, id));
+		}
+	}
+
+	const recipientMatch = SHARE_RECIPIENT_PATH.exec(pathname);
+
+	if (recipientMatch) {
+		const id = recipientMatch[1];
+		const request = buildRequest(pathname, search, options);
+
+		if (method === 'POST') {
+			return responseToSnapshot(await handleAddShareRecipient(request, id));
+		}
+
+		if (method === 'DELETE') {
+			return responseToSnapshot(handleRemoveShareRecipient(request, id));
+		}
+	}
+
+	const recipientSecretMatch = SHARE_RECIPIENT_SECRET_PATH.exec(pathname);
+
+	if (recipientSecretMatch && method === 'PUT') {
+		return responseToSnapshot(await handleUpdateShareRecipientSecret(
+			buildRequest(pathname, search, options),
+			recipientSecretMatch[1],
+		));
+	}
+
+	const recipientPermissionMatch = SHARE_RECIPIENT_PERMISSION_PATH.exec(pathname);
+
+	if (recipientPermissionMatch && method === 'PUT') {
+		return responseToSnapshot(await handleUpdateShareRecipientPermission(
+			buildRequest(pathname, search, options),
+			recipientPermissionMatch[1],
+		));
+	}
+
 	const shareMatch = SHARE_ID_PATH.exec(pathname);
 
 	if (shareMatch) {
@@ -112,11 +170,24 @@ export function isSharingV1MockPath(pathname: string, method: string): boolean {
 	if (normalizedMethod === 'POST' && (
 		pathname === SHARE_PATH
 		|| SHARE_ID_PATH.test(pathname)
+		|| SHARE_SOURCE_PATH.test(pathname)
+		|| SHARE_RECIPIENT_PATH.test(pathname)
 	)) {
 		return true;
 	}
 
-	if (normalizedMethod === 'DELETE' && SHARE_ID_PATH.test(pathname)) {
+	if (normalizedMethod === 'DELETE' && (
+		SHARE_ID_PATH.test(pathname)
+		|| SHARE_SOURCE_PATH.test(pathname)
+		|| SHARE_RECIPIENT_PATH.test(pathname)
+	)) {
+		return true;
+	}
+
+	if (normalizedMethod === 'PUT' && (
+		SHARE_RECIPIENT_SECRET_PATH.test(pathname)
+		|| SHARE_RECIPIENT_PERMISSION_PATH.test(pathname)
+	)) {
 		return true;
 	}
 

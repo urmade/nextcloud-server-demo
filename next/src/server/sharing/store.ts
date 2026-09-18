@@ -1,4 +1,8 @@
 import { findParityUser } from '@/src/server/config/users';
+import type {
+	SharingRecipientRecord,
+	SharingSourceRecord,
+} from '@/src/server/sharing/types';
 
 export type SharingState = 'active' | 'draft' | 'deleted';
 export type SharingUserStatus = 'pending' | 'accepted' | 'rejected';
@@ -9,6 +13,8 @@ export interface SharingShareRecord {
 	lastUpdatedMs: string;
 	state: SharingState;
 	userStatus: SharingUserStatus | null;
+	sources: SharingSourceRecord[];
+	recipients: SharingRecipientRecord[];
 }
 
 const globalForSharing = globalThis as typeof globalThis & {
@@ -39,6 +45,16 @@ function nextShareId(): string {
 	return String(Date.now() * 1_000 + id);
 }
 
+function touchShare(share: SharingShareRecord): SharingShareRecord {
+	share.lastUpdatedMs = String(Date.now());
+
+	return share;
+}
+
+function recipientKey(recipient: Pick<SharingRecipientRecord, 'class' | 'value' | 'instance'>): string {
+	return `${recipient.class}\0${recipient.value}\0${recipient.instance ?? ''}`;
+}
+
 export function resetSharingV1Store(): void {
 	globalForSharing.__ncSharingV1NextId = 1;
 	getShares().length = 0;
@@ -48,7 +64,11 @@ export function seedSharingShare(share: SharingShareRecord): void {
 	const existing = getSharingShareById(share.id);
 
 	if (!existing) {
-		getShares().push(share);
+		getShares().push({
+			...share,
+			sources: share.sources ?? [],
+			recipients: share.recipients ?? [],
+		});
 	}
 }
 
@@ -59,6 +79,8 @@ export function createSharingShare(ownerId: string): SharingShareRecord {
 		lastUpdatedMs: String(Date.now()),
 		state: 'draft',
 		userStatus: null,
+		sources: [],
+		recipients: [],
 	};
 
 	getShares().push(share);
@@ -96,6 +118,145 @@ export function deleteSharingShare(id: string): boolean {
 	return true;
 }
 
+export function addSharingShareSource(
+	shareId: string,
+	sourceClass: string,
+	sourceValue: string,
+): SharingShareRecord | undefined {
+	const share = getSharingShareById(shareId);
+
+	if (!share) {
+		return undefined;
+	}
+
+	const exists = share.sources.some((source) => source.class === sourceClass && source.value === sourceValue);
+
+	if (!exists) {
+		share.sources.push({ class: sourceClass, value: sourceValue });
+	}
+
+	return touchShare(share);
+}
+
+export function removeSharingShareSource(
+	shareId: string,
+	sourceClass: string,
+	sourceValue: string,
+): SharingShareRecord | undefined {
+	const share = getSharingShareById(shareId);
+
+	if (!share) {
+		return undefined;
+	}
+
+	share.sources = share.sources.filter((source) => !(source.class === sourceClass && source.value === sourceValue));
+
+	return touchShare(share);
+}
+
+export function addSharingShareRecipient(
+	shareId: string,
+	recipientClass: string,
+	recipientValue: string,
+	recipientInstance: string | null,
+): SharingShareRecord | undefined {
+	const share = getSharingShareById(shareId);
+
+	if (!share) {
+		return undefined;
+	}
+
+	const key = recipientKey({ class: recipientClass, value: recipientValue, instance: recipientInstance });
+	const exists = share.recipients.some((recipient) => recipientKey(recipient) === key);
+
+	if (!exists) {
+		share.recipients.push({
+			class: recipientClass,
+			value: recipientValue,
+			instance: recipientInstance,
+			secret: null,
+			permissions: [],
+		});
+	}
+
+	return touchShare(share);
+}
+
+export function removeSharingShareRecipient(
+	shareId: string,
+	recipientClass: string,
+	recipientValue: string,
+	recipientInstance: string | null,
+): SharingShareRecord | undefined {
+	const share = getSharingShareById(shareId);
+
+	if (!share) {
+		return undefined;
+	}
+
+	const key = recipientKey({ class: recipientClass, value: recipientValue, instance: recipientInstance });
+	share.recipients = share.recipients.filter((recipient) => recipientKey(recipient) !== key);
+
+	return touchShare(share);
+}
+
+export function updateSharingShareRecipientSecret(
+	shareId: string,
+	recipientClass: string,
+	recipientValue: string,
+	recipientInstance: string | null,
+	secret: string,
+): SharingShareRecord | undefined {
+	const share = getSharingShareById(shareId);
+
+	if (!share) {
+		return undefined;
+	}
+
+	const key = recipientKey({ class: recipientClass, value: recipientValue, instance: recipientInstance });
+	const recipient = share.recipients.find((entry) => recipientKey(entry) === key);
+
+	if (!recipient) {
+		return touchShare(share);
+	}
+
+	recipient.secret = secret;
+
+	return touchShare(share);
+}
+
+export function updateSharingShareRecipientPermission(
+	shareId: string,
+	recipientClass: string,
+	recipientValue: string,
+	recipientInstance: string | null,
+	permissionClass: string,
+	enabled: boolean,
+): SharingShareRecord | undefined {
+	const share = getSharingShareById(shareId);
+
+	if (!share) {
+		return undefined;
+	}
+
+	const key = recipientKey({ class: recipientClass, value: recipientValue, instance: recipientInstance });
+	const recipient = share.recipients.find((entry) => recipientKey(entry) === key);
+
+	if (!recipient) {
+		return touchShare(share);
+	}
+
+	const permission = recipient.permissions.find((entry) => entry.class === permissionClass);
+
+	if (permission) {
+		permission.enabled = enabled;
+	} else {
+		recipient.permissions.push({ class: permissionClass, enabled });
+	}
+
+	return touchShare(share);
+}
+
 export function formatSharingOwner(request: Request, userId: string) {
 	const user = findParityUser(userId);
 	const origin = new URL(request.url).origin;
@@ -111,6 +272,39 @@ export function formatSharingOwner(request: Request, userId: string) {
 	};
 }
 
+function formatSharingSource(source: SharingSourceRecord) {
+	return {
+		class: source.class,
+		value: source.value,
+		display_name: source.value,
+		icon: null,
+	};
+}
+
+function formatSharingRecipient(request: Request, recipient: SharingRecipientRecord) {
+	return {
+		class: recipient.class,
+		value: recipient.value,
+		instance: recipient.instance,
+		display_name: recipient.value,
+		icon: null,
+		secret: {
+			updatable: recipient.secret !== null,
+			...(recipient.secret ? { value: recipient.secret } : {}),
+		},
+		initiator: formatSharingOwner(request, 'admin'),
+		permissions: recipient.permissions.map((permission) => ({
+			class: permission.class,
+			source_class: null,
+			display_name: permission.class,
+			hint: null,
+			priority: 50,
+			presets: [],
+			enabled: permission.enabled,
+		})),
+	};
+}
+
 export function formatSharingShare(request: Request, share: SharingShareRecord) {
 	return {
 		id: share.id,
@@ -118,8 +312,8 @@ export function formatSharingShare(request: Request, share: SharingShareRecord) 
 		last_updated: share.lastUpdatedMs,
 		state: share.state,
 		user_status: share.userStatus,
-		sources: [],
-		recipients: [],
+		sources: share.sources.map(formatSharingSource),
+		recipients: share.recipients.map((recipient) => formatSharingRecipient(request, recipient)),
 		properties: [],
 		permissions: [],
 		permission_preset: null,

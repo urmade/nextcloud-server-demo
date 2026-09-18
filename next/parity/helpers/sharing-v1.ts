@@ -56,6 +56,8 @@ export async function seedShareOnBothSides(jar: Record<string, string>): Promise
 		lastUpdatedMs: share.last_updated,
 		state: share.state,
 		userStatus: share.user_status,
+		sources: [],
+		recipients: [],
 	});
 
 	return share.id;

@@ -7397,15 +7397,19 @@ endpoints:
     body: DAV XML
   response:
     success:
-      status: 207
-      content_type: application/xml
-      shape: Chunked upload staging
+      status: 201
+      content_type: empty-or-xml
+      shape: 'MKCOL 201 empty; PUT part 201 empty; MOVE .file 201|204 Content-Length 0; PROPFIND 207 multistatus; OPTIONS 200 Allow/DAV'
     errors:
     - status: 401
       shape: sabre-exception
     - status: 403
       shape: sabre-exception
+    - status: 400
+      shape: sabre-exception
     - status: 404
+      shape: sabre-exception
+    - status: 405
       shape: sabre-exception
   status: parity
   parity: tested
@@ -7415,7 +7419,7 @@ endpoints:
   waiver_reason: null
   waiver_owner: null
   dav_ns: DAV:, urn:ietf:params:xml:ns:caldav, urn:ietf:params:xml:ns:carddav, http://owncloud.org/ns, http://nextcloud.org/ns
-  notes: 'Chunked upload staging. Methods: OPTIONS GET HEAD PUT POST DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK REPORT SEARCH'
+  notes: 'Chunked upload staging (v1 default). Client methods MKCOL PUT MOVE .file DELETE OPTIONS PROPFIND. Other userId 403 Forbidden not empty home. Phase-0 success 207 was PROPFIND-only.'
 - id: dav.Root#tree
   feature_ids:
   - dav

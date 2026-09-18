@@ -10,7 +10,19 @@ description: Chunked upload staging on dav.Collection#uploads — MKCOL folder, 
 
 # bp-dav-upload-chunk-assemble
 
-Cross-cutting. PHP Sabre upload home is **not** a second server — it is a prefix on the v2 tree (`/remote.php/dav/uploads/{userId}/{folder}`).
+Cross-cutting. PHP Sabre upload home is **not** a second server — it is a prefix on the v2 tree (`/remote.php/dav/uploads/{userId}/{folder}`). Ground in `internal/dav-uploads-contract.md`; PHP wins over Phase-0 map `success.status: 207`.
+
+## Per-method success (PHP wins)
+
+| Method | Status | Body |
+| --- | --- | --- |
+| MKCOL session folder | **201** | empty |
+| PUT part | **201** | empty |
+| MOVE `.file` | **201** new / **204** overwrite | `Content-Length: 0` |
+| PROPFIND | **207** | multistatus XML |
+| OPTIONS | **200** | Allow/DAV |
+
+**207 is PROPFIND-only.** Do not assert 207 on MKCOL/PUT/MOVE.
 
 ## Auth / tenant
 

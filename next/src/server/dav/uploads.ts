@@ -205,7 +205,8 @@ export function moveUploadFutureFile(
 	userId: string,
 	folderName: string,
 	destinationPathname: string,
-): 'created' | 'replaced' | 'not-found' | 'bad-destination' {
+	expectedTotalLength: string | null = null,
+): 'created' | 'replaced' | 'not-found' | 'bad-destination' | 'size-mismatch' {
 	const folder = getUploadFolder(userId, folderName);
 
 	if (!folder) {
@@ -219,10 +220,25 @@ export function moveUploadFutureFile(
 	}
 
 	const content = assembleChunks(folder);
+
+	if (expectedTotalLength !== null && String(expectedTotalLength) !== String(content.length)) {
+		return 'size-mismatch';
+	}
+
 	const result = assembleFileIntoHome(relativePath, content);
 	uploadFolders.delete(uploadKey(userId, folderName));
 
 	return result.created ? 'created' : 'replaced';
+}
+
+export function getAssembledUploadSize(userId: string, folderName: string): number | null {
+	const folder = getUploadFolder(userId, folderName);
+
+	if (!folder) {
+		return null;
+	}
+
+	return assembleChunks(folder).length;
 }
 
 export function collectUploadPropfindResponses(

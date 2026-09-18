@@ -11,6 +11,7 @@ import {
 	parseDavDestinationHeader,
 	parseUploadRequest,
 	putUploadChunk,
+	getAssembledUploadSize,
 } from './uploads';
 import {
 	buildBadRequestXml,
@@ -194,7 +195,8 @@ function handleUploadMove(request: Request, parsed: ReturnType<typeof parseDavRe
 		return xmlResponse(buildBadRequestXml('Destination header was not supplied'), 400);
 	}
 
-	const result = moveUploadFutureFile(upload.userId, upload.folderName, destinationPath);
+	const expectedTotalLength = request.headers.get('oc-total-length') ?? request.headers.get('OC-Total-Length');
+	const result = moveUploadFutureFile(upload.userId, upload.folderName, destinationPath, expectedTotalLength);
 
 	if (result === 'not-found') {
 		return xmlResponse(buildNotFoundXml('File not found'), 404);
@@ -202,6 +204,15 @@ function handleUploadMove(request: Request, parsed: ReturnType<typeof parseDavRe
 
 	if (result === 'bad-destination') {
 		return xmlResponse(buildBadRequestXml(`The given destination ${destinationPath} is a directory.`), 400);
+	}
+
+	if (result === 'size-mismatch') {
+		const actualSize = getAssembledUploadSize(upload.userId, upload.folderName) ?? 0;
+
+		return xmlResponse(
+			buildBadRequestXml(`Chunks on server do not sum up to ${expectedTotalLength} but to ${actualSize} bytes`),
+			400,
+		);
 	}
 
 	return emptyResponse(result === 'created' ? 201 : 204, {

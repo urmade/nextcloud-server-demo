@@ -24,6 +24,7 @@ import { handleTwoFactorChallengeMock, isTwoFactorChallengePath } from './two-fa
 import { handleWebAuthnMock, isWebAuthnPath } from './webauthn';
 import { handleUnifiedSearchMock } from './unified-search';
 import { handleWipeMock } from './wipe';
+import { handleDavMock } from './dav';
 import { snapshotResponse } from '../compare';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
 
@@ -383,6 +384,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return lostPassword;
 	}
 
+	const dav = await handleDavMock(pathname, options);
+
+	if (dav) {
+		return dav;
+	}
+
 	if (method === 'PUT' && pathname.includes('/cloud/capabilities')) {
 		const isV1 = pathname.includes('/ocs/v1.php/');
 
@@ -405,7 +412,7 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return appPassword;
 	}
 
-	if (method !== 'GET' && method !== 'POST' && method !== 'PUT' && method !== 'DELETE') {
+	if (method !== 'GET' && method !== 'POST' && method !== 'PUT' && method !== 'DELETE' && method !== 'PROPFIND' && method !== 'OPTIONS') {
 		return jsonSnapshot(404, { message: `Legacy mock has no fixture for ${method} ${pathname}` });
 	}
 
@@ -623,12 +630,18 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 		return true;
 	}
 
-	if (normalizedMethod !== 'GET' && normalizedMethod !== 'DELETE') {
+	if (normalizedMethod !== 'GET' && normalizedMethod !== 'DELETE' && normalizedMethod !== 'PROPFIND' && normalizedMethod !== 'OPTIONS') {
 		return false;
 	}
 
 	if (MOCKED_GET_ROUTES.has(pathname)) {
 		return true;
+	}
+
+	if (pathname.startsWith('/remote.php/dav')
+		|| pathname.startsWith('/remote.php/webdav')
+		|| pathname.startsWith('/remote.php/files')) {
+		return normalizedMethod === 'PROPFIND' || normalizedMethod === 'OPTIONS';
 	}
 
 	return MOCKED_GET_PREFIXES.some((prefix) => pathname.startsWith(prefix));

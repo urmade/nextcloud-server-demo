@@ -6927,11 +6927,11 @@ endpoints:
       shape: sabre-exception
     - status: 404
       shape: sabre-exception
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /remote.php/dav/files/{userId}/{path}
+  next_handler: src/server/dav/handler.ts
+  parity_test: next/parity/tests/dav-files-propfind.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   dav_ns: DAV:, urn:ietf:params:xml:ns:caldav, urn:ietf:params:xml:ns:carddav, http://owncloud.org/ns, http://nextcloud.org/ns
@@ -7440,11 +7440,11 @@ endpoints:
       shape: sabre-exception
     - status: 404
       shape: sabre-exception
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /remote.php/dav/{path}
+  next_handler: src/server/dav/handler.ts
+  parity_test: next/parity/tests/dav-files-propfind.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   dav_ns: DAV:, urn:ietf:params:xml:ns:caldav, urn:ietf:params:xml:ns:carddav, http://owncloud.org/ns, http://nextcloud.org/ns
@@ -7510,11 +7510,11 @@ endpoints:
       shape: sabre-exception
     - status: 404
       shape: sabre-exception
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /remote.php/files/{path}
+  next_handler: src/server/dav/handler.ts
+  parity_test: next/parity/tests/dav-files-propfind.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   dav_ns: DAV:, urn:ietf:params:xml:ns:caldav, urn:ietf:params:xml:ns:carddav, http://owncloud.org/ns, http://nextcloud.org/ns
@@ -7545,11 +7545,11 @@ endpoints:
       shape: sabre-exception
     - status: 404
       shape: sabre-exception
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /remote.php/webdav/{path}
+  next_handler: src/server/dav/handler.ts
+  parity_test: next/parity/tests/dav-files-propfind.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   dav_ns: DAV:, urn:ietf:params:xml:ns:caldav, urn:ietf:params:xml:ns:carddav, http://owncloud.org/ns, http://nextcloud.org/ns

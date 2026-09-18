@@ -1,4 +1,5 @@
 import { applyFixtureReplacements, collectValuesAtPaths } from './helpers/fixtures';
+import { normalizeDavXmlInfoset } from './helpers/dav-xml';
 import { isIsoTimestamp, timestampsWithinTolerance } from './helpers/timestamps';
 import { arraysEqualUnordered } from './helpers/unordered';
 import type { ParityCompareOptions, ParityMismatch, ParityResponseSnapshot } from './types';
@@ -260,6 +261,11 @@ export function compareParityResponses(
 			compareValues(`body.${includePath}`, legacyValues.get(includePath), newValues.get(includePath), options, mismatches);
 		}
 
+		return mismatches;
+	}
+
+	if (options.davXmlBody) {
+		compareValues('body', normalizeDavXmlInfoset(legacy.rawBody), normalizeDavXmlInfoset(newResponse.rawBody), options, mismatches);
 		return mismatches;
 	}
 

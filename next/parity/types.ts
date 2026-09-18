@@ -31,6 +31,7 @@ export interface ParityCompareOptions {
 	unorderedListPaths?: string[];
 	fixtures?: Record<string, unknown>;
 	includeBodyPaths?: string[];
+	davXmlBody?: boolean;
 }
 
 export interface ParityMismatch {

@@ -213,7 +213,7 @@ app/ocs/v2.php/apps/dav/api/v1/...
 
 ## Parity notes
 
-First files PROPFIND slice **must** land `bp-dav-xml-normalize` (infoset, ignore prefix/attr order).
+First files PROPFIND slice **landed** `bp-dav-xml-normalize` (infoset, ignore prefix/attr order).
 
 | Case | Endpoint | Expect |
 | --- | --- | --- |
@@ -248,4 +248,4 @@ Capabilities `core.webdav-root` stays `remote.php/webdav` (`core-status`).
 - `apps/dav/lib/Connector/Sabre/BearerAuth.php`
 - `.htaccess` well-known caldav/carddav
 - `apps/settings/lib/SetupChecks/WellKnownUrls.php`
-- Cross: `files_sharing` public.php; `files` JSON API; `bp-ocs-envelope`; future `bp-dav-xml-normalize`
+- Cross: `files_sharing` public.php; `files` JSON API; `bp-ocs-envelope`; `bp-dav-xml-normalize`

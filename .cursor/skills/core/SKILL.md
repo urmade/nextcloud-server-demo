@@ -190,6 +190,15 @@ OCS Teams resource listing (`/ocs/v2.php/teams/…`). Mixed auth. In-memory fixt
 
 Parity registers fixture provider `parity-deck` with board `board-1` shared to teams `parity-team-alpha` / `parity-team-beta` (admin member). Unknown provider → **500** OCS 996 (`No provider found for id …`). Unknown team or non-member → **200** with empty `resources[]` (not 404). Real Nextcloud uses Circles + app `ITeamResourceProvider` registrations; this slice models the OCS contract only.
 
+### Slice 14 — contacts menu + display names (done)
+
+Header contacts menu HTTP endpoints (session + CSRF on POST). Fixture users from `NC_PARITY_USERS`; teams from `parity-deck` catalog (`NC_PARITY_TEAMS_PROVIDER`). No Circles HTTP.
+
+- `POST /contactsmenu/contacts` — search contacts (`filter?`, `teamId?`) → `{ contacts: IEntry[], contactsAppEnabled: bool }`
+- `POST /contactsmenu/findOne` — resolve one share target (`shareType`, `shareWith`) → IEntry JSON or **404 `[]`**
+- `GET /contactsmenu/teams` — list teams for current user (array; empty `[]` allowed)
+- `POST /displaynames` — batch display-name lookup (`users: string[]`) → `{ users: { uid: displayName|uid }, status: "success" }`
+
 ## Non-scope (later core sub-slices)
 
 | Sub-slice | Endpoint ids (prefix / theme) |
@@ -320,6 +329,13 @@ Slice 13:
 - `core-teams_api-list-teams`
 - `core-teams_api-resolve-one`
 
+Slice 14:
+
+- `core.ContactsMenu#index.post`
+- `core.ContactsMenu#findOne.post`
+- `core.ContactsMenu#getTeams`
+- `core.User#getDisplayNames.post`
+
 ## Auth model
 
 | Route | Auth |
@@ -342,6 +358,8 @@ Slice 13:
 | Device wipe HTTP | `@PublicPage` — token in JSON body; no session required; invalid/unknown/non-pending token → **404** `[]` |
 | Collaboration resources | `mixed` — session or Basic; unauthenticated → **401** OCS 997 |
 | Teams API | `mixed` — session or Basic; unauthenticated → **401** OCS 997 |
+| Contacts menu POST / displaynames POST | `session` + CSRF — unauthenticated → **401** JSON `{ message }` / 303 login |
+| Contacts menu GET teams | `session` — unauthenticated → **401** JSON `{ message }` / 303 login |
 
 Unauthenticated OCS calls → v2 HTTP **401**, `ocs.meta.statuscode` **997**, empty `data` (except `@PublicPage` routes above).
 
@@ -465,6 +483,11 @@ app/
   ocs/v2.php/collaboration/resources/[resourceType]/[resourceId]/route.ts
   ocs/v2.php/teams/resources/[providerId]/[resourceId]/route.ts
   ocs/v2.php/teams/[teamId]/resources/route.ts
+  contactsmenu/api.ts
+  contactsmenu/contacts/route.ts
+  contactsmenu/findOne/route.ts
+  contactsmenu/teams/route.ts
+  displaynames/route.ts
 ```
 
 Config:
@@ -483,6 +506,8 @@ Config:
 | `NC_PARITY_TWO_FACTOR_PROVIDER` | `true` | Toggle fixture provider `parity-totp` |
 | `NC_PARITY_COLLABORATION_PROVIDER` | `true` | Toggle fixture resource type `parity-room` |
 | `NC_PARITY_TEAMS_PROVIDER` | `true` | Toggle fixture team provider `parity-deck` |
+| `NC_APP_CONTACTS_ENABLED` | `true` | Toggle `contactsAppEnabled` in contacts menu index |
+| `NC_CONTACTSMENU_MIN_SEARCH_LENGTH` | `0` | Ignore `filter` shorter than this |
 
 ## Traps
 
@@ -572,6 +597,12 @@ Config:
 - Teams `link` is absolute contacts direct-circle URL; parity uses `/index.php/apps/contacts/direct/circle/{teamId}`
 - Teams resource `provider.icon` is inline SVG from fixture provider registration — not fetched over HTTP
 - `NC_PARITY_TEAMS_PROVIDER=false` disables team support → empty `teams[]` / `resources[]` (PHP `hasTeamSupport()` false), but unknown provider still throws when support enabled
+- Contacts menu POST routes require CSRF — missing/invalid → **412** `{ message: "CSRF check failed" }`
+- Contacts menu / displaynames unauthenticated → **401** JSON `{ message }` or **303** login when `Accept` includes HTML
+- `POST /contactsmenu/contacts` success → **200** `{ contacts: [], contactsAppEnabled: bool }` — do not assert full `IEntry` fields
+- `POST /contactsmenu/findOne` unknown target → **404** body `[]`; missing `shareType` / `shareWith` → **400** empty body
+- `GET /contactsmenu/teams` returns JSON **array** (not wrapped); empty `[]` allowed when team support disabled
+- `POST /displaynames` unknown uid echoed as requested id; success always includes `status: "success"`
 
 ## Parity extras
 
@@ -673,5 +704,11 @@ Config:
 | Validation | teams list-teams | unknown provider → 500 OCS 996; empty resource → `teams: []` |
 | Happy | teams resolve-one | 200 `resources[]` for member team |
 | Validation | teams resolve-one | non-member team → 200 empty `resources[]` |
+| Auth failure | contacts menu POST / displaynames POST | 401 JSON `{ message }` |
+| Validation | contacts menu POST | no CSRF → 412 |
+| Happy | contacts menu index | 200 `{ contacts, contactsAppEnabled }` for `filter=ali` |
+| Validation | contacts menu findOne | unknown user → 404 `[]`; missing params → 400 empty |
+| Happy | contacts menu teams | 200 JSON array for logged-in admin |
+| Happy | displaynames | 200 `{ users: { admin, missing }, status: "success" }` |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` fixtures (not waived).

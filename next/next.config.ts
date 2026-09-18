@@ -82,6 +82,14 @@ const nextConfig: NextConfig = {
 				destination: '/f/:fileid',
 			},
 			{
+				source: '/index.php/contactsmenu/:path*',
+				destination: '/contactsmenu/:path*',
+			},
+			{
+				source: '/index.php/displaynames',
+				destination: '/displaynames',
+			},
+			{
 				source: '/index.php/lostpassword/email',
 				destination: '/lostpassword/email',
 			},

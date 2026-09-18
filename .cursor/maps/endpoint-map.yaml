@@ -21143,11 +21143,11 @@ endpoints:
         contactsAppEnabled: boolean
       content_type: application/json
     errors: []
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /contactsmenu/contacts
+  next_handler: app/contactsmenu/contacts/route.ts
+  parity_test: next/parity/tests/core-contactsmenu.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: 'NoAdminRequired. Manager#getEntries returns contacts + contactsAppEnabled; optional teamId filters contacts by ITeamManager member UIDs. IEntry JSON fields not asserted. CSRF required. Error statuses not asserted (throws Exception).'
@@ -21175,11 +21175,11 @@ endpoints:
     - status: 404
       shape: empty JSON array
       content_type: application/json
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /contactsmenu/findOne
+  next_handler: app/contactsmenu/findOne/route.ts
+  parity_test: next/parity/tests/core-contactsmenu.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: 'NoAdminRequired. CSRF required. IEntry JSON fields not asserted.'
@@ -21202,11 +21202,11 @@ endpoints:
       shape: array from ITeamManager::getTeamsForUser (element fields not asserted)
       content_type: application/json
     errors: []
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /contactsmenu/teams
+  next_handler: app/contactsmenu/teams/route.ts
+  parity_test: next/parity/tests/core-contactsmenu.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: 'NoAdminRequired. Team object shape not asserted from ITeamManager. Error statuses not asserted.'
@@ -21233,11 +21233,11 @@ endpoints:
         status: success
       content_type: application/json
     errors: []
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /displaynames
+  next_handler: app/displaynames/route.ts
+  parity_test: next/parity/tests/core-contactsmenu.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: 'NoAdminRequired. Unknown uids echoed as the requested id. CSRF required. Error statuses not asserted.'

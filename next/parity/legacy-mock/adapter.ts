@@ -25,6 +25,7 @@ import { handleTwoFactorChallengeMock, isTwoFactorChallengePath } from './two-fa
 import { handleWebAuthnMock, isWebAuthnPath } from './webauthn';
 import { handleUnifiedSearchMock } from './unified-search';
 import { handleAvatarWriteMock } from './avatar-write';
+import { handleContactsMenuMock } from './contactsmenu';
 import { handleWipeMock } from './wipe';
 import { handleDavMock, isDavMockMethod } from './dav';
 import { handleDavDirectMock, isDavDirectMockPath } from './dav-direct';
@@ -623,6 +624,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 
 	if (avatarWrite) {
 		return avatarWrite;
+	}
+
+	const contactsMenu = await handleContactsMenuMock(pathname, search, options);
+
+	if (contactsMenu) {
+		return contactsMenu;
 	}
 
 	const avatar = handleAvatarMock(pathname, search);

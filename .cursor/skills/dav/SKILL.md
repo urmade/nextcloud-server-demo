@@ -14,7 +14,7 @@ description: Authenticated WebDAV/CalDAV/CardDAV Sabre tree, well-known caldav/c
 
 Authenticated Sabre DAV server plus DAV-adjacent HTTP/OCS. Files homes, calendars, address books, chunked uploads, tags, comments, avatars, principals. Well-known CalDAV/CardDAV discovery.
 
-**Phase C sub-slices:** (1) **well-known caldav/carddav** — landed (`dav-well-known`); (2) files PROPFIND cluster — `dav.Root#tree` + `dav.Collection#files` + `dav.LegacyWebDAV#webdav` + `dav.LegacyWebDAV#files`; (3) `dav.Collection#uploads` + `dav-direct-get-url` + `dav.Direct#get`. CalDAV/CardDAV collections and remaining tree prefixes are later sub-slices under this same `feature_id`.
+**Phase C sub-slices:** (1) **well-known caldav/carddav** — landed (`dav-well-known`); (2) **files PROPFIND cluster** — landed (`dav-files-propfind`, 109 tested); (3) **`dav.Collection#uploads`** — landed (`dav-uploads`, 110 tested); (4) `dav-direct-get-url` + `dav.Direct#get` (next cluster). CalDAV/CardDAV collections and remaining tree prefixes are later sub-slices under this same `feature_id`.
 
 Public share DAV (`/public.php/dav`, `/public.php/webdav`) is **`files_sharing`**, not this feature.
 
@@ -106,7 +106,20 @@ Logged-in plugins add `oc`/`nc` props, `OC-ETag`, `X-Request-Id`, `X-User-Id`; a
 
 **Files:** `GET/PUT/DELETE/MKCOL/COPY/MOVE/PROPFIND/PROPPATCH/LOCK/UNLOCK` under `files/{uid}`. Quota, checksum, tags, shares props. Listing root children disabled unless `debug`.
 
-**Uploads:** MKCOL upload folder; PUT parts; MOVE `.file` (v1 ChunkingPlugin) or v2 `ChunkingV2Plugin` + `Destination`. Other users' upload homes → Forbidden. Storage `/{uid}/uploads`. v2 session cache TTL 24h sliding.
+**Uploads:** MKCOL upload folder; PUT parts; MOVE `.file` (v1 ChunkingPlugin) or v2 `ChunkingV2Plugin` + `Destination`. Other users' upload homes → **403 Forbidden** (`Not allowed`), not empty like `files/{other}`. Storage `/{uid}/uploads`. v2 session cache TTL 24h sliding. See `bp-dav-upload-chunk-assemble`.
+
+#### Upload walkthrough — `dav.Collection#uploads` (`parity: tested`)
+
+Next.js: `src/server/dav/uploads.ts` + upload branches in `handler.ts` (middleware routes MKCOL/PUT/MOVE on v2 tree).
+
+| Step | Method | Path | Notes |
+| --- | --- | --- | --- |
+| Create staging folder | MKCOL | `/remote.php/dav/uploads/{uid}/{folder}` | **201** empty body; `{uid}` must match session |
+| Upload part | PUT | `…/{folder}/{part}` | **201**; parts sorted naturally at assemble |
+| Assemble | MOVE | `…/{folder}/.file` | **Destination** absolute URL → `files/{uid}/target`; **201** new / **204** replace |
+| Inspect result | PROPFIND | `files/{uid}/target` | depth 0 → **207** multistatus (`bp-dav-xml-normalize`) |
+
+Parity extras (`next/parity/tests/dav-uploads.parity.test.ts`): unauthenticated MKCOL → **401**; MKCOL `uploads/otheruser/…` → **403**; MOVE `.file` without Destination → **400**.
 
 **Public calendars:** unauthenticated PROPFIND/GET by token name; not public **file** shares.
 
@@ -228,7 +241,7 @@ First files PROPFIND slice **landed** `bp-dav-xml-normalize` (infoset, ignore pr
 | Direct GET | `dav.Direct#get` | 200 file; bad token 404 |
 | OOO unauth | outOfOffice | OCS 401/997 |
 | Invitation bad token | accept | error HTML template |
-| Upload chunk | `dav.Collection#uploads` | assemble via MOVE; skip or waive until storage backend exists (`waiver_owner` required) |
+| Upload chunk | `dav.Collection#uploads` | MKCOL → PUT parts → MOVE `.file`; wrong uid **403**; see `bp-dav-upload-chunk-assemble` |
 
 Chunked upload may be `parity: waived` only with reason + owner if this slice has no storage. Do not silently skip.
 

@@ -9,8 +9,20 @@ const DAV_REMOTE_PREFIXES = [
 	'/remote.php/files',
 ];
 
+const DAV_MOCK_METHODS = new Set([
+	'PROPFIND',
+	'OPTIONS',
+	'MKCOL',
+	'PUT',
+	'MOVE',
+]);
+
 export function isDavRemotePath(pathname: string): boolean {
 	return DAV_REMOTE_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+export function isDavMockMethod(method: string): boolean {
+	return DAV_MOCK_METHODS.has(method.toUpperCase());
 }
 
 export async function handleDavMock(
@@ -23,7 +35,7 @@ export async function handleDavMock(
 
 	const method = (options.method ?? 'GET').toUpperCase();
 
-	if (method !== 'PROPFIND' && method !== 'OPTIONS') {
+	if (!DAV_MOCK_METHODS.has(method)) {
 		return null;
 	}
 

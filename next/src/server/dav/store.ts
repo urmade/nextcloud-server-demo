@@ -1,6 +1,8 @@
 import type { DavFileNode } from './types';
 
 const ADMIN_USER = process.env.NC_ADMIN_USER?.trim() || 'admin';
+let nextFileId = 1100;
+let filesHome = adminHome();
 
 function welcomeFile(): DavFileNode {
 	return {
@@ -53,7 +55,82 @@ export function getDefaultDavUserId(): string {
 }
 
 export function getAdminFilesHome(): DavFileNode {
-	return adminHome();
+	return filesHome;
+}
+
+function findOrCreateDirectory(segments: string[]): DavFileNode {
+	let current = filesHome;
+
+	for (const segment of segments) {
+		if (current.kind !== 'directory') {
+			throw new Error('Cannot create directory inside a file');
+		}
+
+		if (!current.children) {
+			current.children = [];
+		}
+
+		let child = current.children.find((entry) => entry.name === segment);
+
+		if (!child) {
+			child = {
+				name: segment,
+				kind: 'directory',
+				fileId: nextFileId++,
+				etag: `"dir-${nextFileId}"`,
+				size: 0,
+				contentType: 'httpd/unix-directory',
+				children: [],
+			};
+			current.children.push(child);
+		}
+
+		current = child;
+	}
+
+	return current;
+}
+
+export function assembleFileIntoHome(relativePath: string, content: Buffer): { created: boolean } {
+	const segments = relativePath.split('/').filter(Boolean);
+	const fileName = segments.pop();
+
+	if (!fileName) {
+		throw new Error('Missing destination file name');
+	}
+
+	const parent = segments.length === 0 ? filesHome : findOrCreateDirectory(segments);
+
+	if (!parent.children) {
+		parent.children = [];
+	}
+
+	const existingIndex = parent.children.findIndex((entry) => entry.name === fileName);
+	const etag = `"assembled-${Date.now()}"`;
+	const fileNode: DavFileNode = {
+		name: fileName,
+		kind: 'file',
+		fileId: nextFileId++,
+		etag,
+		size: content.length,
+		contentType: 'application/octet-stream',
+		content: content.toString('latin1'),
+	};
+
+	if (existingIndex >= 0) {
+		parent.children[existingIndex] = fileNode;
+
+		return { created: false };
+	}
+
+	parent.children.push(fileNode);
+
+	return { created: true };
+}
+
+export function resetDavFileStore(): void {
+	nextFileId = 1100;
+	filesHome = adminHome();
 }
 
 export function getEmptyPrincipalCollection(name: string): DavFileNode {

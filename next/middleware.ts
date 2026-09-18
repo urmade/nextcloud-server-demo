@@ -4,6 +4,9 @@ import { handleDavRequest } from '@/src/server/dav/handler';
 const DAV_METHODS = new Set([
 	'PROPFIND',
 	'OPTIONS',
+	'MKCOL',
+	'PUT',
+	'MOVE',
 ]);
 
 function isDavRemotePath(pathname: string): boolean {

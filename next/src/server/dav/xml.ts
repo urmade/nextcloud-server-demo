@@ -60,3 +60,15 @@ export function buildPropfindMultistatus(responses: Array<{
 export function buildNotFoundXml(message: string): string {
 	return buildSabreErrorXml('Sabre\\DAV\\Exception\\NotFound', message);
 }
+
+export function buildForbiddenXml(message: string): string {
+	return buildSabreErrorXml('Sabre\\DAV\\Exception\\Forbidden', message);
+}
+
+export function buildBadRequestXml(message: string): string {
+	return buildSabreErrorXml('Sabre\\DAV\\Exception\\BadRequest', message);
+}
+
+export function buildMethodNotAllowedXml(message: string): string {
+	return buildSabreErrorXml('Sabre\\DAV\\Exception\\MethodNotAllowed', message);
+}

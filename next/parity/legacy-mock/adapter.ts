@@ -24,7 +24,7 @@ import { handleTwoFactorChallengeMock, isTwoFactorChallengePath } from './two-fa
 import { handleWebAuthnMock, isWebAuthnPath } from './webauthn';
 import { handleUnifiedSearchMock } from './unified-search';
 import { handleWipeMock } from './wipe';
-import { handleDavMock } from './dav';
+import { handleDavMock, isDavMockMethod } from './dav';
 import { snapshotResponse } from '../compare';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
 
@@ -630,18 +630,18 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 		return true;
 	}
 
+	if (pathname.startsWith('/remote.php/dav')
+		|| pathname.startsWith('/remote.php/webdav')
+		|| pathname.startsWith('/remote.php/files')) {
+		return isDavMockMethod(normalizedMethod);
+	}
+
 	if (normalizedMethod !== 'GET' && normalizedMethod !== 'DELETE' && normalizedMethod !== 'PROPFIND' && normalizedMethod !== 'OPTIONS') {
 		return false;
 	}
 
 	if (MOCKED_GET_ROUTES.has(pathname)) {
 		return true;
-	}
-
-	if (pathname.startsWith('/remote.php/dav')
-		|| pathname.startsWith('/remote.php/webdav')
-		|| pathname.startsWith('/remote.php/files')) {
-		return normalizedMethod === 'PROPFIND' || normalizedMethod === 'OPTIONS';
 	}
 
 	return MOCKED_GET_PREFIXES.some((prefix) => pathname.startsWith(prefix));

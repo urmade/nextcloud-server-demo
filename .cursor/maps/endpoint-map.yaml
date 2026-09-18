@@ -7403,13 +7403,15 @@ endpoints:
     errors:
     - status: 401
       shape: sabre-exception
+    - status: 403
+      shape: sabre-exception
     - status: 404
       shape: sabre-exception
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /remote.php/dav/uploads/{userId}/{folder}
+  next_handler: src/server/dav/handler.ts
+  parity_test: next/parity/tests/dav-uploads.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   dav_ns: DAV:, urn:ietf:params:xml:ns:caldav, urn:ietf:params:xml:ns:carddav, http://owncloud.org/ns, http://nextcloud.org/ns

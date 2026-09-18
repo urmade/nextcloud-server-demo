@@ -24,6 +24,7 @@ import {
 	ViewConfigValidationError,
 } from './view-config';
 import { getRecentFiles } from './recent';
+import { getServiceWorkerResponse } from './service-worker';
 import { getThumbnailResponse } from './thumbnail';
 import { resetFilesViewConfigStore } from './view-config-store';
 
@@ -157,6 +158,10 @@ export function handleGetThumbnail(request: Request, x: string, y: string, fileP
 	}
 
 	return getThumbnailResponse(auth, x, y, filePath);
+}
+
+export function handleServiceWorker(): Response {
+	return getServiceWorkerResponse();
 }
 
 function csrfFailure(): Response {

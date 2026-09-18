@@ -8986,13 +8986,14 @@ endpoints:
       shape: login-or-json
     - status: 404
       shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /apps/files/preview-service-worker.js
+  next_handler: src/server/files/service-worker.ts
+  parity_test: next/parity/tests/files-service-worker.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: PublicPage + NoCSRFRequired; map auth session and html-or-json are wrong. Streams dist/preview-service-worker.js with Service-Worker-Allowed / and CSP worker/script/connect self.
 - id: files.view#indexView
   feature_ids:
   - files

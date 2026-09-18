@@ -3,6 +3,7 @@ import {
 	handleGetConfigs,
 	handleGetGridView,
 	handleGetRecentFiles,
+	handleServiceWorker,
 	handleGetStorageStats,
 	handleGetThumbnail,
 	handleGetViewConfigs,
@@ -22,6 +23,7 @@ const FILES_API_GET_HANDLERS: Record<string, (request: Request) => Response> = {
 	'/apps/files/api/v1/showgridview': handleGetGridView,
 	'/apps/files/api/v1/recent': handleGetRecentFiles,
 	'/apps/files/api/v1/recent/': handleGetRecentFiles,
+	'/apps/files/preview-service-worker.js': handleServiceWorker,
 };
 
 const THUMBNAIL_PATH = /^\/(?:index\.php\/)?apps\/files\/api\/v1\/thumbnail\/([^/]+)\/([^/]+)\/(.+)$/;

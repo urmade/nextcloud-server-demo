@@ -8,6 +8,7 @@ export async function POST() {
 
 	resetDavFileStore();
 	resetFilesApiStores();
+	resetDavFileStore();
 
 	return new Response(null, { status: 204 });
 }

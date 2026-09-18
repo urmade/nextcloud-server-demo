@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { resetSessionStore } from '@/src/server/auth/session-store';
-import { resetDavFileStore } from '@/src/server/dav/store';
 import { PARITY_DIRECT_EDIT_TOKEN } from '@/src/server/files/direct-editing-store';
-import { resetFilesApiStores } from '@/src/server/files/api';
 import { getParityEnv } from '../env';
 import { formatParityMismatches, runParityCase } from '../harness';
 import { cookieJarToHeader } from '../helpers/cookies';
@@ -51,8 +49,6 @@ describe('parity: files-html-shell', () => {
 
 	afterEach(async () => {
 		resetSessionStore();
-		resetDavFileStore();
-		resetFilesApiStores();
 		await resetParityFilesStores();
 	});
 

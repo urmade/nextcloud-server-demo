@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+name: Next parity tests
+
+on:
+  pull_request:
+    paths:
+      - 'next/**'
+      - '.github/workflows/next-parity.yml'
+  push:
+    branches:
+      - master
+    paths:
+      - 'next/**'
+      - '.github/workflows/next-parity.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: next-parity-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: next
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: next/package-lock.json
+
+      - name: Run CI script
+        run: bash scripts/ci.sh

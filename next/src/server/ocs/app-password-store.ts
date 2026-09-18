@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { markAppPasswordForWipe } from '@/src/server/wipe/store';
 
 export interface StoredAppPassword {
 	userId: string;
@@ -93,4 +94,12 @@ export function isPasswordConfirmationFresh(lastPasswordConfirm: number | undefi
 
 export function resetAppPasswordStore(): void {
 	getTokenMap().clear();
+}
+
+export function markAllAppPasswordTokensForWipe(userId: string): void {
+	for (const stored of getTokenMap().values()) {
+		if (stored.userId === userId) {
+			markAppPasswordForWipe(stored.token);
+		}
+	}
 }

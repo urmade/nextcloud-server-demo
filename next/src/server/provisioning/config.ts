@@ -2,6 +2,9 @@ import { setParityPreferenceFixtureListener } from '@/src/server/provisioning/pr
 
 let runtimeDefaultPhoneRegion: string | null | undefined;
 let runtimePreferenceFixtureListener: boolean | undefined;
+let runtimeGenerateUserId: boolean | undefined;
+let runtimeRequireEmail: boolean | undefined;
+let runtimeWelcomeMailSendFails: boolean | undefined;
 
 export function getDefaultPhoneRegion(): string {
 	if (runtimeDefaultPhoneRegion !== undefined) {
@@ -20,7 +23,42 @@ export function setParityPreferenceFixtureListenerEnabled(enabled: boolean): voi
 	setParityPreferenceFixtureListener(enabled);
 }
 
+export function getGenerateUserIdEnabled(): boolean {
+	if (runtimeGenerateUserId !== undefined) {
+		return runtimeGenerateUserId;
+	}
+
+	return process.env.NC_NEW_USER_GENERATE_USER_ID?.trim() === 'yes';
+}
+
+export function getRequireEmailEnabled(): boolean {
+	if (runtimeRequireEmail !== undefined) {
+		return runtimeRequireEmail;
+	}
+
+	return process.env.NC_NEW_USER_REQUIRE_EMAIL?.trim() === 'yes';
+}
+
+export function getWelcomeMailSendFails(): boolean {
+	return runtimeWelcomeMailSendFails === true;
+}
+
+export function setParityGenerateUserId(enabled: boolean): void {
+	runtimeGenerateUserId = enabled;
+}
+
+export function setParityRequireEmail(enabled: boolean): void {
+	runtimeRequireEmail = enabled;
+}
+
+export function setParityWelcomeMailSendFails(fails: boolean): void {
+	runtimeWelcomeMailSendFails = fails;
+}
+
 export function resetParityProvisioningConfig(): void {
 	runtimeDefaultPhoneRegion = undefined;
 	runtimePreferenceFixtureListener = undefined;
+	runtimeGenerateUserId = undefined;
+	runtimeRequireEmail = undefined;
+	runtimeWelcomeMailSendFails = undefined;
 }

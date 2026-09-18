@@ -1,6 +1,7 @@
 import {
 	setParityDefaultPhoneRegion as setLocalDefaultPhoneRegion,
 	setParityPreferenceFixtureListenerEnabled,
+	setParityWelcomeMailSendFails as setLocalWelcomeMailSendFails,
 } from '@/src/server/provisioning/config';
 import {
 	createMailVerificationToken,
@@ -82,6 +83,23 @@ export async function removeParityProvisioningEmail(userId: string, email: strin
 
 	if (!response.ok) {
 		throw new Error(`Failed to remove provisioning email on the Next.js server (${response.status})`);
+	}
+}
+
+export async function setParityWelcomeMailSendFails(fails: boolean): Promise<void> {
+	setLocalWelcomeMailSendFails(fails);
+
+	const env = getParityEnv();
+	const response = await fetch(`${env.newBaseUrl}/api/parity/set-provisioning-config`, {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+		},
+		body: JSON.stringify({ welcomeMailSendFails: fails }),
+	});
+
+	if (!response.ok) {
+		throw new Error(`Failed to set Next.js welcome mail fixture (${response.status})`);
 	}
 }
 

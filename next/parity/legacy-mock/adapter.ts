@@ -42,6 +42,7 @@ import { handleProvisioningMailVerifyMock, isProvisioningMailVerifyMockPath } fr
 import { handleProvisioningPreferencesMock, isProvisioningPreferencesMockPath } from './provisioning-preferences';
 import { handleProvisioningSelfReadMock, isProvisioningSelfReadMockPath } from './provisioning-self-read';
 import { handleProvisioningUsersListMock, isProvisioningUsersListMockPath } from './provisioning-users-list';
+import { handleProvisioningUsersLifecycleMock, isProvisioningUsersLifecycleMockPath } from './provisioning-users-lifecycle';
 import { handleFilesApiMock, isFilesApiPath, isFilesApiWritePath } from './files';
 import { handleFilesDirectEditingMock, isFilesDirectEditingMockPath } from './files-direct-editing';
 import { handleFilesFilenamesMock, isFilesFilenamesMockPath } from './files-filenames';
@@ -699,6 +700,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return provisioningUsersList;
 	}
 
+	const provisioningUsersLifecycle = await handleProvisioningUsersLifecycleMock(pathname, search, options);
+
+	if (provisioningUsersLifecycle) {
+		return provisioningUsersLifecycle;
+	}
+
 	const provisioningPreferences = await handleProvisioningPreferencesMock(pathname, search, options);
 
 	if (provisioningPreferences) {
@@ -898,6 +905,10 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (isProvisioningUsersListMockPath(pathname, normalizedMethod)) {
+		return true;
+	}
+
+	if (isProvisioningUsersLifecycleMockPath(pathname, normalizedMethod)) {
 		return true;
 	}
 

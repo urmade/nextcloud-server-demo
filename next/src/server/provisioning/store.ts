@@ -1,6 +1,7 @@
 import { findParityUser, getParityUsers } from '@/src/server/config/users';
-import { getParityGroups } from '@/src/server/config/groups';
-import { getConfiguredAdminUserId } from '@/src/server/ocs/admin-auth';
+import { findParityGroup, getParityGroups } from '@/src/server/config/groups';
+import { getConfiguredAdminUserId, isAdminUserId } from '@/src/server/ocs/admin-auth';
+import { markAllAppPasswordTokensForWipe } from '@/src/server/ocs/app-password-store';
 import { resetKnownUsersStore } from '@/src/server/provisioning/known-users';
 import { resetMailVerifyStore } from '@/src/server/provisioning/mail-verify';
 import { resetParityProvisioningConfig } from '@/src/server/provisioning/config';
@@ -79,6 +80,7 @@ const globalForProvisioning = globalThis as typeof globalThis & {
 	__ncProvisioningUsers?: Map<string, ProvisioningUserRecord>;
 	__ncProvisioningSubadmins?: Map<string, Set<string>>;
 	__ncDelegatedUsersAdmins?: Set<string>;
+	__ncProvisioningRuntimeGroups?: Set<string>;
 };
 
 function defaultProperties(): Record<string, ProvisioningAccountProperty> {
@@ -224,6 +226,113 @@ export function setProvisioningUserLastLogin(userId: string, lastLoginTimestamp:
 	}
 }
 
+export function groupExists(groupId: string): boolean {
+	return findParityGroup(groupId) !== undefined
+		|| (globalForProvisioning.__ncProvisioningRuntimeGroups?.has(groupId) ?? false);
+}
+
+export function isUserInAdminGroup(userId: string): boolean {
+	if (userId === getConfiguredAdminUserId()) {
+		return true;
+	}
+
+	const user = getProvisioningUser(userId);
+
+	return Boolean(user?.groups.includes('admin'));
+}
+
+export function canManageTargetUser(callerId: string, targetUserId: string): boolean {
+	if (isAdminUserId(callerId)) {
+		return true;
+	}
+
+	if (isDelegatedUsersAdmin(callerId) && !isUserInAdminGroup(targetUserId)) {
+		return true;
+	}
+
+	return isUserAccessibleToManager(callerId, targetUserId);
+}
+
+export function canResendWelcomeToUser(callerId: string, targetUserId: string): boolean {
+	if (isAdminUserId(callerId) || isDelegatedUsersAdmin(callerId)) {
+		return true;
+	}
+
+	return isUserAccessibleToManager(callerId, targetUserId);
+}
+
+export interface CreateProvisioningUserInput {
+	userid: string;
+	password: string;
+	displayName?: string;
+	email?: string;
+	groups?: string[];
+	subadminGroups?: string[];
+	quota?: string;
+	language?: string;
+	manager?: string | null;
+}
+
+export function createProvisioningUser(input: CreateProvisioningUserInput): ProvisioningUserRecord {
+	if (!input.userid || getProvisioningUser(input.userid)) {
+		throw new Error('USER_CREATION_FAILED');
+	}
+
+	if (input.password.length < 8) {
+		throw new Error('PASSWORD_POLICY');
+	}
+
+	const groups = input.groups && input.groups.length > 0 ? [...input.groups] : ['parity-users'];
+	const record = buildDefaultUser(
+		input.userid,
+		input.displayName || input.userid,
+		input.email !== undefined ? input.email : `${input.userid}@parity.test`,
+		groups,
+		input.subadminGroups ?? [],
+	);
+
+	if (input.language) {
+		record.language = input.language;
+	}
+
+	if (input.manager !== undefined) {
+		record.manager = input.manager ?? '';
+	}
+
+	getUsersMap().set(input.userid, record);
+
+	if (input.subadminGroups && input.subadminGroups.length > 0) {
+		setProvisioningSubadminGroups(input.userid, input.subadminGroups);
+	}
+
+	for (const groupId of groups) {
+		if (!globalForProvisioning.__ncProvisioningRuntimeGroups) {
+			globalForProvisioning.__ncProvisioningRuntimeGroups = new Set();
+		}
+
+		globalForProvisioning.__ncProvisioningRuntimeGroups.add(groupId);
+	}
+
+	return record;
+}
+
+export function deleteProvisioningUser(userId: string): boolean {
+	return getUsersMap().delete(userId);
+}
+
+export function setProvisioningUserEmail(userId: string, email: string): void {
+	const user = getProvisioningUser(userId);
+
+	if (user) {
+		user.email = email;
+		user.notifyEmail = email;
+	}
+}
+
+export function markAllTokensForWipe(userId: string): void {
+	markAllAppPasswordTokensForWipe(userId);
+}
+
 export function isProvisioningSubAdmin(userId: string): boolean {
 	const explicit = getSubadminMap().get(userId);
 
@@ -320,6 +429,7 @@ export function resetProvisioningStore(): void {
 	globalForProvisioning.__ncProvisioningUsers = seedDefaultUsers();
 	globalForProvisioning.__ncProvisioningSubadmins = new Map();
 	globalForProvisioning.__ncDelegatedUsersAdmins = new Set();
+	globalForProvisioning.__ncProvisioningRuntimeGroups = new Set();
 	resetKnownUsersStore();
 	resetMailVerifyStore();
 	resetParityProvisioningConfig();

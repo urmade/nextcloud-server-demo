@@ -21848,14 +21848,14 @@ endpoints:
     - status: 500
       shape: empty JSON array
       content_type: application/json
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: implemented
+  parity: tested
+  next_path: /apps/dav/api/defaultcontact/config
+  next_handler: app/apps/dav/api/defaultcontact/config/route.ts
+  parity_test: next/parity/tests/dav-example-content.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: 'No PublicPage/NoAdminRequired — AppFramework login+admin defaults. CSRF required. allow=true creates default contact card if missing. Side effect: enableDefaultContact app config. Unauthenticated envelope not asserted.'
+  notes: 'Admin + CSRF. allow=true creates default contact card if missing. Side effect: enableDefaultContact app config. Unauth JSON 401 / HTML 303; non-admin 403; CSRF fail 412.'
 - id: dav.ExampleContent#getDefaultContact
   feature_ids:
   - dav
@@ -21875,14 +21875,14 @@ endpoints:
       shape: vCard bytes (filename example_contact.vcf)
       content_type: text/vcard
     errors: []
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: implemented
+  parity: tested
+  next_path: /apps/dav/api/defaultcontact/contact
+  next_handler: app/apps/dav/api/defaultcontact/contact/route.ts
+  parity_test: next/parity/tests/dav-example-content.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: 'NoCSRFRequired. Falls back to bundled exampleContact.vcf when no stored card. Error statuses not asserted.'
+  notes: 'NoCSRFRequired. Admin auth. Falls back to bundled exampleContact.vcf when no stored card. Unauth 401/303; non-admin 403.'
 - id: dav.ExampleContent#setDefaultContact.put
   feature_ids:
   - dav
@@ -21906,14 +21906,14 @@ endpoints:
     - status: 403
       shape: empty JSON array
       content_type: application/json
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: implemented
+  parity: tested
+  next_path: /apps/dav/api/defaultcontact/contact
+  next_handler: app/apps/dav/api/defaultcontact/contact/route.ts
+  parity_test: next/parity/tests/dav-example-content.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: '403 when default contact is disabled. CSRF required. contactData is vCard text; null uses service default. Side effect: stores default contact card.'
+  notes: '403 when default contact is disabled. Admin + CSRF. contactData is vCard text; null uses service default. Side effect: stores default contact card.'
 - id: dav.ExampleContent#setCreateExampleEvent.post
   feature_ids:
   - dav
@@ -21934,14 +21934,14 @@ endpoints:
       shape: empty JSON array
       content_type: application/json
     errors: []
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: implemented
+  parity: tested
+  next_path: /apps/dav/api/exampleEvent/enable
+  next_handler: app/apps/dav/api/exampleEvent/enable/route.ts
+  parity_test: next/parity/tests/dav-example-content.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: 'CSRF required. Side effect: ExampleEventService::setCreateExampleEvent. Error statuses not asserted.'
+  notes: 'Admin + CSRF. Side effect: ExampleEventService::setCreateExampleEvent. Unauth 401/303; non-admin 403; CSRF 412.'
 - id: dav.ExampleContent#deleteExampleEvent.delete
   feature_ids:
   - dav
@@ -21961,14 +21961,14 @@ endpoints:
       shape: empty JSON array
       content_type: application/json
     errors: []
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: implemented
+  parity: tested
+  next_path: /apps/dav/api/exampleEvent/event
+  next_handler: app/apps/dav/api/exampleEvent/event/route.ts
+  parity_test: next/parity/tests/dav-example-content.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: 'CSRF required. Side effect: deletes custom example event. Error statuses not asserted.'
+  notes: 'Admin + CSRF. Side effect: deletes custom example event. Success 200 [].'
 - id: dav.ExampleContent#downloadExampleEvent
   feature_ids:
   - dav
@@ -21988,14 +21988,14 @@ endpoints:
       shape: iCalendar bytes (filename example_event.ics)
       content_type: text/calendar
     errors: []
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: implemented
+  parity: tested
+  next_path: /apps/dav/api/exampleEvent/event
+  next_handler: app/apps/dav/api/exampleEvent/event/route.ts
+  parity_test: next/parity/tests/dav-example-content.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: 'NoCSRFRequired. Error statuses not asserted.'
+  notes: 'NoCSRFRequired. Admin auth. Returns example_event.ics text/calendar download (bp-binary-parity). Unauth 401/303; non-admin 403.'
 - id: dav.ExampleContent#uploadExampleEvent.post
   feature_ids:
   - dav
@@ -22019,14 +22019,14 @@ endpoints:
     - status: 403
       shape: empty JSON array
       content_type: application/json
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: implemented
+  parity: tested
+  next_path: /apps/dav/api/exampleEvent/event
+  next_handler: app/apps/dav/api/exampleEvent/event/route.ts
+  parity_test: next/parity/tests/dav-example-content.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: 'CSRF required. 403 when shouldCreateExampleEvent is false. Side effect: saveCustomExampleEvent.'
+  notes: 'Admin + CSRF. 403 when shouldCreateExampleEvent is false. Side effect: saveCustomExampleEvent.'
 - id: dav.Collection#principals-remote-users
   feature_ids:
   - dav

@@ -35,7 +35,7 @@ DAV XML namespaces (parity must infoset-compare, not prefixes): `DAV:`, `urn:iet
 
 ## Endpoints owned
 
-48 map ids with first `feature_ids` = `dav`.
+56 map ids with first `feature_ids` = `dav`.
 
 ### Discovery + HTTP (non-Sabre)
 
@@ -49,6 +49,13 @@ DAV XML namespaces (parity must infoset-compare, not prefixes): `DAV:`, `urn:iet
 | `dav.invitation_response#decline` | GET | `/apps/dav/invitation/decline/{token}` |
 | `dav.invitation_response#options` | GET | `/apps/dav/invitation/moreOptions/{token}` |
 | `dav.invitation_response#processMoreOptionsResult.post` | POST | `/apps/dav/invitation/moreOptions/{token}` |
+| `dav.ExampleContent#setEnableDefaultContact.put` | PUT | `/apps/dav/api/defaultcontact/config` |
+| `dav.ExampleContent#getDefaultContact` | GET | `/apps/dav/api/defaultcontact/contact` |
+| `dav.ExampleContent#setDefaultContact.put` | PUT | same |
+| `dav.ExampleContent#setCreateExampleEvent.post` | POST | `/apps/dav/api/exampleEvent/enable` |
+| `dav.ExampleContent#downloadExampleEvent` | GET | `/apps/dav/api/exampleEvent/event` |
+| `dav.ExampleContent#uploadExampleEvent.post` | POST | same |
+| `dav.ExampleContent#deleteExampleEvent.delete` | DELETE | same |
 
 ### OCS (v2 canonical; v1 same route, different envelope)
 
@@ -290,6 +297,24 @@ Next.js: `src/server/dav/cal-contacts-io.ts`; routes `app/ocs/v2.php/calendar/ex
 
 Parity extras (`next/parity/tests/dav-cal-contacts-io.parity.test.ts`): unauth 401/997; export missing calendar 400; import missing book 400; export 200 calendar content-type. Reset/seed via `resetParityCalendarsStores()` + `resetParityAddressBooksStores()`.
 
+### Example content — `dav-example-content` (`parity: tested`)
+
+Next.js: `src/server/dav/example-content.ts` + `example-content-store.ts`; routes under `app/apps/dav/api/defaultcontact/*` and `app/apps/dav/api/exampleEvent/*`.
+
+| Step | Method | Path | Notes |
+| --- | --- | --- | --- |
+| Enable default contact | PUT | `/apps/dav/api/defaultcontact/config` | Body `{allow:bool}`. Admin + CSRF. **200** `[]`; create-card fail **500** `[]`. |
+| Download default contact | GET | `/apps/dav/api/defaultcontact/contact` | **NoCSRFRequired**. Admin auth. **200** `text/vcard` `example_contact.vcf` (`bp-binary-parity`). Bundled fallback. |
+| Set default contact | PUT | same | Admin + CSRF. **403** `[]` when disabled. |
+| Enable example event | POST | `/apps/dav/api/exampleEvent/enable` | Body `{enable:bool}`. Admin + CSRF. **200** `[]`. |
+| Download example event | GET | `/apps/dav/api/exampleEvent/event` | **NoCSRFRequired**. **200** `text/calendar` `example_event.ics` (`bp-binary-parity`). |
+| Upload custom example event | POST | same | Body `{ics}`. Admin + CSRF. **403** `[]` when create-example off. |
+| Delete custom example event | DELETE | same | Admin + CSRF. **200** `[]`. |
+
+Map `auth: session` understates **admin**. Unauth JSON **401** `{message}` / HTML **303** login. Non-admin **403**. CSRF fail **412** on mutating methods.
+
+Parity extras (`next/parity/tests/dav-example-content.parity.test.ts`): unauth 401; non-admin 403; GET vcf 200; upload while disabled 403; enable 200 `[]`. Reset via `resetParityExampleContentStores()` → `/api/parity/reset-dav-example-content-store`.
+
 ## Auth / tenant rules
 
 | Surface | Auth |
@@ -301,6 +326,7 @@ Parity extras (`next/parity/tests/dav-cal-contacts-io.parity.test.ts`): unauth 4
 | `/remote.php/direct/{token}` | knowledge of token (`signed`) |
 | invitation HTML | public token |
 | birthday enable/disable | admin CalDAV setting ACL |
+| ExampleContent admin HTTP | admin + CSRF (GET downloads NoCSRFRequired) |
 | other DAV OCS | logged-in (`NoAdminRequired`); mixed on map means 401 OCS 997 when anonymous |
 | public-calendars collection | unauthenticated token name |
 | files/uploads | must match authenticated UID (uploads also allow `principals/shares`) |
@@ -342,7 +368,6 @@ Parity extras (`next/parity/tests/files-sharing-public-dav.parity.test.ts`): ope
 ## Do-not list
 - Do not implement HTTP comments/systemtags apps (`comments`, `systemtags` features) — only DAV collections here.
 - Do not implement core HTTP avatars/previews (`core` avatars slice) — `dav.Collection#avatars` is the DAV collection only.
-- Do not implement `ExampleContentController` (default contact/event) — not in the feature map.
 - Do not clone Sabre plugin classes; match client-visible XML/headers/status.
 - Do not invent CalDAV scheduling beyond what plugins emit.
 - Do not start `files` JSON UI in this slice (`files` depends on this).

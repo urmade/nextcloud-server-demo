@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { getParityEnv } from '../env';
 import { formatParityMismatches, runParityCase } from '../harness';
+import { resetParityTaskStores } from '../helpers/task-processing';
 import { fetchLegacyMockSnapshot, hasLegacyMockFixture } from '../legacy-mock/adapter';
 import { compareBinarySnapshots, snapshotBinaryResponse } from '../helpers/binary';
 import { cookieJarToHeader } from '../helpers/cookies';
@@ -17,7 +18,6 @@ import {
 } from '@/src/server/task-processing/catalog';
 import {
 	buildSeedTask,
-	resetTaskStore,
 	seedParityTask,
 } from '@/src/server/task-processing/store';
 
@@ -60,6 +60,10 @@ function seedMatchingTask(userId: string, taskId: number, body: Record<string, u
 }
 
 describe('parity: core task processing (user session)', () => {
+	beforeEach(async () => {
+		await resetParityTaskStores();
+	});
+
 	it('GET /ocs/v2.php/taskprocessing/tasktypes requires auth (401)', async () => {
 		const result = await runParityCase({
 			name: 'task-types-unauth',
@@ -561,8 +565,6 @@ describe('parity: core task processing (user session)', () => {
 	});
 
 	it('supports Basic auth for task types', async () => {
-		resetTaskStore();
-
 		const result = await runParityCase({
 			name: 'task-types-basic-auth',
 			path: '/ocs/v2.php/taskprocessing/tasktypes?format=json',

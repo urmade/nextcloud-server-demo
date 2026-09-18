@@ -1,5 +1,7 @@
 import type { DavIngress, ParsedDavRequest } from './types';
 
+export type { DavIngress };
+
 export function parseDavRequest(url: URL): ParsedDavRequest | null {
 	const pathname = url.pathname;
 
@@ -33,7 +35,31 @@ export function parseDavRequest(url: URL): ParsedDavRequest | null {
 		};
 	}
 
+	if (pathname.startsWith('/remote.php/caldav')) {
+		const suffix = pathname.slice('/remote.php/caldav'.length).replace(/^\//, '');
+
+		return {
+			ingress: 'legacy-caldav',
+			davPath: suffix,
+			requestPath: pathname,
+		};
+	}
+
+	if (pathname.startsWith('/remote.php/calendar')) {
+		const suffix = pathname.slice('/remote.php/calendar'.length).replace(/^\//, '');
+
+		return {
+			ingress: 'legacy-calendar',
+			davPath: suffix,
+			requestPath: pathname,
+		};
+	}
+
 	return null;
+}
+
+export function isLegacyCalDavIngress(ingress: DavIngress): boolean {
+	return ingress === 'legacy-caldav' || ingress === 'legacy-calendar';
 }
 
 export function ingressBasePath(ingress: DavIngress): string {
@@ -44,6 +70,10 @@ export function ingressBasePath(ingress: DavIngress): string {
 			return '/remote.php/webdav';
 		case 'legacy-files':
 			return '/remote.php/files';
+		case 'legacy-caldav':
+			return '/remote.php/caldav';
+		case 'legacy-calendar':
+			return '/remote.php/calendar';
 	}
 }
 

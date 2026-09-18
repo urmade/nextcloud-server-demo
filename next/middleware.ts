@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { handleDavRequest } from '@/src/server/dav/handler';
 import { handlePublicDavRequest } from '@/src/server/dav/public-handler';
-import { isCalendarDavPath, isPublicCalendarDavPath } from '@/src/server/dav/remote';
+import { isCalendarDavPath, isLegacyCalDavIngress, isPublicCalendarDavPath, parseDavRequest } from '@/src/server/dav/remote';
 
 const DAV_METHODS = new Set([
 	'PROPFIND',
@@ -18,7 +18,9 @@ const PUBLIC_DAV_METHODS = new Set([
 function isDavRemotePath(pathname: string): boolean {
 	return pathname.startsWith('/remote.php/dav')
 		|| pathname.startsWith('/remote.php/webdav')
-		|| pathname.startsWith('/remote.php/files');
+		|| pathname.startsWith('/remote.php/files')
+		|| pathname.startsWith('/remote.php/caldav')
+		|| pathname.startsWith('/remote.php/calendar');
 }
 
 function isPublicDavPath(pathname: string): boolean {
@@ -42,13 +44,11 @@ export async function middleware(request: NextRequest) {
 		return NextResponse.next();
 	}
 
-	const davPath = pathname.startsWith('/remote.php/dav/')
-		? pathname.slice('/remote.php/dav/'.length)
-		: pathname === '/remote.php/dav'
-			? ''
-			: null;
-	const isCalendarPath = davPath !== null
-		&& (isCalendarDavPath(davPath) || isPublicCalendarDavPath(davPath));
+	const parsed = parseDavRequest(new URL(pathname, 'http://localhost'));
+	const davPath = parsed?.davPath ?? null;
+	const isCalendarPath = parsed !== null
+		&& (isLegacyCalDavIngress(parsed.ingress)
+			|| (parsed.ingress === 'v2' && (isCalendarDavPath(davPath ?? '') || isPublicCalendarDavPath(davPath ?? ''))));
 	const allowedMethods = isCalendarPath
 		? new Set([...DAV_METHODS, 'GET', 'HEAD', 'DELETE', 'MKCALENDAR', 'REPORT'])
 		: DAV_METHODS;
@@ -66,6 +66,8 @@ export const config = {
 		'/remote.php/dav/:path*',
 		'/remote.php/webdav/:path*',
 		'/remote.php/files/:path*',
+		'/remote.php/caldav/:path*',
+		'/remote.php/calendar/:path*',
 		'/public.php/dav/:path*',
 		'/public.php/webdav/:path*',
 	],

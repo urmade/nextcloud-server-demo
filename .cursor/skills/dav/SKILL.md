@@ -221,6 +221,20 @@ Collection children listing disabled unless `NC_DAV_DEBUG=true` (observe depth-1
 
 Parity extras (`next/parity/tests/dav-principals.parity.test.ts`): unauth 401; own principal PROPFIND 207; unknown principal 404; `system/public` unauth not 401; depth-1 users collection no listing. Reset via `resetParityPrincipalsStores()` → `/api/parity/reset-dav-principals-store`.
 
+### Legacy CalDAV — `dav-legacy-caldav` (`parity: tested`)
+
+Next.js: `src/server/dav/auth-legacy-caldav.ts` + legacy ingress in `remote.ts`; calendar branches in `handler.ts` / `calendars.ts`. Reuses `calendars-store.ts` (same objects as v2 `calendars/{uid}` when path is the v1 tree).
+
+| Step | Method | Path | Notes |
+| --- | --- | --- | --- |
+| Calendar home | PROPFIND | `/remote.php/caldav/principals/users/{uid}/calendars/` | depth 0 → **207**; unauth **401** + Basic `WWW-Authenticate` |
+| Calendar collection | PROPFIND | `…/calendars/{name}/` | **207**; same calendar row as v2 |
+| Alias | PROPFIND | `/remote.php/calendar/principals/users/{uid}/calendars/…` | same resource as `/caldav` prefix |
+
+**Basic only** — Bearer does **not** authenticate (unlike v2 / v1 webdav). Map `auth: mixed` is a lie. App password may be used as Basic password, not as Bearer.
+
+Parity extras (`next/parity/tests/dav-legacy-caldav.parity.test.ts`): unauth 401; Bearer-only 401; own PROPFIND 207; alias same resource. Reset/seed via `resetParityCalendarsStores()` (shared with `dav-calendars`).
+
 ### Calendars — `dav-calendars` (`parity: tested`)
 
 Next.js: `src/server/dav/calendars.ts` + `calendars-store.ts`; calendar branches in `handler.ts` on v2 tree; path helpers in `remote.ts`. Public calendars use PublicAuth-style unauthenticated access (no creds on `public-calendars` prefix).

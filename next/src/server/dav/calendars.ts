@@ -16,7 +16,13 @@ import {
 	type CalendarObjectRecord,
 	type CalendarRecord,
 } from './calendars-store';
-import { buildDavHref, isCalendarDavPath as isCalendarDavPathFromRemote, isPublicCalendarDavPath } from './remote';
+import {
+	buildDavHref,
+	ingressBasePath,
+	isCalendarDavPath as isCalendarDavPathFromRemote,
+	isLegacyCalDavIngress,
+	isPublicCalendarDavPath,
+} from './remote';
 import type { ParsedDavRequest } from './types';
 import {
 	buildCalendarPropfindMultistatus,
@@ -44,6 +50,7 @@ export interface ParsedCalendarPath {
 	calendarUri?: string;
 	objectUri?: string;
 	isHome: boolean;
+	calendarBasePath?: string;
 }
 
 function resolvePrincipalUri(parsed: ParsedCalendarPath): string | null {
@@ -71,7 +78,56 @@ export function isCalendarDavPath(parsed: ParsedDavRequest): boolean {
 
 export { isPublicCalendarDavPath };
 
+function parseLegacyUserCalendarPath(parsed: ParsedDavRequest): ParsedCalendarPath | null {
+	if (!isLegacyCalDavIngress(parsed.ingress)) {
+		return null;
+	}
+
+	const segments = splitSegments(parsed.davPath);
+
+	if (segments[0] !== 'principals' || segments[1] !== 'users' || segments[3] !== 'calendars') {
+		return null;
+	}
+
+	const userId = segments[2];
+
+	if (!userId) {
+		return null;
+	}
+
+	const calendarUri = segments[4];
+	const objectUri = segments[5];
+	const calendarBasePath = `${ingressBasePath(parsed.ingress)}/principals/users/${userId}/calendars`;
+
+	return {
+		kind: 'user-calendars',
+		userId,
+		calendarUri,
+		objectUri,
+		isHome: segments.length === 4,
+		requestPath: buildDavHref(
+			parsed.requestPath,
+			segments.length === 4 || (Boolean(calendarUri) && !objectUri && !objectLooksLikeFile(calendarUri)),
+		),
+		calendarBasePath,
+	};
+}
+
+function userCalendarCollectionHref(parsed: ParsedCalendarPath, calendarUri: string): string {
+	if (parsed.calendarBasePath) {
+		return buildDavHref(`${parsed.calendarBasePath}/${calendarUri}`, true);
+	}
+
+	return buildDavHref(`/remote.php/dav/calendars/${parsed.userId}/${calendarUri}/`, true);
+}
+
 export function parseCalendarPath(parsed: ParsedDavRequest): ParsedCalendarPath | null {
+	const legacyPath = parseLegacyUserCalendarPath(parsed);
+
+	if (legacyPath) {
+		return legacyPath;
+	}
+
 	const segments = splitSegments(parsed.davPath);
 	const root = segments[0];
 
@@ -273,7 +329,7 @@ function resolveReadableCalendar(
 
 		return {
 			calendar,
-			href: buildDavHref(`/remote.php/dav/calendars/${parsed.userId}/${parsed.calendarUri}/`, true),
+			href: userCalendarCollectionHref(parsed, parsed.calendarUri),
 		};
 	}
 
@@ -305,6 +361,10 @@ function resolveReadableCalendar(
 
 function calendarHomeHref(parsed: ParsedCalendarPath): string {
 	if (parsed.kind === 'user-calendars') {
+		if (parsed.calendarBasePath) {
+			return buildDavHref(parsed.calendarBasePath, true);
+		}
+
 		return buildDavHref(`/remote.php/dav/calendars/${parsed.userId}/`, true);
 	}
 
@@ -450,7 +510,7 @@ export function buildCalendarPropfindBody(
 				for (const calendar of getCalendarsForPrincipal(principalUri)) {
 					responses.push(calendarToPropfindEntry(
 						calendar,
-						buildDavHref(`/remote.php/dav/calendars/${parsed.userId}/${calendar.uri}/`, true),
+						userCalendarCollectionHref(parsed, calendar.uri),
 						true,
 					));
 				}

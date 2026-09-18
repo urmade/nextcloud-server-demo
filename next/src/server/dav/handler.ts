@@ -1,3 +1,4 @@
+import { resolveLegacyCalDavUserId } from './auth-legacy-caldav';
 import { davUnauthorizedResponse, resolveDavUserId } from './auth-basic';
 import {
 	buildCalendarPropfindBody,
@@ -22,7 +23,8 @@ import {
 	parsePrincipalDepth,
 	parsePrincipalPath,
 } from './principals';
-import { parseDavRequest } from './remote';
+import { isLegacyCalDavIngress, parseDavRequest } from './remote';
+import type { DavIngress } from './types';
 import {
 	assertUploadAccess,
 	buildUploadPropfindBody,
@@ -46,6 +48,14 @@ import {
 const PROPFIND_BODY = `<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:allprop/></d:propfind>`;
 
 type ResolveUser = (request: Request) => string | null;
+
+function resolveUserForIngress(request: Request, ingress: DavIngress, resolveUser: ResolveUser): string | null {
+	if (isLegacyCalDavIngress(ingress)) {
+		return resolveLegacyCalDavUserId(request);
+	}
+
+	return resolveUser(request);
+}
 
 function xmlResponse(body: string, status: number, extraHeaders: Record<string, string> = {}): Response {
 	return new Response(body, {
@@ -93,7 +103,7 @@ async function handleCalendarRequest(
 
 	const method = request.method.toUpperCase();
 	const isPublic = isPublicCalendarDavPath(parsed!.davPath);
-	const userId = isPublic ? null : resolveUser(request);
+	const userId = isPublic ? null : resolveUserForIngress(request, parsed!.ingress, resolveUser);
 
 	if (!isPublic && !userId) {
 		return davUnauthorizedResponse();
@@ -449,13 +459,17 @@ export async function handleDavRequest(
 			return handleOptions();
 		}
 
-		const userId = resolveUser(request);
+		const userId = resolveUserForIngress(request, parsed.ingress, resolveUser);
 
 		if (!userId) {
 			return davUnauthorizedResponse();
 		}
 
 		return handleOptions();
+	}
+
+	if (isLegacyCalDavIngress(parsed.ingress)) {
+		return handleCalendarRequest(request, parsed, resolveUser);
 	}
 
 	if (parsed.ingress === 'v2' && isCalendarDavPath(parsed)) {

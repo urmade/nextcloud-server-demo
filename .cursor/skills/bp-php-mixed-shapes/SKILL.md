@@ -45,6 +45,13 @@ Cross-cutting. Applies when PHP types a success body as `mixed`, `array`, or pro
 - TextToImage `numberOfImages` defaults to **8** in PHP when omitted.
 - Provider toggles: `NC_PARITY_TEXT_PROCESSING_PROVIDER`, `NC_PARITY_TEXT_TO_IMAGE_PROVIDER` (default on).
 
+## Translation API (core slice 9)
+
+- `languages` catalog is provider-registered `{ from, fromLabel, to, toLabel }[]` — parity fixture mirrors `FakeTranslationProvider` (`de`↔`en`).
+- `languageDetection` is **false** when no `IDetectLanguageProvider` is registered.
+- Provider toggle: `NC_PARITY_TRANSLATION_PROVIDER` (default on). Compare representative catalog paths, not full provider union.
+- Translate success `{ text, from }` — `from` may be `null` in OpenAPI but is set on success when provided or detected.
+
 ## Parity
 
 - Happy path: fixture-backed partial paths.

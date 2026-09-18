@@ -4381,15 +4381,15 @@ endpoints:
             languageDetection: boolean
       content_type: application/json
     errors: []
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/translation/languages
+  next_handler: app/ocs/v2.php/translation/languages/route.ts
+  parity_test: next/parity/tests/core-translation.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: PublicPage — unauthenticated 200; languages catalog from registered providers (parity fixture mirrors FakeTranslationProvider). Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
 - id: core-translation_api-translate
   feature_ids:
   - core
@@ -4444,12 +4444,12 @@ endpoints:
             message: string
             from: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/translation/translate
+  next_handler: app/ocs/v2.php/translation/translate/route.ts
+  parity_test: next/parity/tests/core-translation.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.

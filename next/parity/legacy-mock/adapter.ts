@@ -14,6 +14,7 @@ import { handleReferenceMock } from './reference';
 import { handleTaskProcessingMock } from './task-processing';
 import { handleTextProcessingMock } from './text-processing';
 import { handleTextToImageMock } from './text-to-image';
+import { handleTranslationMock } from './translation';
 import { handleUnifiedSearchMock } from './unified-search';
 import { snapshotResponse } from '../compare';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
@@ -428,6 +429,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return textToImage;
 	}
 
+	const translation = await handleTranslationMock(pathname, search, options);
+
+	if (translation) {
+		return translation;
+	}
+
 	const avatar = handleAvatarMock(pathname, search);
 
 	if (avatar) {
@@ -508,7 +515,8 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 		|| pathname.startsWith('/ocs/v2.php/references/')
 		|| pathname.startsWith('/ocs/v2.php/taskprocessing/')
 		|| pathname.startsWith('/ocs/v2.php/textprocessing/')
-		|| pathname.startsWith('/ocs/v2.php/text2image/')) {
+		|| pathname.startsWith('/ocs/v2.php/text2image/')
+		|| pathname.startsWith('/ocs/v2.php/translation/')) {
 		return true;
 	}
 

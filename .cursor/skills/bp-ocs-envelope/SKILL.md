@@ -74,6 +74,10 @@ v1 success adds `totalitems` and `itemsperpage` (empty strings) to `meta`.
 
 **Trap:** Deprecated TextProcessing `tasktypes` is `@PublicPage` — unauthenticated callers get HTTP **200**, not 401.
 
+**Trap:** Translation `languages` and `translate` are `@PublicPage` — unauthenticated **200**, not 401.
+
+**Trap:** Translation `translate` missing provider → HTTP **412** with `data.message` `No translation provider available`; unsupported language pair → **400** `Unable to translate` (may include `from`).
+
 ## Implementation
 
 - Shared helpers: `src/server/ocs/envelope.ts` (`buildOcsSuccessEnvelope`, `buildOcsFailureEnvelope`, `getOcsHttpStatus`); `src/server/ocs/respond.ts` (`ocsBadRequestStringResponse` for string `data` on 400).

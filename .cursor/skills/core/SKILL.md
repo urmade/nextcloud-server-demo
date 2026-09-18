@@ -139,11 +139,17 @@ Legacy OCS APIs (distinct from TaskProcessing). User session / mixed auth. In-me
 
 Task payloads use numeric `status` (0–4), string `input`, and `identifier` (not TaskProcessing `customId` / shape maps). Parity registers fixture providers via env toggles; no real model execution.
 
+### Slice 9 — translation API (done)
+
+OCS Translation API (`/ocs/v2.php/translation/…`). `@PublicPage` on both routes — unauthenticated **200** (not 401). Fixture language catalog mirrors `FakeTranslationProvider`; no real translator.
+
+- `GET /ocs/v2.php/translation/languages` — `{ languages: [{ from, fromLabel, to, toLabel }], languageDetection: bool }`
+- `POST /ocs/v2.php/translation/translate` — translate text (`text`, `fromLanguage?`, `toLanguage`)
+
 ## Non-scope (later core sub-slices)
 
 | Sub-slice | Endpoint ids (prefix / theme) |
 | --- | --- |
-| **core-translation** | `core-translation_api-*` |
 | **core-2fa** | `core-two_factor_api-*` |
 | **core-wipe** | `core-wipe-*` |
 | **core-collaboration** | `core-collaboration_resources-*` |
@@ -241,6 +247,11 @@ Slice 8:
 - `core-text_to_image_api-get-image`
 - `core-text_to_image_api-list-tasks-by-app`
 
+Slice 9:
+
+- `core-translation_api-languages`
+- `core-translation_api-translate`
+
 ## Auth model
 
 | Route | Auth |
@@ -257,8 +268,9 @@ Slice 8:
 | Task processing (Ex-App / worker) | `ExAppRequired` — session `app_api === true`; parity harness also accepts `Authorization: Bearer parity-ex-app` when `NC_PARITY_EXAPP=true` |
 | Deprecated TextProcessing `tasktypes` | `@PublicPage` — unauthenticated **200** (not 401) |
 | Deprecated TextProcessing / TextToImage (other) | `mixed` — session or Basic; unauthenticated → **401** OCS 997 |
+| Translation API | `@PublicPage` — unauthenticated **200** (not 401) |
 
-Unauthenticated OCS calls → v2 HTTP **401**, `ocs.meta.statuscode` **997**, empty `data`.
+Unauthenticated OCS calls → v2 HTTP **401**, `ocs.meta.statuscode` **997**, empty `data` (except `@PublicPage` routes above).
 
 Missing Ex-App session on `#[ExAppRequired]` routes → HTTP **412** plain JSON `{ message: "ExApp required" }` — **not** OCS envelope (SecurityMiddleware before OCS wrap).
 
@@ -293,6 +305,9 @@ src/server/
     catalog.ts                 # provider availability toggle
     store.ts                   # in-memory tasks + image bytes by task/index
     api.ts                     # text2image/* handlers
+  translation/
+    catalog.ts                 # fixture language pairs + provider toggle
+    api.ts                     # translation/* handlers
   fixtures/
     binary.ts                  # deterministic PNG bytes (no real photos)
   http/
@@ -349,6 +364,8 @@ app/
   ocs/v2.php/text2image/task/[id]/route.ts
   ocs/v2.php/text2image/task/[id]/image/[index]/route.ts
   ocs/v2.php/text2image/tasks/app/[appId]/route.ts
+  ocs/v2.php/translation/languages/route.ts
+  ocs/v2.php/translation/translate/route.ts
 ```
 
 Config:
@@ -363,6 +380,7 @@ Config:
 | `NC_UNIFIED_SEARCH_MAX_RESULTS` | `25` | Cap per-request `limit` |
 | `NC_PARITY_TEXT_PROCESSING_PROVIDER` | `true` | Toggle deprecated TextProcessing schedule provider |
 | `NC_PARITY_TEXT_TO_IMAGE_PROVIDER` | `true` | Toggle TextToImage `isAvailable` + schedule provider |
+| `NC_PARITY_TRANSLATION_PROVIDER` | `true` | Toggle translation catalog + translate provider |
 
 ## Traps
 
@@ -414,6 +432,12 @@ Config:
 - Deprecated TextToImage schedule validation (input length, `numberOfImages` bounds, missing provider) → **412** — not 400
 - Deprecated TextToImage default `numberOfImages` is **8**; max **12**
 - TextToImage `getImage` 404 messages: `Task not found` vs `Image not found`; success is raw PNG without OCS envelope
+- Translation `languages` / `translate` are `@PublicPage` — no 401 on missing session
+- Translation catalog is fixture-backed (`de`↔`en` pairs); `languageDetection` is **false** without `IDetectLanguageProvider`
+- Translation `translate` missing provider → **412** `No translation provider available`; text > 64_000 chars → **400** `Input text is too long`
+- Translation `fromLanguage === toLanguage` returns input unchanged; unsupported pair → **400** `Unable to translate` with `from` in `data`
+- Translation missing `fromLanguage` without detection → **400** `Could not detect language`
+- Parity fixture translate reverses text (mirrors `FakeTranslationProvider::mb_strrev`) — not a real translation
 
 ## Parity extras
 
@@ -487,5 +511,8 @@ Config:
 | Happy | TextToImage schedule / get / delete / list | 200 task payload; unstable id |
 | Validation | TextToImage getImage | missing image bytes → 404 `Image not found` |
 | Happy | TextToImage getImage | 200 PNG; size class only (see `bp-binary-parity`) |
+| Public | translation languages | 200 without auth; fixture language pairs |
+| Public | translation translate | 200 without auth; reversed text for `en`→`de` |
+| Validation | translation translate | no provider (`NC_PARITY_TRANSLATION_PROVIDER=false`) → 412 |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` fixtures (not waived).

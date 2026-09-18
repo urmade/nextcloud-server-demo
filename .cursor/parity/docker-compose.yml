@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Disposable legacy Nextcloud for API parity testing.
+# Uses the official image with embedded SQLite (no separate DB service).
+
+services:
+  legacy-nextcloud:
+    image: ${NEXTCLOUD_IMAGE:-nextcloud:stable}
+    container_name: nc-parity-legacy
+    restart: unless-stopped
+    ports:
+      - "${LEGACY_HTTP_PORT:-19080}:80"
+    environment:
+      NEXTCLOUD_ADMIN_USER: ${LEGACY_ADMIN_USER:-admin}
+      NEXTCLOUD_ADMIN_PASSWORD: ${LEGACY_ADMIN_PASSWORD:-parity-test-password}
+    volumes:
+      - nc-parity-legacy-data:/var/www/html
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/status.php"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+volumes:
+  nc-parity-legacy-data:

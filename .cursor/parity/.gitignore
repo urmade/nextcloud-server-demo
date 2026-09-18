@@ -1,0 +1,2 @@
+# Local env with test credentials — never commit.
+.env

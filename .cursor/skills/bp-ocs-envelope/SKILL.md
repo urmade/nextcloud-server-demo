@@ -48,6 +48,10 @@ v1 success adds `totalitems` and `itemsperpage` (empty strings) to `meta`.
 
 **Trap:** Some endpoints return HTTP **400** with `meta.message` **empty** and `data` as a **plain string** (not an object), e.g. unified search filter errors (`"No valid filters provided"`). Use `ocsBadRequestStringResponse` in `respond.ts`.
 
+**Trap:** Reference `touchProvider` returns HTTP **200** with `data.success: false` for unknown provider ids — not 404/403.
+
+**Trap:** Reference resolve-one endpoints add `Cache-Control: private, max-age=3600, immutable` on success via `ocsSuccessResponse` extra headers.
+
 ## Implementation
 
 - Shared helpers: `src/server/ocs/envelope.ts` (`buildOcsSuccessEnvelope`, `buildOcsFailureEnvelope`, `getOcsHttpStatus`); `src/server/ocs/respond.ts` (`ocsBadRequestStringResponse` for string `data` on 400).

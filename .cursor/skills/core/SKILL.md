@@ -45,6 +45,21 @@ OCS endpoints for the header unified-search UI:
 
 Parity ships one fixture provider `parity-users` (searches `NC_PARITY_USERS`). Real Nextcloud registers app providers dynamically; this slice models the OCS contract only.
 
+### Slice 5 — reference API (done)
+
+OCS endpoints for Smart Picker / link references:
+
+- `POST /ocs/v2.php/references/extract` — extract URLs from text (`text`, `resolve`, `limit`)
+- `POST /ocs/v2.php/references/extractPublic` — public share variant (`sharingToken`, limit capped at **15**)
+- `GET /ocs/v2.php/references/resolve` — resolve one reference (`reference` query) + `Cache-Control: private, max-age=3600, immutable`
+- `POST /ocs/v2.php/references/resolve` — resolve many (`references[]`, `limit`)
+- `GET /ocs/v2.php/references/resolvePublic` — public resolve one
+- `POST /ocs/v2.php/references/resolvePublic` — public resolve many (limit capped at **15**)
+- `GET /ocs/v2.php/references/providers` — discoverable provider list
+- `PUT /ocs/v2.php/references/provider/{providerId}` — touch provider last-use timestamp
+
+Parity resolves `https://parity.example.com/page` via fixture provider `parity-link`. Unmatched URLs resolve to `null` in the `references` map. Real Nextcloud registers app reference providers dynamically and fetches OpenGraph over HTTP; this slice models the OCS contract only.
+
 ### Slice 2 — avatars + preview (done)
 
 Binary-ish HTTP endpoints with high fan-in after navigation:
@@ -64,7 +79,6 @@ Legacy paths use `/index.php/…`; Next.js rewrites to `/avatar/…` and `/core/
 
 | Sub-slice | Endpoint ids (prefix / theme) |
 | --- | --- |
-| **core-reference** | `core-reference_api-*` |
 | **core-ai-tasks** | `core-task_processing_api-*`, `core-text_processing_api-*`, `core-text_to_image_api-*` |
 | **core-translation** | `core-translation_api-*` |
 | **core-2fa** | `core-two_factor_api-*` |
@@ -100,6 +114,17 @@ Slice 4:
 - `core-unified_search-get-providers`
 - `core-unified_search-search`
 
+Slice 5:
+
+- `core-reference_api-extract`
+- `core-reference_api-extract-public`
+- `core-reference_api-touch-provider`
+- `core-reference_api-get-providers-info`
+- `core-reference_api-resolve-one`
+- `core-reference_api-resolve`
+- `core-reference_api-resolve-one-public`
+- `core-reference_api-resolve-public`
+
 Slice 2:
 
 - `core-avatar-get-avatar`
@@ -117,7 +142,8 @@ Slice 2:
 | --- | --- |
 | Well-known | `none` — public |
 | `/ocs-provider/` | `none` — public catalog |
-| Navigation / autocomplete / hover card / app passwords / unified search | `mixed` — session or Basic |
+| Navigation / autocomplete / hover card / app passwords / unified search / reference API (non-public) | `mixed` — session or Basic |
+| Reference extract/resolve public | `mixed` — `@PublicPage`; no auth required |
 | User / guest avatars | `none` — `@PublicPage` in legacy |
 | Preview by file id / path | `session` or Basic — unauthenticated → **401** JSON `{ message }` |
 | Mime icon redirect | `none` — public |
@@ -141,6 +167,7 @@ src/server/
     catalog.ts                 # parity file catalog (NC_PARITY_PREVIEW_FILES)
     handlers.ts                # preview + mimeicon redirect
   reference/
+    api.ts                     # extract/resolve/providers/touch handlers
     preview.ts                 # reference cache lookup
   fixtures/
     binary.ts                  # deterministic PNG bytes (no real photos)
@@ -163,6 +190,12 @@ app/
   ocs/v2.php/core/apppassword/confirm/route.ts
   ocs/v2.php/search/providers/route.ts
   ocs/v2.php/search/providers/[providerId]/search/route.ts
+  ocs/v2.php/references/extract/route.ts
+  ocs/v2.php/references/extractPublic/route.ts
+  ocs/v2.php/references/resolve/route.ts
+  ocs/v2.php/references/resolvePublic/route.ts
+  ocs/v2.php/references/providers/route.ts
+  ocs/v2.php/references/provider/[providerId]/route.ts
 ```
 
 Config:
@@ -198,6 +231,13 @@ Config:
 - Search with no valid filters (e.g. missing/short `term`) → HTTP **400**, `meta.message` empty, `data` string `"No valid filters provided"`
 - Unknown `providerId` → HTTP **500** OCS 996 (legacy throws `InvalidArgumentException`)
 - Default `limit` is **5**; capped by `NC_UNIFIED_SEARCH_MAX_RESULTS` (min 1)
+- Reference extract uses `core.reference-regex` (same as capabilities `reference-regex`); matches are trimmed
+- Reference `resolve` map keys use the **raw** request value (GET query or POST array entry); lookup trims internally for GET only
+- Unresolved references appear as `null` values in `data.references` — still HTTP **200**
+- `touchProvider` unknown id → `{ success: false }` with HTTP **200** (not 404)
+- Public extract/resolve cap `limit` at **15** (`LIMIT_MAX` in PHP)
+- Resolved reference `thumb` points at `/index.php/core/references/preview/{md5(url)}`
+- Default extract/resolve `limit` is **1**
 
 ## Parity extras
 
@@ -235,5 +275,14 @@ Config:
 | Auth failure | unified search | 401 OCS 997 |
 | Happy | unified search `parity-users` | 200 entries for `term=ali` |
 | Validation | unified search | no `term` → 400 string data |
+| Happy | reference extract | 200 map with `https://parity.example.com/page: null` |
+| Auth failure | reference extract/providers/resolve/touch | 401 OCS 997 |
+| Validation | reference extract | empty `text` → `{ references: {} }` |
+| Happy | reference extractPublic / resolvePublic | 200 without auth |
+| Validation | reference resolve | unknown URL → `null` in map |
+| Happy | reference providers | 200 array with `parity-link` |
+| Happy | reference touch provider | 200 `{ success: true }` |
+| Validation | reference touch provider | unknown id → `{ success: false }` |
+| Happy | reference resolve-one | 200 + `cache-control` immutable 3600 |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` fixtures (not waived).

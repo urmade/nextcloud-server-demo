@@ -2079,12 +2079,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/references/extract
+  next_handler: app/ocs/v2.php/references/extract/route.ts
+  parity_test: next/parity/tests/core-reference.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -2118,15 +2118,15 @@ endpoints:
             references: object
       content_type: application/json
     errors: []
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/references/extractPublic
+  next_handler: app/ocs/v2.php/references/extractPublic/route.ts
+  parity_test: next/parity/tests/core-reference.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. Public limit capped at 15.
 - id: core-reference_api-touch-provider
   feature_ids:
   - core
@@ -2161,15 +2161,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/references/provider/[providerId]
+  next_handler: app/ocs/v2.php/references/provider/[providerId]/route.ts
+  parity_test: next/parity/tests/core-reference.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. Unknown provider returns success false with HTTP 200.
 - id: core-reference_api-get-providers-info
   feature_ids:
   - core
@@ -2200,12 +2200,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/references/providers
+  next_handler: app/ocs/v2.php/references/providers/route.ts
+  parity_test: next/parity/tests/core-reference.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -2240,15 +2240,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/references/resolve
+  next_handler: app/ocs/v2.php/references/resolve/route.ts
+  parity_test: next/parity/tests/core-reference.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. Sets Cache-Control private max-age=3600 immutable.
 - id: core-reference_api-resolve
   feature_ids:
   - core
@@ -2284,12 +2284,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/references/resolve
+  next_handler: app/ocs/v2.php/references/resolve/route.ts
+  parity_test: next/parity/tests/core-reference.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -2319,15 +2319,15 @@ endpoints:
             references: object
       content_type: application/json
     errors: []
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/references/resolvePublic
+  next_handler: app/ocs/v2.php/references/resolvePublic/route.ts
+  parity_test: next/parity/tests/core-reference.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. Sets Cache-Control private max-age=3600 immutable.
 - id: core-reference_api-resolve-public
   feature_ids:
   - core
@@ -2358,15 +2358,15 @@ endpoints:
             references: object
       content_type: application/json
     errors: []
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/references/resolvePublic
+  next_handler: app/ocs/v2.php/references/resolvePublic/route.ts
+  parity_test: next/parity/tests/core-reference.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. Public limit capped at 15.
 - id: core-unified_search-get-providers
   feature_ids:
   - core

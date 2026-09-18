@@ -10,6 +10,7 @@ import { SECURITY_TXT_BODY } from '@/src/server/well-known/handlers';
 import { generateNavigationETag, getAppsNavigation, getSettingsNavigation } from '@/src/server/ocs/navigation';
 import { handleAppPasswordMock } from './app-password';
 import { handleLegacyMockAuth, parseCookiesFromOptions } from './auth';
+import { handleReferenceMock } from './reference';
 import { handleUnifiedSearchMock } from './unified-search';
 import { snapshotResponse } from '../compare';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
@@ -360,7 +361,7 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return appPassword;
 	}
 
-	if (method !== 'GET') {
+	if (method !== 'GET' && method !== 'POST' && method !== 'PUT') {
 		return jsonSnapshot(404, { message: `Legacy mock has no fixture for ${method} ${pathname}` });
 	}
 
@@ -398,6 +399,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 
 	if (unifiedSearch) {
 		return unifiedSearch;
+	}
+
+	const reference = await handleReferenceMock(pathname, search, options);
+
+	if (reference) {
+		return reference;
 	}
 
 	const avatar = handleAvatarMock(pathname, search);
@@ -476,7 +483,8 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 
 	if (pathname.startsWith('/ocs/v2.php/core/getapppassword')
 		|| pathname.startsWith('/ocs/v2.php/core/apppassword')
-		|| pathname.startsWith('/ocs/v2.php/search/providers')) {
+		|| pathname.startsWith('/ocs/v2.php/search/providers')
+		|| pathname.startsWith('/ocs/v2.php/references/')) {
 		return true;
 	}
 

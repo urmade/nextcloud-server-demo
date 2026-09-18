@@ -25,7 +25,7 @@ import { handleWebAuthnMock, isWebAuthnPath } from './webauthn';
 import { handleUnifiedSearchMock } from './unified-search';
 import { handleWipeMock } from './wipe';
 import { handleDavMock, isDavMockMethod } from './dav';
-import { handleFilesApiMock, isFilesApiPath } from './files';
+import { handleFilesApiMock, isFilesApiPath, isFilesApiWritePath } from './files';
 import { snapshotResponse } from '../compare';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
 
@@ -644,6 +644,10 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (normalizedMethod === 'GET' && isFilesApiPath(pathname)) {
+		return true;
+	}
+
+	if (isFilesApiWritePath(pathname, normalizedMethod)) {
 		return true;
 	}
 

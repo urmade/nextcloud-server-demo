@@ -8532,21 +8532,25 @@ endpoints:
       key: string
     query: {}
     headers: {}
-    body: controller-specific
+    body: '{value}'
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: '{message:ok,data:{key,value}}'
     errors:
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: '{message}'
+    - status: 303
+      shape: redirect-root-strict-cookie
+    - status: 400
+      shape: '{message}'
+    - status: 412
+      shape: '{message}'
+  status: parity
+  parity: tested
+  next_path: /apps/files/api/v1/config/{key}
+  next_handler: src/server/files/api.ts
+  parity_test: next/parity/tests/files-json-writes.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: files.Api#getConfigs
@@ -8707,21 +8711,23 @@ endpoints:
     params: {}
     query: {}
     headers: {}
-    body: controller-specific
+    body: '{show:bool}'
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: empty
     errors:
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: '{message}'
+    - status: 303
+      shape: redirect-root-strict-cookie
+    - status: 412
+      shape: '{message}'
+  status: parity
+  parity: tested
+  next_path: /apps/files/api/v1/showgridview
+  next_handler: src/server/files/api.ts
+  parity_test: next/parity/tests/files-json-writes.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: files.Api#showHiddenFiles.post
@@ -8736,21 +8742,23 @@ endpoints:
     params: {}
     query: {}
     headers: {}
-    body: controller-specific
+    body: '{value:bool}'
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: empty
     errors:
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: '{message}'
+    - status: 303
+      shape: redirect-root-strict-cookie
+    - status: 412
+      shape: '{message}'
+  status: parity
+  parity: tested
+  next_path: /apps/files/api/v1/showhidden
+  next_handler: src/server/files/api.ts
+  parity_test: next/parity/tests/files-json-writes.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: files.Api#getStorageStats
@@ -8856,21 +8864,25 @@ endpoints:
     params: {}
     query: {}
     headers: {}
-    body: controller-specific
+    body: '{view,key,value}'
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: '{message:ok,data:ViewConfigEntry}'
     errors:
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: '{message}'
+    - status: 303
+      shape: redirect-root-strict-cookie
+    - status: 400
+      shape: '{message}'
+    - status: 412
+      shape: '{message}'
+  status: parity
+  parity: tested
+  next_path: /apps/files/api/v1/views
+  next_handler: src/server/files/api.ts
+  parity_test: next/parity/tests/files-json-writes.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: files.Api#setViewConfig.put
@@ -8887,21 +8899,25 @@ endpoints:
       key: string
     query: {}
     headers: {}
-    body: controller-specific
+    body: '{value}'
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: '{message:ok,data:ViewConfigEntry}'
     errors:
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: '{message}'
+    - status: 303
+      shape: redirect-root-strict-cookie
+    - status: 400
+      shape: '{message}'
+    - status: 412
+      shape: '{message}'
+  status: parity
+  parity: tested
+  next_path: /apps/files/api/v1/views/{view}/{key}
+  next_handler: src/server/files/api.ts
+  parity_test: next/parity/tests/files-json-writes.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: files.DirectEditingView#edit

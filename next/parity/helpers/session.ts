@@ -1,5 +1,58 @@
+import { SESSION_COOKIE, USERNAME_COOKIE } from '@/src/server/auth/cookies';
+import { decryptCsrfToken } from '@/src/server/auth/csrf';
+import { getOrCreateSession, updateSession } from '@/src/server/auth/session-store';
 import { getParityEnv } from '../env';
 import { cookieJarToHeader, mergeResponseCookies } from '../helpers/cookies';
+
+export function seedParitySessionFromJar(jar: Record<string, string>, csrfToken: string): void {
+	const sessionId = jar[SESSION_COOKIE];
+
+	if (!sessionId) {
+		return;
+	}
+
+	const session = getOrCreateSession(sessionId);
+	const rawToken = decryptCsrfToken(csrfToken);
+
+	session.userId = jar[USERNAME_COOKIE] ?? 'admin';
+	session.loginName = session.userId;
+	session.csrfToken = rawToken || csrfToken;
+	updateSession(session);
+}
+
+export async function fetchParityCsrfToken(
+	jar: Record<string, string>,
+	baseUrl = getParityEnv().newBaseUrl,
+): Promise<{ jar: Record<string, string>; token: string }> {
+	const csrfResponse = await fetch(`${baseUrl}/csrftoken`, {
+		redirect: 'manual',
+		headers: {
+			cookie: cookieJarToHeader(jar) ?? '',
+		},
+	});
+	const nextJar = mergeResponseCookies(jar, csrfResponse);
+	const csrfBody = await csrfResponse.json() as { token: string };
+
+	return {
+		jar: nextJar,
+		token: csrfBody.token,
+	};
+}
+
+export async function loginParitySessionWithCsrf(baseUrl = getParityEnv().newBaseUrl): Promise<{
+	jar: Record<string, string>;
+	csrfToken: string;
+}> {
+	const jar = await loginParitySession(baseUrl);
+	const csrf = await fetchParityCsrfToken(jar, baseUrl);
+
+	seedParitySessionFromJar(csrf.jar, csrf.token);
+
+	return {
+		jar: csrf.jar,
+		csrfToken: csrf.token,
+	};
+}
 
 export async function loginParitySession(baseUrl = getParityEnv().newBaseUrl): Promise<Record<string, string>> {
 	let jar: Record<string, string> = {};

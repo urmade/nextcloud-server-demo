@@ -1,10 +1,21 @@
-import { parseCookieHeader, passesStrictCookieCheck } from '@/src/server/auth/cookies';
+import { parseCookieHeader, passesStrictCookieCheck, SESSION_COOKIE } from '@/src/server/auth/cookies';
+import { isCsrfTokenValid } from '@/src/server/auth/csrf';
+import { getSession } from '@/src/server/auth/session-store';
 import { resolveAuthenticatedUserId } from '@/src/server/ocs/auth';
-import { getGridViewEnabled } from './grid-view';
+import { getGridViewEnabled, setGridViewEnabled } from './grid-view';
 import { computeStorageStats } from './stats';
-import { getUserConfigs } from './user-config';
+import {
+	getUserConfigs,
+	setShowHiddenFiles,
+	setUserConfig,
+	UserConfigValidationError,
+} from './user-config';
 import { resetFilesUserConfigStore } from './user-config-store';
-import { getViewConfigs } from './view-config';
+import {
+	getViewConfigs,
+	setViewConfig,
+	ViewConfigValidationError,
+} from './view-config';
 import { resetFilesViewConfigStore } from './view-config-store';
 
 const JSON_HEADERS = {
@@ -117,6 +128,168 @@ export function handleGetGridView(request: Request): Response {
 		status: 200,
 		headers: JSON_HEADERS,
 	});
+}
+
+function csrfFailure(): Response {
+	return new Response(JSON.stringify({ message: 'CSRF check failed' }), {
+		status: 412,
+		headers: JSON_HEADERS,
+	});
+}
+
+function badRequest(message: string): Response {
+	return new Response(JSON.stringify({ message }), {
+		status: 400,
+		headers: JSON_HEADERS,
+	});
+}
+
+function emptyOk(): Response {
+	return new Response(null, {
+		status: 200,
+	});
+}
+
+function extractRequestToken(request: Request, body?: Record<string, unknown>): string | null {
+	const url = new URL(request.url);
+	const queryToken = url.searchParams.get('requesttoken');
+
+	if (queryToken) {
+		return queryToken;
+	}
+
+	if (body && typeof body.requesttoken === 'string') {
+		return body.requesttoken;
+	}
+
+	return request.headers.get('requesttoken');
+}
+
+function enforceFilesApiCsrf(request: Request, body?: Record<string, unknown>): Response | null {
+	const cookies = parseCookieHeader(request.headers.get('cookie'));
+	const session = getSession(cookies[SESSION_COOKIE]);
+	const token = extractRequestToken(request, body);
+
+	if (!isCsrfTokenValid(session?.csrfToken, token ?? '')) {
+		return csrfFailure();
+	}
+
+	return null;
+}
+
+async function parseJsonBody(request: Request): Promise<Record<string, unknown>> {
+	try {
+		const text = await request.text();
+
+		if (!text) {
+			return {};
+		}
+
+		return JSON.parse(text) as Record<string, unknown>;
+	} catch {
+		return {};
+	}
+}
+
+type FilesApiMutationContext = {
+	userId: string;
+	body: Record<string, unknown>;
+};
+
+export async function requireFilesApiMutation(request: Request): Promise<FilesApiMutationContext | Response> {
+	const auth = requireFilesApiUser(request);
+
+	if (auth instanceof Response) {
+		return auth;
+	}
+
+	const body = await parseJsonBody(request);
+	const csrf = enforceFilesApiCsrf(request, body);
+
+	if (csrf) {
+		return csrf;
+	}
+
+	return {
+		userId: auth,
+		body,
+	};
+}
+
+export async function handleSetConfig(request: Request, key: string): Promise<Response> {
+	const context = await requireFilesApiMutation(request);
+
+	if (context instanceof Response) {
+		return context;
+	}
+
+	try {
+		const data = setUserConfig(context.userId, key, context.body.value);
+
+		return okEnvelope(data);
+	} catch (error) {
+		if (error instanceof UserConfigValidationError) {
+			return badRequest(error.message);
+		}
+
+		throw error;
+	}
+}
+
+export async function handleSetViewConfig(
+	request: Request,
+	view?: string,
+	key?: string,
+): Promise<Response> {
+	const context = await requireFilesApiMutation(request);
+
+	if (context instanceof Response) {
+		return context;
+	}
+
+	const resolvedView = view ?? (typeof context.body.view === 'string' ? context.body.view : '');
+	const resolvedKey = key ?? (typeof context.body.key === 'string' ? context.body.key : '');
+	const value = context.body.value;
+
+	try {
+		const data = setViewConfig(context.userId, resolvedView, resolvedKey, value);
+
+		return okEnvelope(data);
+	} catch (error) {
+		if (error instanceof ViewConfigValidationError) {
+			return badRequest(error.message);
+		}
+
+		throw error;
+	}
+}
+
+export async function handleShowHiddenFiles(request: Request): Promise<Response> {
+	const context = await requireFilesApiMutation(request);
+
+	if (context instanceof Response) {
+		return context;
+	}
+
+	const value = context.body.value === true || context.body.value === '1' || context.body.value === 1;
+
+	setShowHiddenFiles(context.userId, value);
+
+	return emptyOk();
+}
+
+export async function handleShowGridView(request: Request): Promise<Response> {
+	const context = await requireFilesApiMutation(request);
+
+	if (context instanceof Response) {
+		return context;
+	}
+
+	const show = context.body.show === true || context.body.show === '1' || context.body.show === 1;
+
+	setGridViewEnabled(context.userId, show);
+
+	return emptyOk();
 }
 
 export function resetFilesApiStores(): void {

@@ -1,7 +1,23 @@
 import { USER_CONFIG_DEFAULTS, type FilesUserConfig } from './types';
-import { readUserConfigValue } from './user-config-store';
+import { readUserConfigValue, setStoredUserConfigValue } from './user-config-store';
 
 const CONFIG_KEYS = Object.keys(USER_CONFIG_DEFAULTS) as Array<keyof FilesUserConfig>;
+
+const USER_CONFIG_RULES: Record<keyof FilesUserConfig, { allowed: readonly (string | boolean)[] }> = {
+	crop_image_previews: { allowed: [true, false] },
+	default_view: { allowed: ['files', 'personal'] },
+	folder_tree: { allowed: [true, false] },
+	grid_view: { allowed: [true, false] },
+	show_dialog_deletion: { allowed: [true, false] },
+	show_dialog_file_extension: { allowed: [true, false] },
+	show_files_extensions: { allowed: [true, false] },
+	show_hidden: { allowed: [true, false] },
+	show_mime_column: { allowed: [true, false] },
+	sort_favorites_first: { allowed: [true, false] },
+	sort_folders_first: { allowed: [true, false] },
+};
+
+export class UserConfigValidationError extends Error {}
 
 export function getUserConfigs(userId: string): FilesUserConfig {
 	return {
@@ -21,4 +37,58 @@ export function getUserConfigs(userId: string): FilesUserConfig {
 
 export function getUserConfigKeys(): Array<keyof FilesUserConfig> {
 	return CONFIG_KEYS;
+}
+
+function isAllowedConfigValue(key: keyof FilesUserConfig, value: string): boolean {
+	const allowed = USER_CONFIG_RULES[key].allowed;
+
+	return allowed.some((candidate) => candidate == value);
+}
+
+function normalizeStoredValue(key: keyof FilesUserConfig, value: string): string {
+	if (typeof USER_CONFIG_DEFAULTS[key] === 'boolean') {
+		return value === '1' ? '1' : '0';
+	}
+
+	return value;
+}
+
+export function setUserConfig(
+	userId: string,
+	key: string,
+	rawValue: unknown,
+): { key: string; value: unknown } {
+	if (!CONFIG_KEYS.includes(key as keyof FilesUserConfig)) {
+		throw new UserConfigValidationError('Unknown config key');
+	}
+
+	const configKey = key as keyof FilesUserConfig;
+	const stringValue = stringifyControllerValue(rawValue);
+
+	if (!isAllowedConfigValue(configKey, stringValue)) {
+		throw new UserConfigValidationError('Invalid config value');
+	}
+
+	setStoredUserConfigValue(userId, configKey, normalizeStoredValue(configKey, stringValue));
+
+	return {
+		key,
+		value: rawValue,
+	};
+}
+
+export function setShowHiddenFiles(userId: string, enabled: boolean): void {
+	setStoredUserConfigValue(userId, 'show_hidden', enabled ? '1' : '0');
+}
+
+export function stringifyControllerValue(value: unknown): string {
+	if (typeof value === 'boolean') {
+		return value ? '1' : '';
+	}
+
+	if (value === null || value === undefined) {
+		return '';
+	}
+
+	return String(value);
 }

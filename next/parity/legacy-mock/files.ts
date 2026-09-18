@@ -3,6 +3,10 @@ import {
 	handleGetGridView,
 	handleGetStorageStats,
 	handleGetViewConfigs,
+	handleSetConfig,
+	handleSetViewConfig,
+	handleShowGridView,
+	handleShowHiddenFiles,
 } from '@/src/server/files/api';
 import { snapshotResponse } from '../compare';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
@@ -14,8 +18,56 @@ const FILES_API_GET_HANDLERS: Record<string, (request: Request) => Response> = {
 	'/apps/files/api/v1/showgridview': handleGetGridView,
 };
 
+const FILES_API_WRITE_HANDLERS: Array<{
+	method: 'PUT' | 'POST';
+	match: (pathname: string) => boolean;
+	handle: (request: Request, pathname: string) => Promise<Response>;
+}> = [
+	{
+		method: 'PUT',
+		match: (pathname) => /^\/apps\/files\/api\/v1\/config\/[^/]+$/.test(pathname),
+		handle: async (request, pathname) => {
+			const key = decodeURIComponent(pathname.split('/').pop() ?? '');
+
+			return handleSetConfig(request, key);
+		},
+	},
+	{
+		method: 'PUT',
+		match: (pathname) => pathname === '/apps/files/api/v1/views',
+		handle: async (request) => handleSetViewConfig(request),
+	},
+	{
+		method: 'PUT',
+		match: (pathname) => /^\/apps\/files\/api\/v1\/views\/[^/]+\/[^/]+$/.test(pathname),
+		handle: async (request, pathname) => {
+			const segments = pathname.split('/');
+			const key = decodeURIComponent(segments.pop() ?? '');
+			const view = decodeURIComponent(segments.pop() ?? '');
+
+			return handleSetViewConfig(request, view, key);
+		},
+	},
+	{
+		method: 'POST',
+		match: (pathname) => pathname === '/apps/files/api/v1/showhidden',
+		handle: async (request) => handleShowHiddenFiles(request),
+	},
+	{
+		method: 'POST',
+		match: (pathname) => pathname === '/apps/files/api/v1/showgridview',
+		handle: async (request) => handleShowGridView(request),
+	},
+];
+
 export function isFilesApiPath(pathname: string): boolean {
 	return pathname in FILES_API_GET_HANDLERS;
+}
+
+export function isFilesApiWritePath(pathname: string, method: string): boolean {
+	const normalizedMethod = method.toUpperCase();
+
+	return FILES_API_WRITE_HANDLERS.some((entry) => entry.method === normalizedMethod && entry.match(pathname));
 }
 
 export async function handleFilesApiMock(
@@ -23,24 +75,33 @@ export async function handleFilesApiMock(
 	options: ParityRequestOptions,
 ): Promise<ParityResponseSnapshot | null> {
 	const pathname = fullPath.split('?')[0];
-	const handler = FILES_API_GET_HANDLERS[pathname];
-
-	if (!handler) {
-		return null;
-	}
-
 	const method = (options.method ?? 'GET').toUpperCase();
+	const getHandler = FILES_API_GET_HANDLERS[pathname];
 
-	if (method !== 'GET') {
-		return null;
+	if (method === 'GET' && getHandler) {
+		const request = new Request(`http://127.0.0.1:3100${fullPath.startsWith('/') ? fullPath : `/${fullPath}`}`, {
+			method,
+			headers: options.headers,
+		});
+		const response = getHandler(request);
+		const rawBody = await response.text();
+
+		return snapshotResponse(response, rawBody);
 	}
 
-	const request = new Request(`http://127.0.0.1:3100${fullPath.startsWith('/') ? fullPath : `/${fullPath}`}`, {
-		method,
-		headers: options.headers,
-	});
-	const response = handler(request);
-	const rawBody = await response.text();
+	const writeHandler = FILES_API_WRITE_HANDLERS.find((entry) => entry.method === method && entry.match(pathname));
 
-	return snapshotResponse(response, rawBody);
+	if (writeHandler) {
+		const request = new Request(`http://127.0.0.1:3100${fullPath.startsWith('/') ? fullPath : `/${fullPath}`}`, {
+			method,
+			headers: options.headers,
+			body: options.body,
+		});
+		const response = await writeHandler.handle(request, pathname);
+		const rawBody = await response.text();
+
+		return snapshotResponse(response, rawBody);
+	}
+
+	return null;
 }

@@ -105,7 +105,21 @@ Initial state includes storageStats, UserConfig, ViewConfig, templates, sorting 
 
 `getGridView`: **`{gridview:bool}` only** — reads legacy `show_grid`, not UserConfig `grid_view`.
 
-Writes (`setConfig`, `setViewConfig`, legacy POST toggles) are a later slice.
+### Config JSON writes (implemented)
+
+Mutating Api routes require session + strict cookies + CSRF (`requesttoken` header/body). CSRF failure → **412 `{message:'CSRF check failed'}`**.
+
+`setConfig` `PUT /config/{key}` body `{value}` → **200 `{message:'ok', data:{key,value}}`**. Unknown key / invalid value → **400 `{message}`**.
+
+`setViewConfig` dual PUT:
+- `PUT /views` body `{view,key,value}`
+- `PUT /views/{view}/{key}` body `{value}`
+
+Both return **200 `{message:'ok', data:ViewConfigEntry}`** for the updated view. Unknown view config key → **400**.
+
+`showHiddenFiles` `POST /showhidden` body `{value:bool}` → **200 empty**; writes `show_hidden` user config (same store as UserConfig key).
+
+`showGridView` `POST /showgridview` body `{show:bool}` → **200 empty**; writes legacy **`show_grid`** (`'1'`/`'0'`), not UserConfig `grid_view`.
 
 ### Thumbnail
 
@@ -190,12 +204,16 @@ src/server/files/
   stats.ts
   grid-view.ts
   api.ts                 # requireFilesApiUser + GET handlers
+app/apps/files/api/v1/config/[key]/route.ts
 app/apps/files/api/v1/configs/route.ts
 app/apps/files/api/v1/views/route.ts
+app/apps/files/api/v1/views/[view]/[key]/route.ts
 app/apps/files/api/v1/stats/route.ts
+app/apps/files/api/v1/showhidden/route.ts
 app/apps/files/api/v1/showgridview/route.ts
 parity/legacy-mock/files.ts
 parity/tests/files-json-config.parity.test.ts
+parity/tests/files-json-writes.parity.test.ts
 ```
 
 List/download still go through DAV modules. `computeStorageStats` reads DAV home tree size.
@@ -207,9 +225,13 @@ List/download still go through DAV modules. `computeStorageStats` reads DAV home
 | Happy | getConfigs / getViewConfigs | 200 `{message:'ok', data}` |
 | Auth | all four GET config routes | 401 `{message}` with `Accept: application/json` |
 | Validation | strict cookie missing | 303 `location:/` |
-| Validation | setConfig unknown key | 400 (write slice) |
-| Dual PUT | setViewConfig both URLs | same body shape |
+| Validation | setConfig unknown key | 400 `{message}` |
+| Validation | setViewConfig unknown key | 400 `{message}` |
+| Validation | CSRF missing on write | 412 `{message}` |
+| Dual PUT | setViewConfig both URLs | same envelope; path variant uses `{value}` only |
 | Grid split | showGridView then getGridView | `gridview` follows `show_grid` |
+| Happy | showHiddenFiles POST | 200 empty; `show_hidden` user config updated |
+| Happy | showGridView POST | 200 empty; `show_grid` legacy pref updated |
 | Happy | getStorageStats | keys free/used/quota/total + cache-control |
 | Happy | getGridView | `{gridview:false}` default |
 | Thumbnail | getThumbnail | 200 image or 404 JSON |

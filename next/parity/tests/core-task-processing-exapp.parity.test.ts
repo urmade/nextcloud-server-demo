@@ -1,6 +1,7 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { getParityEnv } from '../env';
 import { formatParityMismatches, runParityCase } from '../harness';
+import { resetParityTaskStores } from '../helpers/task-processing';
 import { fetchLegacyMockSnapshot, hasLegacyMockFixture } from '../legacy-mock/adapter';
 import { compareBinarySnapshots, snapshotBinaryResponse } from '../helpers/binary';
 import {
@@ -18,7 +19,6 @@ import {
 } from '@/src/server/task-processing/catalog';
 import {
 	buildSeedTask,
-	resetTaskStore,
 	seedParityTask,
 } from '@/src/server/task-processing/store';
 
@@ -58,8 +58,8 @@ function seedExAppTask(taskId: number, body: Record<string, unknown>): void {
 }
 
 describe('parity: core task processing (ex-app / worker)', () => {
-	beforeEach(() => {
-		resetTaskStore();
+	beforeEach(async () => {
+		await resetParityTaskStores();
 	});
 
 	it('GET /ocs/v2.php/taskprocessing/tasks_consumer/tasktypes requires ExApp auth (412)', async () => {

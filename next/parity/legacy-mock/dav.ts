@@ -15,6 +15,11 @@ const DAV_MOCK_METHODS = new Set([
 	'MKCOL',
 	'PUT',
 	'MOVE',
+	'GET',
+	'HEAD',
+	'DELETE',
+	'MKCALENDAR',
+	'REPORT',
 ]);
 
 export function isDavRemotePath(pathname: string): boolean {

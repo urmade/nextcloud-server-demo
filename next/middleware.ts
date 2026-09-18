@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { handleDavRequest } from '@/src/server/dav/handler';
 import { handlePublicDavRequest } from '@/src/server/dav/public-handler';
+import { isCalendarDavPath, isPublicCalendarDavPath } from '@/src/server/dav/remote';
 
 const DAV_METHODS = new Set([
 	'PROPFIND',
@@ -41,7 +42,18 @@ export async function middleware(request: NextRequest) {
 		return NextResponse.next();
 	}
 
-	if (!DAV_METHODS.has(method)) {
+	const davPath = pathname.startsWith('/remote.php/dav/')
+		? pathname.slice('/remote.php/dav/'.length)
+		: pathname === '/remote.php/dav'
+			? ''
+			: null;
+	const isCalendarPath = davPath !== null
+		&& (isCalendarDavPath(davPath) || isPublicCalendarDavPath(davPath));
+	const allowedMethods = isCalendarPath
+		? new Set([...DAV_METHODS, 'GET', 'HEAD', 'DELETE', 'MKCALENDAR', 'REPORT'])
+		: DAV_METHODS;
+
+	if (!allowedMethods.has(method)) {
 		return NextResponse.next();
 	}
 

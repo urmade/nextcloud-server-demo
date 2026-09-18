@@ -1,4 +1,19 @@
 import { davUnauthorizedResponse, resolveDavUserId } from './auth-basic';
+import {
+	buildCalendarPropfindBody,
+	calendarMethodNotAllowedResponse,
+	calendarNotFoundResponse,
+	calendarWriteForbiddenResponse,
+	handleCalendarGet,
+	handleCalendarMkcalendar,
+	handleCalendarPut,
+	handleCalendarReport,
+	isCalendarDavPath,
+	isPublicCalendarDavPath,
+	parseCalendarDepth,
+	parseCalendarPath,
+	parseMkcalendarDisplayName,
+} from './calendars';
 import { collectPropfindResponses, parseDepthHeader, resolveDavResource } from './files';
 import {
 	buildPrincipalPropfindBody,
@@ -52,15 +67,127 @@ function emptyResponse(status: number, extraHeaders: Record<string, string> = {}
 	});
 }
 
-function handleOptions(): Response {
+function handleOptions(isPublicCalendar = false): Response {
 	return new Response(null, {
 		status: 200,
 		headers: {
-			allow: 'OPTIONS, GET, HEAD, PUT, DELETE, PROPFIND, PROPPATCH, MKCOL, COPY, MOVE',
-			dav: '1, 3, extended-mkcol',
+			allow: isPublicCalendar
+				? 'OPTIONS, GET, HEAD, PROPFIND, REPORT'
+				: 'OPTIONS, GET, HEAD, PUT, DELETE, PROPFIND, PROPPATCH, MKCOL, MKCALENDAR, COPY, MOVE, REPORT',
+			dav: '1, 3, extended-mkcol, calendar-access',
 			'content-length': '0',
 		},
 	});
+}
+
+async function handleCalendarRequest(
+	request: Request,
+	parsed: ReturnType<typeof parseDavRequest>,
+	resolveUser: ResolveUser,
+): Promise<Response> {
+	const calendarPath = parseCalendarPath(parsed!);
+
+	if (!calendarPath) {
+		return calendarNotFoundResponse();
+	}
+
+	const method = request.method.toUpperCase();
+	const isPublic = isPublicCalendarDavPath(parsed!.davPath);
+	const userId = isPublic ? null : resolveUser(request);
+
+	if (!isPublic && !userId) {
+		return davUnauthorizedResponse();
+	}
+
+	if (method === 'OPTIONS') {
+		return handleOptions(isPublic);
+	}
+
+	if (method === 'PROPFIND') {
+		return handleCalendarPropfind(request, parsed, userId);
+	}
+
+	if (method === 'GET' || method === 'HEAD') {
+		const result = handleCalendarGet(calendarPath, userId);
+
+		if (result === 'not-found') {
+			return calendarNotFoundResponse();
+		}
+
+		if (result === 'forbidden') {
+			return calendarWriteForbiddenResponse();
+		}
+
+		if (method === 'HEAD') {
+			return new Response(null, {
+				status: result.status,
+				headers: result.headers,
+			});
+		}
+
+		return result;
+	}
+
+	if (method === 'MKCALENDAR') {
+		if (isPublic) {
+			return calendarWriteForbiddenResponse();
+		}
+
+		const body = await request.text();
+		const result = handleCalendarMkcalendar(calendarPath, userId!, parseMkcalendarDisplayName(body));
+
+		if (result === 'not-found') {
+			return calendarNotFoundResponse();
+		}
+
+		if (result === 'forbidden') {
+			return calendarWriteForbiddenResponse();
+		}
+
+		if (result === 'method-not-allowed') {
+			return calendarMethodNotAllowedResponse('The resource you tried to create has a reserved name');
+		}
+
+		return result;
+	}
+
+	if (method === 'PUT') {
+		if (isPublic) {
+			return calendarWriteForbiddenResponse();
+		}
+
+		const result = await handleCalendarPut(request, calendarPath, userId!);
+
+		if (result === 'not-found') {
+			return calendarNotFoundResponse();
+		}
+
+		if (result === 'forbidden') {
+			return calendarWriteForbiddenResponse();
+		}
+
+		return result;
+	}
+
+	if (method === 'REPORT') {
+		const result = handleCalendarReport(calendarPath, userId);
+
+		if (result === 'not-found') {
+			return calendarNotFoundResponse();
+		}
+
+		if (result === 'forbidden') {
+			return calendarWriteForbiddenResponse();
+		}
+
+		return result;
+	}
+
+	if (isPublic || method === 'DELETE' || method === 'MKCOL' || method === 'COPY' || method === 'MOVE') {
+		return calendarWriteForbiddenResponse();
+	}
+
+	return calendarMethodNotAllowedResponse('Method not allowed');
 }
 
 function handlePrincipalPropfind(
@@ -141,7 +268,46 @@ function handleUploadPropfind(request: Request, parsed: ReturnType<typeof parseD
 	});
 }
 
+function handleCalendarPropfind(
+	request: Request,
+	parsed: ReturnType<typeof parseDavRequest>,
+	userId: string | null,
+): Response {
+	const calendarPath = parseCalendarPath(parsed!);
+
+	if (!calendarPath) {
+		return calendarNotFoundResponse();
+	}
+
+	const depth = parseCalendarDepth(request);
+	const body = buildCalendarPropfindBody(calendarPath, depth, userId);
+
+	if (body === 'not-found') {
+		return calendarNotFoundResponse();
+	}
+
+	if (body === 'forbidden') {
+		return calendarWriteForbiddenResponse();
+	}
+
+	return xmlResponse(body, 207, userId ? { 'x-user-id': userId } : {});
+}
+
 function handlePropfind(request: Request, parsed: ReturnType<typeof parseDavRequest>, resolveUser: ResolveUser): Response {
+	if (parsed!.ingress === 'v2' && isPublicCalendarDavPath(parsed!.davPath)) {
+		return handleCalendarPropfind(request, parsed, null);
+	}
+
+	if (parsed!.ingress === 'v2' && isCalendarDavPath(parsed!)) {
+		const userId = resolveUser(request);
+
+		if (!userId) {
+			return davUnauthorizedResponse();
+		}
+
+		return handleCalendarPropfind(request, parsed, userId);
+	}
+
 	if (parsed!.ingress === 'v2' && isPrincipalPath(parsed!)) {
 		if (isPublicPrincipalPath(parsed!.davPath)) {
 			return handlePrincipalPropfind(request, parsed, null);
@@ -275,7 +441,11 @@ export async function handleDavRequest(
 	const method = request.method.toUpperCase();
 
 	if (method === 'OPTIONS') {
-		if (parsed.ingress === 'v2' && isPrincipalPath(parsed) && isPublicPrincipalPath(parsed.davPath)) {
+		if (parsed.ingress === 'v2' && isPublicCalendarDavPath(parsed.davPath)) {
+			return handleOptions(true);
+		}
+
+		if (parsed.ingress === 'v2' && isPublicPrincipalPath(parsed.davPath)) {
 			return handleOptions();
 		}
 
@@ -286,6 +456,10 @@ export async function handleDavRequest(
 		}
 
 		return handleOptions();
+	}
+
+	if (parsed.ingress === 'v2' && isCalendarDavPath(parsed)) {
+		return handleCalendarRequest(request, parsed, resolveUser);
 	}
 
 	if (method === 'PROPFIND') {

@@ -17,9 +17,27 @@ const SYSTEM_PRINCIPALS: Array<{ name: string; displayName: string }> = [
 	{ name: 'public', displayName: 'public' },
 ];
 
-const calendarResourcesById = new Map<string, PrincipalRecord>();
-const calendarRoomsById = new Map<string, PrincipalRecord>();
-const remoteUsersById = new Map<string, PrincipalRecord>();
+interface PrincipalsStoreState {
+	calendarResourcesById: Map<string, PrincipalRecord>;
+	calendarRoomsById: Map<string, PrincipalRecord>;
+	remoteUsersById: Map<string, PrincipalRecord>;
+}
+
+const globalState = globalThis as typeof globalThis & {
+	__ncDavPrincipalsStore?: PrincipalsStoreState;
+};
+
+function storeState(): PrincipalsStoreState {
+	if (!globalState.__ncDavPrincipalsStore) {
+		globalState.__ncDavPrincipalsStore = {
+			calendarResourcesById: new Map(),
+			calendarRoomsById: new Map(),
+			remoteUsersById: new Map(),
+		};
+	}
+
+	return globalState.__ncDavPrincipalsStore;
+}
 
 function principalHref(kind: string, id?: string): string {
 	if (id) {
@@ -97,15 +115,27 @@ export function findSystemPrincipal(name: string): PrincipalRecord | null {
 }
 
 export function findCalendarResourcePrincipal(id: string): PrincipalRecord | null {
-	return calendarResourcesById.get(id) ?? null;
+	return storeState().calendarResourcesById.get(id) ?? null;
 }
 
 export function findCalendarRoomPrincipal(id: string): PrincipalRecord | null {
-	return calendarRoomsById.get(id) ?? null;
+	return storeState().calendarRoomsById.get(id) ?? null;
 }
 
 export function findRemoteUserPrincipal(id: string): PrincipalRecord | null {
-	return remoteUsersById.get(id) ?? null;
+	return storeState().remoteUsersById.get(id) ?? null;
+}
+
+export function findRemoteUserPrincipalByCloudId(cloudId: string): PrincipalRecord | null {
+	const { remoteUsersById } = storeState();
+
+	for (const record of remoteUsersById.values()) {
+		if (record.extraProps?.['{http://nextcloud.com/ns}cloud-id'] === cloudId) {
+			return record;
+		}
+	}
+
+	return remoteUsersById.get(cloudId) ?? null;
 }
 
 export function seedCalendarResourcePrincipal(id: string, displayName: string): PrincipalRecord {
@@ -116,7 +146,7 @@ export function seedCalendarResourcePrincipal(id: string, displayName: string): 
 		isCollection: true,
 	};
 
-	calendarResourcesById.set(id, record);
+	storeState().calendarResourcesById.set(id, record);
 
 	return record;
 }
@@ -129,7 +159,7 @@ export function seedCalendarRoomPrincipal(id: string, displayName: string): Prin
 		isCollection: true,
 	};
 
-	calendarRoomsById.set(id, record);
+	storeState().calendarRoomsById.set(id, record);
 
 	return record;
 }
@@ -145,13 +175,15 @@ export function seedRemoteUserPrincipal(id: string, displayName: string, cloudId
 		},
 	};
 
-	remoteUsersById.set(id, record);
+	storeState().remoteUsersById.set(id, record);
 
 	return record;
 }
 
 export function resetPrincipalsStore(): void {
-	calendarResourcesById.clear();
-	calendarRoomsById.clear();
-	remoteUsersById.clear();
+	const state = storeState();
+
+	state.calendarResourcesById.clear();
+	state.calendarRoomsById.clear();
+	state.remoteUsersById.clear();
 }

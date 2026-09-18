@@ -54,3 +54,15 @@ export function buildDavHref(requestPath: string, isCollection: boolean): string
 
 	return requestPath;
 }
+
+const CALENDAR_ROOTS = new Set(['calendars', 'public-calendars', 'remote-calendars', 'system-calendars']);
+
+export function isCalendarDavPath(davPath: string): boolean {
+	const root = davPath.split('/').filter(Boolean)[0];
+
+	return root !== undefined && CALENDAR_ROOTS.has(root);
+}
+
+export function isPublicCalendarDavPath(davPath: string): boolean {
+	return davPath === 'public-calendars' || davPath.startsWith('public-calendars/');
+}

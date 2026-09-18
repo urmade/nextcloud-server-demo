@@ -221,6 +221,21 @@ Collection children listing disabled unless `NC_DAV_DEBUG=true` (observe depth-1
 
 Parity extras (`next/parity/tests/dav-principals.parity.test.ts`): unauth 401; own principal PROPFIND 207; unknown principal 404; `system/public` unauth not 401; depth-1 users collection no listing. Reset via `resetParityPrincipalsStores()` → `/api/parity/reset-dav-principals-store`.
 
+### Calendars — `dav-calendars` (`parity: tested`)
+
+Next.js: `src/server/dav/calendars.ts` + `calendars-store.ts`; calendar branches in `handler.ts` on v2 tree; path helpers in `remote.ts`. Public calendars use PublicAuth-style unauthenticated access (no creds on `public-calendars` prefix).
+
+| Step | Method | Path | Notes |
+| --- | --- | --- | --- |
+| Own home | PROPFIND | `/remote.php/dav/calendars/{uid}/` | depth 0 → **207**; unauth **401** |
+| Create calendar | MKCALENDAR | `…/calendars/{uid}/{name}` | **201**; reserved `contact_birthdays` / `trashbin` → **405** |
+| Put event | PUT | `…/{calendar}/{event}.ics` | **201** |
+| Get ics | GET | same | **200** `text/calendar` (not map 207) |
+| Public token | PROPFIND | `/remote.php/dav/public-calendars/{token}/` | unauth **207** or unknown **404**; writes **403** |
+| Remote/system | PROPFIND | `/remote.php/dav/remote-calendars/{cloudId}/{cal}/` etc. | **404** without seeded principal/calendar row |
+
+Parity extras (`next/parity/tests/dav-calendars.parity.test.ts`): unauth calendars 401; own PROPFIND 207; public-calendars unauth 207/404; GET ics 200; MKCALENDAR reserved 405; other user's home must not leak events. Reset/seed via `resetParityCalendarsStores()` → `/api/parity/reset-dav-calendars-store` and `/api/parity/seed-dav-calendars`. Calendar store uses `globalThis` so middleware and parity seed routes share state in production builds.
+
 ### Calendar/contacts import-export
 
 `#[ApiRoute]` under `/calendar` and `/contacts`. Export: stream ical/jcal/xcal; UserRateLimit 1/60s; own calendar or **admin** + `user` query. Import: NDJSON `application/x-ndjson`; rate 10/3600; calendar/addressbook must be writable. Contacts default format `'ical'` as written.

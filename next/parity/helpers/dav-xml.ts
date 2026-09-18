@@ -5,6 +5,8 @@ export interface DavInfosetEntry {
 
 const DEFAULT_PREFIXES: Record<string, string> = {
 	d: 'DAV:',
+	cal: 'urn:ietf:params:xml:ns:caldav',
+	card: 'urn:ietf:params:xml:ns:carddav',
 	oc: 'http://owncloud.org/ns',
 	nc: 'http://nextcloud.org/ns',
 	s: 'http://sabredav.org/ns',

@@ -164,13 +164,29 @@ Reads: any logged-in user for any `{userId}`. **Writes ignore path `{userId}`** 
 
 Parity extras (`next/parity/tests/dav-out-of-office.parity.test.ts`): unauth 401/997; GET other user 200/404; POST other-uid path still writes self; `firstDay > lastDay` → 400 `{error:firstDay}`.
 
-### Federated calendars OCS
+### Upcoming events — `dav-upcoming_events-get-events` (`parity: tested`)
 
-Pending list for current principal. accept/decline: 404 for missing **or** not-owned/not-pending (no existence leak).
+Next.js: `src/server/dav/cal-ocs.ts` + `cal-ocs-store.ts`; route `app/ocs/v2.php/apps/dav/api/v1/events/upcoming/route.ts`.
 
-### Upcoming events
+| Step | Method | Path | Notes |
+| --- | --- | --- | --- |
+| List | GET | `/ocs/v2.php/apps/dav/api/v1/events/upcoming?format=json` | Query `location?` optional filter. **200** `{events:[{uri,recurrenceId,calendarUri,start,summary,location,calendarAppUrl}]}`. Empty `events: []` valid. **401/997** anon. Current session user only. |
 
-Query `location?`. `{events:[{uri,recurrenceId,calendarUri,start,summary,location,calendarAppUrl}]}`. Current user only.
+`jsonSerialize` includes `recurrenceId` and `calendarAppUrl` even though Psalm `DAVUpcomingEvent` omits them — parity must emit both keys on every event object.
+
+Parity extras (`next/parity/tests/dav-cal-ocs.parity.test.ts`): unauth 401/997; upcoming empty 200.
+
+### Federated calendars OCS — `dav-federated_calendar-*` (`parity: tested`)
+
+Next.js: `src/server/dav/cal-ocs.ts` + `cal-ocs-store.ts`; routes under `app/ocs/v2.php/apps/dav/api/v1/federated_calendars/pending/…`.
+
+| Step | Method | Path | Notes |
+| --- | --- | --- | --- |
+| Pending list | GET | `…/federated_calendars/pending?format=json` | **200** `[{id,displayName,color,sharedBy,sharedByDisplayName,remoteUrl,permissions,components}]`. Principal `principals/users/{uid}`, state pending. **401/997** anon. |
+| Accept | POST | `…/pending/{id}` | **200** `data: null`. Missing **or** not-owned **or** not-pending → **404** `data: null` (no existence leak). Anon accept → **404** not 401. |
+| Decline | DELETE | same `{id}` | Same 404 rules as accept. Success **200** `data: null`. |
+
+Parity extras (`next/parity/tests/dav-cal-ocs.parity.test.ts`): unknown accept 404; unknown decline 404.
 
 ### Birthday calendars
 
@@ -258,7 +274,8 @@ src/server/dav/
   tree/principals.ts
   direct.ts              # OCS mint + GET stream
   ocs-ooo.ts
-  ocs-federated-cal.ts
+  cal-ocs.ts
+  cal-ocs-store.ts
 app/remote.php/[...path]/route.ts     # method-agnostic
 app/.well-known/caldav/route.ts
 app/.well-known/carddav/route.ts
@@ -281,6 +298,9 @@ First files PROPFIND slice **landed** `bp-dav-xml-normalize` (infoset, ignore pr
 | Direct mint | `dav-direct-get-url` | 200 `{url}` containing `/remote.php/direct/` |
 | Direct GET | `dav.Direct#get` | 200 file; bad token 404 |
 | OOO unauth | outOfOffice | OCS 401/997 |
+| Cal OCS unauth | upcoming/pending GET | OCS 401/997 |
+| Cal OCS accept/decline anon | federated pending/{id} | OCS 404 null (not 401) |
+| Federated accept wrong id | pending/{id} | OCS 404 null |
 | Invitation bad token | accept | error HTML template |
 | Upload chunk | `dav.Collection#uploads` | MKCOL → PUT parts → MOVE `.file`; wrong uid **403**; see `bp-dav-upload-chunk-assemble` |
 

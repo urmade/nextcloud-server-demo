@@ -6119,15 +6119,15 @@ endpoints:
     - status: 401
       shape: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: implemented
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/dav/api/v1/events/upcoming
+  next_handler: src/server/dav/cal-ocs.ts
+  parity_test: next/parity/tests/dav-cal-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. Empty events array valid 200. jsonSerialize includes recurrenceId and calendarAppUrl.
 - id: dav-federated_calendar-get-pending
   feature_ids:
   - dav
@@ -6155,15 +6155,15 @@ endpoints:
     - status: 401
       shape: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: implemented
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/dav/api/v1/federated_calendars/pending
+  next_handler: src/server/dav/cal-ocs.ts
+  parity_test: next/parity/tests/dav-cal-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. Pending list for session principal only.
 - id: dav-federated_calendar-decline
   feature_ids:
   - dav
@@ -6200,15 +6200,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: implemented
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/dav/api/v1/federated_calendars/pending/{id}
+  next_handler: src/server/dav/cal-ocs.ts
+  parity_test: next/parity/tests/dav-cal-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. Missing/not-owned/not-pending → 404 null; anon → 404 not 401.
 - id: dav-federated_calendar-accept
   feature_ids:
   - dav
@@ -6245,15 +6245,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: implemented
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/dav/api/v1/federated_calendars/pending/{id}
+  next_handler: src/server/dav/cal-ocs.ts
+  parity_test: next/parity/tests/dav-cal-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. Success 200 data null; missing/not-owned/not-pending → 404 null; anon → 404 not 401.
 - id: dav-out_of_office-clear-out-of-office
   feature_ids:
   - dav

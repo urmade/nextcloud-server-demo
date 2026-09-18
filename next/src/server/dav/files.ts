@@ -134,17 +134,29 @@ export function collectPropfindResponses(
 }
 
 export function findNodeByFileId(userId: string, fileId: number): DavFileNode | null {
+	const located = findNodeWithPathByFileId(userId, fileId);
+
+	return located?.node ?? null;
+}
+
+export function findNodeWithPathByFileId(
+	userId: string,
+	fileId: number,
+): { node: DavFileNode; path: string } | null {
 	if (userId !== getDefaultDavUserId()) {
 		return null;
 	}
 
-	function walk(node: DavFileNode): DavFileNode | null {
+	function walk(node: DavFileNode, segments: string[]): { node: DavFileNode; path: string } | null {
 		if (node.fileId === fileId) {
-			return node;
+			return {
+				node,
+				path: segments.join('/'),
+			};
 		}
 
 		for (const child of node.children ?? []) {
-			const found = walk(child);
+			const found = walk(child, [...segments, child.name]);
 
 			if (found) {
 				return found;
@@ -154,7 +166,7 @@ export function findNodeByFileId(userId: string, fileId: number): DavFileNode | 
 		return null;
 	}
 
-	return walk(getAdminFilesHome());
+	return walk(getAdminFilesHome(), []);
 }
 
 export function parseDepthHeader(value: string | null): number {

@@ -91,11 +91,17 @@ Capabilities `files` (other slice `core-status` providers): `bigfilechunking`, `
 
 ## Endpoint walkthrough
 
-### UI shell
+### UI shell (implemented)
 
-`ViewController::index` (`NoAdminRequired`, `NoCSRFRequired`): Template `files/index`. Query `dir`, `view`, `fileid`. `indexView` / `indexViewFileid` delegate to `index`. `showFile` (`GET /f/{fileid}`): redirect into files view with `dir`/`fileid`/`openfile`/`opendetails`; missing file still redirects keeping `fileid`.
+`ViewController::index` (`NoAdminRequired`, `NoCSRFRequired`): Template `files/index`. Query `dir`, `view`, `fileid`. `indexView` / `indexViewFileid` delegate to `index`. `showFile` (`GET /f/{fileid}`): **always 303** redirect into files view with `dir`/`fileid`/`openfile`/`opendetails`; missing file still redirects keeping `fileid`; empty fileid → files index.
 
-Initial state includes storageStats, UserConfig, ViewConfig, templates, sorting (`files_sorting_configs`), 2FA flag. Pixel-perfect Vue is **not** required unless a later UI slice says so; HTML must remain a logged-in files app page.
+**Auth (view routes):** session required; strict-cookie check **skipped** (`NoCSRFRequired`). Unauth + `Accept: html` → **303** `/login?redirect_url=…`; unauth + JSON → **401** `{message:'Current user is not logged in'}`. Map `html-or-json` / `401 login-or-json` / `404 not-found` on view rows were Phase-0 lies.
+
+**DirectEditingView** (`PublicPage`): token is credential — map `auth: session` was wrong. Unknown/spent token → **404** guest HTML, not 401. First successful GET marks token accessed (one-shot).
+
+Parity compares status + `Location` + `content-type` only; pixel-perfect Vue is **not** required. `/index.php` twins via `next.config.ts` rewrites.
+
+Initial state (storageStats, UserConfig, ViewConfig, templates, sorting, 2FA) is **not** embedded in parity HTML shell yet.
 
 ### Config JSON (implemented: read cluster)
 
@@ -223,7 +229,15 @@ src/server/files/
   filenames-store.ts
   filenames-auth.ts
   filenames.ts
-  api.ts                 # requireFilesApiUser + GET handlers
+  direct-editing-store.ts
+  view.ts                  # HTML shell + showFile redirect + DirectEditingView
+  api.ts                   # requireFilesApiUser + JSON handlers
+app/apps/files/route.ts
+app/apps/files/[view]/route.ts
+app/apps/files/[view]/[fileid]/route.ts
+app/apps/files/directEditing/[token]/route.ts
+app/f/route.ts
+app/f/[fileid]/route.ts
 app/apps/files/api/v1/config/[key]/route.ts
 app/apps/files/api/v1/configs/route.ts
 app/apps/files/api/v1/views/route.ts
@@ -237,6 +251,7 @@ app/ocs/v2.php/apps/files/api/v1/filenames/sanitization/route.ts
 app/ocs/v2.php/apps/files/api/v1/filenames/windows-compatibility/route.ts
 src/server/files/tags.ts
 parity/legacy-mock/files.ts
+parity/legacy-mock/files-view.ts
 parity/legacy-mock/files-filenames.ts
 parity/helpers/files.ts
 app/api/parity/reset-files-store/route.ts
@@ -244,6 +259,7 @@ parity/tests/files-json-config.parity.test.ts
 parity/tests/files-json-writes.parity.test.ts
 parity/tests/files-json-crop-tags.parity.test.ts
 parity/tests/files-json-filenames.parity.test.ts
+parity/tests/files-html-shell.parity.test.ts
 ```
 
 List/download still go through DAV modules. `computeStorageStats` reads DAV home tree size.
@@ -283,7 +299,15 @@ List/download still go through DAV modules. `computeStorageStats` reads DAV home
 | Validation | stop when idle | 400 meta.message |
 | Happy | toggleWindowFilenameSupport | `{enabled}` echo |
 
-HTML index: 200 `text/html` for logged-in; unauthenticated → login redirect (AppFramework), not 200. Service worker: 200 JS without session.
+| Happy | view index / indexView / indexViewFileid | 200 `text/html` + CSP worker/frame self |
+| Auth | view routes unauth HTML | 303 login `redirect_url` |
+| Auth | view routes unauth JSON | 401 `{message}` |
+| Redirect | showFile existing | 303 Location `/apps/files/files/{id}` + `openfile=` |
+| Redirect | showFile missing id | 303 Location keeps `fileid` |
+| Redirect | showFile empty fileid | 303 → files index |
+| Public | DirectEditingView bad token | 404 guest HTML |
+| Token | DirectEditingView second GET | 404 (one-shot) |
+| Service worker | preview-service-worker.js | 200 JS without session |
 
 Waive chunked **DAV** upload in `dav`, not here.
 

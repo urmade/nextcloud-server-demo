@@ -62,6 +62,26 @@ const nextConfig: NextConfig = {
 				destination: '/apps/files/api/v1/thumbnail/:path*',
 			},
 			{
+				source: '/index.php/apps/files/directEditing/:token',
+				destination: '/apps/files/directEditing/:token',
+			},
+			{
+				source: '/index.php/apps/files/:view/:fileid',
+				destination: '/apps/files/:view/:fileid',
+			},
+			{
+				source: '/index.php/apps/files/:view',
+				destination: '/apps/files/:view',
+			},
+			{
+				source: '/index.php/apps/files',
+				destination: '/apps/files',
+			},
+			{
+				source: '/index.php/f/:fileid',
+				destination: '/f/:fileid',
+			},
+			{
 				source: '/index.php/lostpassword/email',
 				destination: '/lostpassword/email',
 			},

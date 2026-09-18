@@ -26,6 +26,7 @@ import {
 import { getRecentFiles } from './recent';
 import { getServiceWorkerResponse } from './service-worker';
 import { getThumbnailResponse } from './thumbnail';
+import { resetDirectEditingStore } from './direct-editing-store';
 import { resetFilenamesStore } from './filenames-store';
 import { resetFilesViewConfigStore } from './view-config-store';
 
@@ -401,4 +402,5 @@ export function resetFilesApiStores(): void {
 	resetFilesViewConfigStore();
 	resetFileTagsStore();
 	resetFilenamesStore();
+	resetDirectEditingStore();
 }

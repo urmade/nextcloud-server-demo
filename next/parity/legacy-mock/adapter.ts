@@ -28,6 +28,7 @@ import { handleDavMock, isDavMockMethod } from './dav';
 import { handleDavDirectMock, isDavDirectMockPath } from './dav-direct';
 import { handleFilesApiMock, isFilesApiPath, isFilesApiWritePath } from './files';
 import { handleFilesFilenamesMock, isFilesFilenamesMockPath } from './files-filenames';
+import { handleFilesViewMock, isFilesViewMockPath } from './files-view';
 import { snapshotResponse } from '../compare';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
 
@@ -411,6 +412,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return filesFilenames;
 	}
 
+	const filesView = await handleFilesViewMock(fullPath, options);
+
+	if (filesView) {
+		return filesView;
+	}
+
 	if (method === 'PUT' && pathname.includes('/cloud/capabilities')) {
 		const isV1 = pathname.includes('/ocs/v1.php/');
 
@@ -670,6 +677,10 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (isFilesFilenamesMockPath(pathname)) {
+		return true;
+	}
+
+	if (isFilesViewMockPath(pathname, normalizedMethod)) {
 		return true;
 	}
 

@@ -8498,25 +8498,30 @@ endpoints:
   auth: session
   request:
     params: {}
-    query: {}
+    query:
+      dir: string
+      view: string
+      fileid: string
     headers: {}
     body: null
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: html
+      content_type: text/html
     errors:
+    - status: 303
+      shape: redirect-login-html
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: '{message}'
+  status: parity
+  parity: tested
+  next_path: /apps/files/
+  next_handler: src/server/files/view.ts
+  parity_test: next/parity/tests/files-html-shell.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: NoCSRFRequired; strict-cookie check skipped. Unauth HTML → 303 login with redirect_url; JSON → 401 {message}. /index.php twin via rewrite.
 - id: files.Api#setConfig.put
   feature_ids:
   - files
@@ -8941,7 +8946,7 @@ endpoints:
   method: GET
   legacy_path: /apps/files/directEditing/{token}
   legacy_source: apps/files/appinfo/routes.php DirectEditingView#edit
-  auth: session
+  auth: public-share
   request:
     params:
       token: string
@@ -8951,19 +8956,19 @@ endpoints:
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: html
+      content_type: text/html
     errors:
-    - status: 401
-      shape: login-or-json
     - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: guest-not-found-html
+  status: parity
+  parity: tested
+  next_path: /apps/files/directEditing/{token}
+  next_handler: src/server/files/view.ts
+  parity_test: next/parity/tests/files-html-shell.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: PublicPage + NoCSRFRequired + UseSession. Token is credential; unknown/spent → 404 guest HTML, not 401. First open marks token accessed.
 - id: files.Api#serviceWorker
   feature_ids:
   - files
@@ -9004,25 +9009,29 @@ endpoints:
   request:
     params:
       view: string
-    query: {}
+    query:
+      dir: string
+      fileid: string
     headers: {}
     body: null
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: html
+      content_type: text/html
     errors:
+    - status: 303
+      shape: redirect-login-html
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: '{message}'
+  status: parity
+  parity: tested
+  next_path: /apps/files/{view}
+  next_handler: src/server/files/view.ts
+  parity_test: next/parity/tests/files-html-shell.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Delegates to index. Same auth/HTML contract as files.view#index.
 - id: files.view#indexViewFileid
   feature_ids:
   - files
@@ -9035,25 +9044,28 @@ endpoints:
     params:
       view: string
       fileid: string
-    query: {}
+    query:
+      dir: string
     headers: {}
     body: null
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: html
+      content_type: text/html
     errors:
+    - status: 303
+      shape: redirect-login-html
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: '{message}'
+  status: parity
+  parity: tested
+  next_path: /apps/files/{view}/{fileid}
+  next_handler: src/server/files/view.ts
+  parity_test: next/parity/tests/files-html-shell.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Delegates to index. Missing fileid still renders shell; not 404.
 - id: files.View#showFile
   feature_ids:
   - files
@@ -9065,25 +9077,28 @@ endpoints:
   request:
     params:
       fileid: string
-    query: {}
+    query:
+      opendetails: string
+      openfile: string
     headers: {}
     body: null
   response:
     success:
-      status: 200
-      shape: html-or-json
+      status: 303
+      shape: redirect-indexViewFileid
     errors:
+    - status: 303
+      shape: redirect-login-html
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: '{message}'
+  status: parity
+  parity: tested
+  next_path: /f/{fileid}
+  next_handler: src/server/files/view.ts
+  parity_test: next/parity/tests/files-html-shell.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Always RedirectResponse 303; never 200 HTML. Missing file still redirects keeping fileid. Empty fileid → files index.
 - id: files-api-get-thumbnail
   feature_ids:
   - files

@@ -134,6 +134,23 @@ A successful `authenticate` POST regenerates the session id and must persist bot
 - Unshare missing → **404** `"Share does not exist"`; `removeShare` false → **403** `"Could not unshare"`.
 - Unshare mount path: `'/' . $userId . '/files' . $mountpoint`.
 
+## Accept HTML (slice 5)
+
+`AcceptController`. Logged-in HTML accept for pending **TYPE_USER / TYPE_GROUP** shares. Not remote OCS, not `shares/pending`.
+
+| id | Method | Path |
+| --- | --- | --- |
+| `files_sharing.Accept#showAccept` | GET | `/apps/files_sharing/accept/{shareId}` |
+| `files_sharing.Accept#accept.post` | POST | same |
+
+### Auth / status
+
+- `#[NoAdminRequired]`. Map `auth: session` is correct. Map success **200 html-or-json** and **401 login-or-json** are wrong.
+- Unauth HTML → **303** login (`redirect_url`); JSON → **401** `{message}`.
+- `showAccept`: `#[NoCSRFRequired]`. Missing share, missing node, or non-recipient (including link/remote types) → **404 HTML** guest (`core/404`), not JSON.
+- `accept` POST: CSRF required → **412**. Does not re-check recipient; `acceptShare` failure → **404 HTML**. Success → **303** to `files.viewcontroller.showFile` `fileid` (`/index.php/f/{fileid}`), not map 200.
+- Share id is full id (`ocinternal:{numericId}`).
+
 ## Implementation layout
 
 ```
@@ -148,6 +165,7 @@ src/server/files_sharing/
   deleted-share-api.ts
   external-share-store.ts
   remote-share-api.ts
+  accept.ts
   public-link.ts
   public-session.ts
 app/ocs/v2.php/apps/files_sharing/api/v1/
@@ -166,6 +184,7 @@ app/ocs/v2.php/apps/files_sharing/api/v1/
   remote_shares/pending/route.ts
   remote_shares/pending/[id]/route.ts
   remote_shares/[id]/route.ts
+app/apps/files_sharing/accept/[shareId]/route.ts
 app/s/[token]/
   route.ts
   authenticate/[redirect]/route.ts
@@ -174,10 +193,12 @@ app/s/[token]/
 app/index.php/s/[token]/preview/route.ts
 parity/legacy-mock/files-sharing-ocs.ts
 parity/legacy-mock/files-sharing-public-link.ts
+parity/legacy-mock/files-sharing-accept.ts
 parity/tests/files-sharing-share-ocs.parity.test.ts
 parity/tests/files-sharing-public-link.parity.test.ts
 parity/tests/files-sharing-deleted-ocs.parity.test.ts
 parity/tests/files-sharing-remote-ocs.parity.test.ts
+parity/tests/files-sharing-accept.parity.test.ts
 ```
 
 ## Parity notes
@@ -216,8 +237,14 @@ parity/tests/files-sharing-remote-ocs.parity.test.ts
 | GET one remote share | 200 object in `ocs.data`, not array |
 | Unshare unknown id | 404 `"Share does not exist"` |
 | Unshare accepted share, no mount | 403 `"Could not unshare"` |
+| `GET /accept/{id}` unauth JSON | 401 `{message}` |
+| `GET /accept/{id}` unauth HTML | 303 login |
+| `GET /accept/ocinternal:999999` logged-in alice | 404 HTML |
+| `GET /accept/ocinternal:1` pending user share as alice | 200 HTML guest |
+| `POST /accept/{id}` no CSRF | 412 |
+| `POST /accept/ocinternal:1` success | 303 to `/index.php/f/{fileid}` |
 
-Reset `resetDavFileStore()` with files + sharing stores in remote-ocs parity `beforeEach` so file-id counters do not leak across suites. Seed federated rows with `seedExternalShareOnBothSides()` (mock store + `/api/parity/seed-external-share`).
+Reset files + sharing stores (and file-node id counters) in accept parity `beforeEach` via `resetParityFilesStores()` + `resetParityShareStores()`. Seed a pending user share with admin `POST /shares` (`shareType: 0`, `shareWith: alice`), then exercise accept as `alice`.
 
 Seeding a link share for a public-link test needs slice 1: `POST /shares` with `shareType: 3`, then read the token back. `GET /shares/{id}` returns `ocs.data` as a **one-element array**, so the token is `ocs.data[0].token`. Create the share through the parity case so the mock and the Next.js server both hold it, and never send the owner cookie on the `/s/{token}` request.
 

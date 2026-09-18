@@ -10610,19 +10610,25 @@ endpoints:
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: html-guest
+      content_type: text/html
     errors:
+    - status: 303
+      shape: login-redirect
     - status: 401
-      shape: login-or-json
+      shape: json-message
+      content_type: application/json
     - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: html-guest-not-found
+      content_type: text/html
+  status: parity
+  parity: tested
+  next_path: /apps/files_sharing/accept/{shareId}
+  next_handler: src/server/files_sharing/accept.ts
+  parity_test: next/parity/tests/files-sharing-accept.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: NoCSRFRequired. Pending TYPE_USER or TYPE_GROUP recipient only. Map 200 html-or-json and 401 login-or-json were wrong.
 - id: files_sharing.Accept#accept.post
   feature_ids:
   - files_sharing
@@ -10639,20 +10645,28 @@ endpoints:
     body: controller-specific
   response:
     success:
-      status: 200
-      shape: html-or-json
+      status: 303
+      shape: redirect-files-view
     errors:
+    - status: 303
+      shape: login-redirect
     - status: 401
-      shape: login-or-json
+      shape: json-message
+      content_type: application/json
     - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: html-guest-not-found
+      content_type: text/html
+    - status: 412
+      shape: json-message
+      content_type: application/json
+  status: parity
+  parity: tested
+  next_path: /apps/files_sharing/accept/{shareId}
+  next_handler: src/server/files_sharing/accept.ts
+  parity_test: next/parity/tests/files-sharing-accept.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: CSRF required. Does not re-check recipient; acceptShare failure is 404 HTML. Success redirects to files.viewcontroller.showFile fileid, not 200.
 - id: files_sharing.ExternalShares#index
   feature_ids:
   - files_sharing

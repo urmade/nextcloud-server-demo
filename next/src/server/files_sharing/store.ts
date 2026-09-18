@@ -94,7 +94,8 @@ export function createShareRecord(input: {
 		note: input.note ?? '',
 		label: input.label ?? '',
 		status: input.status ?? (
-			input.shareType === SHARE_TYPE_USER && input.sharedWith && input.sharedWith !== input.sharedBy
+			(input.shareType === SHARE_TYPE_USER && input.sharedWith && input.sharedWith !== input.sharedBy)
+				|| input.shareType === SHARE_TYPE_GROUP
 				? SHARE_STATUS_PENDING
 				: SHARE_STATUS_ACCEPTED
 		),
@@ -201,7 +202,19 @@ export function listPendingSharesForUser(userId: string): ShareRecord[] {
 export function acceptShareRecord(id: number, userId: string): boolean {
 	const share = getShareById(id);
 
-	if (!share || share.sharedWith !== userId) {
+	if (!share) {
+		return false;
+	}
+
+	if (share.shareType === SHARE_TYPE_USER) {
+		if (share.sharedWith !== userId) {
+			return false;
+		}
+	} else if (share.shareType === SHARE_TYPE_GROUP) {
+		if (!share.sharedWith || !isUserInGroup(userId, share.sharedWith)) {
+			return false;
+		}
+	} else {
 		return false;
 	}
 

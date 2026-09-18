@@ -3,6 +3,8 @@ import { getParityGroups } from '@/src/server/config/groups';
 import { getConfiguredAdminUserId } from '@/src/server/ocs/admin-auth';
 import { resetKnownUsersStore } from '@/src/server/provisioning/known-users';
 import { resetParityProvisioningConfig } from '@/src/server/provisioning/config';
+import { resetParityPreferenceListeners } from '@/src/server/provisioning/preference-events';
+import { resetUserPreferencesStore } from '@/src/server/provisioning/preference-store';
 
 export type AccountScope = 'v2-private' | 'v2-local' | 'v2-federated' | 'v2-published';
 
@@ -270,4 +272,6 @@ export function resetProvisioningStore(): void {
 	globalForProvisioning.__ncProvisioningSubadmins = new Map();
 	resetKnownUsersStore();
 	resetParityProvisioningConfig();
+	resetParityPreferenceListeners();
+	resetUserPreferencesStore();
 }

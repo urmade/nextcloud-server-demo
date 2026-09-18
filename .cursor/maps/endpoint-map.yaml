@@ -13165,7 +13165,7 @@ endpoints:
           data: any
       content_type: application/json
   status: discovered
-  parity: pending
+  parity: tested
   ocs_version: both
   next_path: null
   next_handler: null
@@ -13213,7 +13213,7 @@ endpoints:
           data: any
       content_type: application/json
   status: discovered
-  parity: pending
+  parity: tested
   ocs_version: both
   next_path: null
   next_handler: null
@@ -13259,7 +13259,7 @@ endpoints:
           data: any
       content_type: application/json
   status: discovered
-  parity: pending
+  parity: tested
   ocs_version: both
   next_path: null
   next_handler: null
@@ -13308,7 +13308,7 @@ endpoints:
           data: any
       content_type: application/json
   status: discovered
-  parity: pending
+  parity: tested
   ocs_version: both
   next_path: null
   next_handler: null

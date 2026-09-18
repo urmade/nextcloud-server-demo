@@ -38,6 +38,7 @@ import { handleDavInvitationHtmlMock, isDavInvitationHtmlMockPath } from './dav-
 import { handleDavBirthdayMock, isDavBirthdayMockPath } from './dav-birthday';
 import { handleDavExampleContentMock, isDavExampleContentMockPath } from './dav-example-content';
 import { handleProvisioningPhoneSearchMock, isProvisioningPhoneSearchMockPath } from './provisioning-phone-search';
+import { handleProvisioningPreferencesMock, isProvisioningPreferencesMockPath } from './provisioning-preferences';
 import { handleProvisioningSelfReadMock, isProvisioningSelfReadMockPath } from './provisioning-self-read';
 import { handleFilesApiMock, isFilesApiPath, isFilesApiWritePath } from './files';
 import { handleFilesDirectEditingMock, isFilesDirectEditingMockPath } from './files-direct-editing';
@@ -688,6 +689,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 
 	if (provisioningPhoneSearch) {
 		return provisioningPhoneSearch;
+	}
+
+	const provisioningPreferences = await handleProvisioningPreferencesMock(pathname, search, options);
+
+	if (provisioningPreferences) {
+		return provisioningPreferences;
 	}
 
 	const publicLeftovers = await handlePublicLeftoversMock(pathname, search, options);

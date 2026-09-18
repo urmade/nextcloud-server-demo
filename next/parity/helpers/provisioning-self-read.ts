@@ -1,4 +1,7 @@
-import { setParityDefaultPhoneRegion as setLocalDefaultPhoneRegion } from '@/src/server/provisioning/config';
+import {
+	setParityDefaultPhoneRegion as setLocalDefaultPhoneRegion,
+	setParityPreferenceFixtureListenerEnabled,
+} from '@/src/server/provisioning/config';
 import { resetProvisioningStore } from '@/src/server/provisioning/store';
 import { getParityEnv } from '../env';
 
@@ -29,5 +32,22 @@ export async function setParityDefaultPhoneRegion(region: string | null): Promis
 
 	if (!response.ok) {
 		throw new Error(`Failed to set Next.js provisioning config (${response.status})`);
+	}
+}
+
+export async function setParityPreferenceFixtureListener(enabled: boolean): Promise<void> {
+	setParityPreferenceFixtureListenerEnabled(enabled);
+
+	const env = getParityEnv();
+	const response = await fetch(`${env.newBaseUrl}/api/parity/set-provisioning-config`, {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+		},
+		body: JSON.stringify({ preferenceFixtureListener: enabled }),
+	});
+
+	if (!response.ok) {
+		throw new Error(`Failed to set Next.js preference fixture listener (${response.status})`);
 	}
 }

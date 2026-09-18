@@ -151,9 +151,17 @@ Parity seeds one editor (`text`) + creator (`textdocument`) for `text/plain`/`te
 
 Frontpage `GET /directEditing/{token}`: **`PublicPage`**, `NoCSRFRequired`, `UseSession`. Map `auth: session` is wrong — token is the credential. Unknown/spent token → `NotFoundResponse`. First GET marks token accessed (one-shot).
 
-### Templates OCS (distinct from direct-editing templates)
+### Templates OCS (implemented; distinct from direct-editing templates)
 
-`list` creators+templates. `listTemplateFields` by `fileId`. `create`: `filePath`, optional `templatePath`, `templateType` default `'user'`, `templateFields` → `FilesTemplateFile`; `GenericFileException` → OCS 403. `path`: **initialize** template dir (`templatePath`, `copySystemTemplates`) → `{template_path, templates}`.
+`TemplateController` at `…/templates` (not `…/directEditing/templates/{editorId}/{creatorId}`). `NoAdminRequired` mixed OCS; unauth v2 **401/997** `data:[]`. POST without `OCS-APIRequest`/Bearer/`requesttoken` → **412** `{message}`.
+
+`list` `GET …/templates` → OCS `data` is JSON **array** of `FilesTemplateFileCreatorWithTemplates` (`templates[]` per creator). Empty creator list → **200** `[]`.
+
+`listTemplateFields` `GET …/templates/fields/{fileId}` → OCS `data` is JSON **array** of `FilesTemplateField`. Unknown/unmatched `fileId` → **200** `[]`, not 404.
+
+`create` `POST …/templates/create` body `{filePath, templatePath?, templateType?, templateFields?}` (`templateType` default `'user'`). Success **200** `FilesTemplateFile`. Existing dest → **403** meta `File already exists`, `data:[]`. Other failures → **403** `Failed to create file from template`. Parity creates **empty** file bytes (no skeleton copy).
+
+`path` `POST …/templates/path` body `{templatePath?, copySystemTemplates?}` → **200** `{template_path, templates}` where `templates` is `listCreators()` (no nested templates). `initializeTemplateDirectory` failures usually still **200** with `template_path:''`.
 
 ### Open local editor
 
@@ -233,6 +241,9 @@ src/server/files/
   filenames.ts
   direct-editing-store.ts
   direct-editing.ts        # OCS info/templates/open/create
+  template-store.ts
+  templates.ts             # OCS list/fields/create/path
+  templates-auth.ts
   view.ts                  # HTML shell + showFile redirect + DirectEditingView
   api.ts                   # requireFilesApiUser + JSON handlers
 app/apps/files/route.ts
@@ -243,6 +254,10 @@ app/ocs/v2.php/apps/files/api/v1/directEditing/route.ts
 app/ocs/v2.php/apps/files/api/v1/directEditing/create/route.ts
 app/ocs/v2.php/apps/files/api/v1/directEditing/open/route.ts
 app/ocs/v2.php/apps/files/api/v1/directEditing/templates/[editorId]/[creatorId]/route.ts
+app/ocs/v2.php/apps/files/api/v1/templates/route.ts
+app/ocs/v2.php/apps/files/api/v1/templates/create/route.ts
+app/ocs/v2.php/apps/files/api/v1/templates/path/route.ts
+app/ocs/v2.php/apps/files/api/v1/templates/fields/[fileId]/route.ts
 app/f/route.ts
 app/f/[fileid]/route.ts
 app/apps/files/api/v1/config/[key]/route.ts
@@ -260,6 +275,7 @@ src/server/files/tags.ts
 parity/legacy-mock/files.ts
 parity/legacy-mock/files-view.ts
 parity/legacy-mock/files-direct-editing.ts
+parity/legacy-mock/files-templates.ts
 parity/legacy-mock/files-filenames.ts
 parity/helpers/files.ts
 app/api/parity/reset-files-store/route.ts
@@ -269,6 +285,7 @@ parity/tests/files-json-crop-tags.parity.test.ts
 parity/tests/files-json-filenames.parity.test.ts
 parity/tests/files-html-shell.parity.test.ts
 parity/tests/files-direct-editing-ocs.parity.test.ts
+parity/tests/files-template-ocs.parity.test.ts
 ```
 
 List/download still go through DAV modules. `computeStorageStats` reads DAV home tree size.
@@ -294,6 +311,11 @@ List/download still go through DAV modules. `computeStorageStats` reads DAV home
 | Happy | getGridView | `{gridview:false}` default |
 | Thumbnail | getThumbnail | 200 image or 404 JSON |
 | Auth | OCS templates | 401/997 anonymous |
+| Happy | template list | 200 `ocs.data` array (maybe `[]`) |
+| Happy | template fields unknown id | 200 `[]` |
+| Happy | template create | 200 `FilesTemplateFile`; empty bytes |
+| Validation | template create duplicate | 403 meta `File already exists` |
+| Happy | template path | 200 `{template_path, templates}` |
 | Happy | folder-tree `path=/` | array of dirs |
 | Conversion | convert | 201 `{path,fileId}` or 400 extension |
 | Direct edit | open | `{url}` contains `/directEditing/` |

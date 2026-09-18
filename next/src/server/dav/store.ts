@@ -98,6 +98,16 @@ function findOrCreateDirectory(segments: string[]): DavFileNode {
 	return current;
 }
 
+export function ensureDirectoryInHome(relativePath: string): void {
+	const segments = relativePath.replace(/^\/+/, '').replace(/\/+$/, '').split('/').filter(Boolean);
+
+	if (segments.length === 0) {
+		return;
+	}
+
+	findOrCreateDirectory(segments);
+}
+
 export function assembleFileIntoHome(relativePath: string, content: Buffer): { created: boolean } {
 	const segments = relativePath.split('/').filter(Boolean);
 	const fileName = segments.pop();

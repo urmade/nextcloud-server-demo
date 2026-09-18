@@ -28,6 +28,7 @@ import { getServiceWorkerResponse } from './service-worker';
 import { getThumbnailResponse } from './thumbnail';
 import { resetDirectEditingStore } from './direct-editing-store';
 import { resetFilenamesStore } from './filenames-store';
+import { resetTemplateStore } from './template-store';
 import { resetFilesViewConfigStore } from './view-config-store';
 
 const JSON_HEADERS = {
@@ -403,4 +404,5 @@ export function resetFilesApiStores(): void {
 	resetFileTagsStore();
 	resetFilenamesStore();
 	resetDirectEditingStore();
+	resetTemplateStore();
 }

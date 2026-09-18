@@ -9578,15 +9578,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files/api/v1/templates
+  next_handler: src/server/files/templates.ts
+  parity_test: next/parity/tests/files-template-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: NoAdminRequired OCS. data is JSON array of creators with nested templates; empty [] valid. Distinct from directEditing/templates.
 - id: files-template-create
   feature_ids:
   - files
@@ -9629,15 +9629,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files/api/v1/templates/create
+  next_handler: src/server/files/templates.ts
+  parity_test: next/parity/tests/files-template-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: GenericFileException → 403 meta.message + data []; only File already exists is distinct message.
 - id: files-template-list-template-fields
   feature_ids:
   - files
@@ -9668,15 +9668,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files/api/v1/templates/fields/{fileId}
+  next_handler: src/server/files/templates.ts
+  parity_test: next/parity/tests/files-template-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Unknown fileId → 200 data [] (JSON array, not object). No 404 in PHP.
 - id: files-template-path
   feature_ids:
   - files
@@ -9719,15 +9719,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files/api/v1/templates/path
+  next_handler: src/server/files/templates.ts
+  parity_test: next/parity/tests/files-template-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: initializeTemplateDirectory; templates key is listCreators without nested templates; manager failures usually 200 template_path ''.
 - id: files-transfer_ownership-transfer
   feature_ids:
   - files

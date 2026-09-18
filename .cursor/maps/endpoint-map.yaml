@@ -6962,10 +6962,10 @@ endpoints:
     - status: 404
       shape: sabre-exception
   status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  parity: tested
+  next_path: /remote.php/dav/principals/calendar-resources/{id}
+  next_handler: middleware.ts → src/server/dav/handler.ts
+  parity_test: next/parity/tests/dav-principals.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   dav_ns: DAV:, urn:ietf:params:xml:ns:caldav, urn:ietf:params:xml:ns:carddav, http://owncloud.org/ns, http://nextcloud.org/ns
@@ -6996,10 +6996,10 @@ endpoints:
     - status: 404
       shape: sabre-exception
   status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  parity: tested
+  next_path: /remote.php/dav/principals/calendar-rooms/{id}
+  next_handler: middleware.ts → src/server/dav/handler.ts
+  parity_test: next/parity/tests/dav-principals.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   dav_ns: DAV:, urn:ietf:params:xml:ns:caldav, urn:ietf:params:xml:ns:carddav, http://owncloud.org/ns, http://nextcloud.org/ns
@@ -7030,10 +7030,10 @@ endpoints:
     - status: 404
       shape: sabre-exception
   status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  parity: tested
+  next_path: /remote.php/dav/principals/groups/{groupId}
+  next_handler: middleware.ts → src/server/dav/handler.ts
+  parity_test: next/parity/tests/dav-principals.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   dav_ns: DAV:, urn:ietf:params:xml:ns:caldav, urn:ietf:params:xml:ns:carddav, http://owncloud.org/ns, http://nextcloud.org/ns
@@ -7064,10 +7064,10 @@ endpoints:
     - status: 404
       shape: sabre-exception
   status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  parity: tested
+  next_path: /remote.php/dav/principals/system/{name}
+  next_handler: middleware.ts → src/server/dav/handler.ts
+  parity_test: next/parity/tests/dav-principals.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   dav_ns: DAV:, urn:ietf:params:xml:ns:caldav, urn:ietf:params:xml:ns:carddav, http://owncloud.org/ns, http://nextcloud.org/ns
@@ -7098,10 +7098,10 @@ endpoints:
     - status: 404
       shape: sabre-exception
   status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  parity: tested
+  next_path: /remote.php/dav/principals/users/{userId}
+  next_handler: middleware.ts → src/server/dav/handler.ts
+  parity_test: next/parity/tests/dav-principals.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   dav_ns: DAV:, urn:ietf:params:xml:ns:caldav, urn:ietf:params:xml:ns:carddav, http://owncloud.org/ns, http://nextcloud.org/ns

@@ -2,6 +2,9 @@ const NS_DAV = 'DAV:';
 const NS_OC = 'http://owncloud.org/ns';
 const NS_NC = 'http://nextcloud.org/ns';
 const NS_SABRE = 'http://sabredav.org/ns';
+const NS_CALDAV = 'urn:ietf:params:xml:ns:caldav';
+const NS_CARDDAV = 'urn:ietf:params:xml:ns:carddav';
+const NS_NEXTCLOUD = 'http://nextcloud.com/ns';
 
 function escapeXml(value: string): string {
 	return value
@@ -79,4 +82,79 @@ export function buildNotAuthenticatedXml(message: string): string {
 
 export function buildPreconditionFailedXml(message: string): string {
 	return buildSabreErrorXml('Sabre\\DAV\\Exception\\PreconditionFailed', message);
+}
+
+function localNameFromPropKey(key: string): { namespace: string; localName: string } | null {
+	const match = /^\{([^}]+)\}(.+)$/.exec(key);
+
+	if (!match) {
+		return null;
+	}
+
+	return {
+		namespace: match[1],
+		localName: match[2],
+	};
+}
+
+function namespacePrefix(namespace: string): string {
+	switch (namespace) {
+		case NS_DAV:
+			return 'd';
+		case NS_CALDAV:
+			return 'cal';
+		case NS_CARDDAV:
+			return 'card';
+		case NS_NEXTCLOUD:
+			return 'nc';
+		case NS_OC:
+			return 'oc';
+		default:
+			return 'x';
+	}
+}
+
+function renderExtraProp(key: string, value: string): string {
+	const parsed = localNameFromPropKey(key);
+
+	if (!parsed) {
+		return '';
+	}
+
+	const prefix = namespacePrefix(parsed.namespace);
+
+	return `<${prefix}:${parsed.localName}>${escapeXml(value)}</${prefix}:${parsed.localName}>`;
+}
+
+export function buildPrincipalPropfindMultistatus(responses: Array<{
+	href: string;
+	displayName: string;
+	isCollection: boolean;
+	extraProps?: Record<string, string>;
+}>): string {
+	const parts = responses.map((entry) => {
+		const resourceType = entry.isCollection
+			? `<d:resourcetype><d:collection/></d:resourcetype>`
+			: `<d:resourcetype/>`;
+		const extra = Object.entries(entry.extraProps ?? {})
+			.map(([key, value]) => renderExtraProp(key, value))
+			.join('');
+
+		return `<d:response>`
+			+ `<d:href>${escapeXml(entry.href)}</d:href>`
+			+ `<d:propstat>`
+			+ `<d:prop>`
+			+ resourceType
+			+ `<d:displayname>${escapeXml(entry.displayName)}</d:displayname>`
+			+ extra
+			+ `</d:prop>`
+			+ `<d:status>HTTP/1.1 200 OK</d:status>`
+			+ `</d:propstat>`
+			+ `</d:response>`;
+	});
+
+	return `<?xml version="1.0" encoding="utf-8"?>`
+		+ `<d:multistatus xmlns:d="${NS_DAV}" xmlns:cal="${NS_CALDAV}" xmlns:card="${NS_CARDDAV}" xmlns:nc="${NS_NEXTCLOUD}">`
+		+ parts.join('')
+		+ `</d:multistatus>`;
 }

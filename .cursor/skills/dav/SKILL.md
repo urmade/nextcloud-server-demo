@@ -205,6 +205,22 @@ Parity extras (`next/parity/tests/dav-cal-ocs.parity.test.ts`): unknown accept 4
 
 Parity (`next/parity/tests/dav-birthday.parity.test.ts`): unauth JSON **401** `{message}`; HTML **303** login; non-admin **403**; no CSRF **412**; enable/disable admin **200** `[]`. Reset via `resetParityBirthdayStores()` → `/api/parity/reset-dav-birthday-store`.
 
+### Principals — `dav-principals` (`parity: tested`)
+
+Next.js: `src/server/dav/principals.ts` + `principals-store.ts`; PROPFIND branches in `handler.ts` on v2 tree.
+
+| Step | Method | Path | Notes |
+| --- | --- | --- | --- |
+| Own user principal | PROPFIND | `/remote.php/dav/principals/users/{uid}/` | depth 0 → **207** multistatus (`bp-dav-xml-normalize`) |
+| Group principal | PROPFIND | `/remote.php/dav/principals/groups/{groupId}/` | depth 0 → **207** |
+| System principal | PROPFIND | `/remote.php/dav/principals/system/{name}/` | `system` + `public` exist |
+| Public system principal | PROPFIND | `/remote.php/dav/principals/system/public/` | **PublicAuth** — no creds, not **401** |
+| Resource/room/remote | PROPFIND | `…/calendar-resources/{id}`, `…/calendar-rooms/{id}`, `…/remote-users/{id}` | unknown id → **404** |
+
+Collection children listing disabled unless `NC_DAV_DEBUG=true` (observe depth-1 on `principals/users/` — no child enumeration). Unauth (except `system/public`) → **401** Sabre XML + Basic `WWW-Authenticate`.
+
+Parity extras (`next/parity/tests/dav-principals.parity.test.ts`): unauth 401; own principal PROPFIND 207; unknown principal 404; `system/public` unauth not 401; depth-1 users collection no listing. Reset via `resetParityPrincipalsStores()` → `/api/parity/reset-dav-principals-store`.
+
 ### Calendar/contacts import-export
 
 `#[ApiRoute]` under `/calendar` and `/contacts`. Export: stream ical/jcal/xcal; UserRateLimit 1/60s; own calendar or **admin** + `user` query. Import: NDJSON `application/x-ndjson`; rate 10/3600; calendar/addressbook must be writable. Contacts default format `'ical'` as written.

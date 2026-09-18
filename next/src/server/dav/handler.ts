@@ -1,5 +1,12 @@
 import { davUnauthorizedResponse, resolveDavUserId } from './auth-basic';
 import { collectPropfindResponses, parseDepthHeader, resolveDavResource } from './files';
+import {
+	buildPrincipalPropfindBody,
+	isPrincipalPath,
+	isPublicPrincipalPath,
+	parsePrincipalDepth,
+	parsePrincipalPath,
+} from './principals';
 import { parseDavRequest } from './remote';
 import {
 	assertUploadAccess,
@@ -54,6 +61,27 @@ function handleOptions(): Response {
 			'content-length': '0',
 		},
 	});
+}
+
+function handlePrincipalPropfind(
+	request: Request,
+	parsed: ReturnType<typeof parseDavRequest>,
+	userId: string | null,
+): Response {
+	const principalPath = parsePrincipalPath(parsed!);
+
+	if (!principalPath) {
+		return xmlResponse(buildNotFoundXml('File not found'), 404);
+	}
+
+	const depth = parsePrincipalDepth(request);
+	const body = buildPrincipalPropfindBody(principalPath, depth);
+
+	if (body === 'not-found') {
+		return xmlResponse(buildNotFoundXml('Principal with name ' + (principalPath.principalId ?? '') + ' was not found'), 404);
+	}
+
+	return xmlResponse(body, 207, userId ? { 'x-user-id': userId } : {});
 }
 
 function handleFilesPropfind(request: Request, parsed: ReturnType<typeof parseDavRequest>, userId: string): Response {
@@ -114,6 +142,20 @@ function handleUploadPropfind(request: Request, parsed: ReturnType<typeof parseD
 }
 
 function handlePropfind(request: Request, parsed: ReturnType<typeof parseDavRequest>, resolveUser: ResolveUser): Response {
+	if (parsed!.ingress === 'v2' && isPrincipalPath(parsed!)) {
+		if (isPublicPrincipalPath(parsed!.davPath)) {
+			return handlePrincipalPropfind(request, parsed, null);
+		}
+
+		const userId = resolveUser(request);
+
+		if (!userId) {
+			return davUnauthorizedResponse();
+		}
+
+		return handlePrincipalPropfind(request, parsed, userId);
+	}
+
 	const userId = resolveUser(request);
 
 	if (!userId) {
@@ -233,6 +275,10 @@ export async function handleDavRequest(
 	const method = request.method.toUpperCase();
 
 	if (method === 'OPTIONS') {
+		if (parsed.ingress === 'v2' && isPrincipalPath(parsed) && isPublicPrincipalPath(parsed.davPath)) {
+			return handleOptions();
+		}
+
 		const userId = resolveUser(request);
 
 		if (!userId) {

@@ -278,9 +278,17 @@ Next.js: `src/server/dav/auth-legacy-carddav.ts` + legacy path parsing in `addre
 
 Parity extras (`next/parity/tests/dav-legacy-carddav.parity.test.ts`): unauth 401; Bearer-only 401; own PROPFIND 207; alias same book. Reset/seed via `resetParityAddressBooksStores()` (shared with `dav-addressbooks`).
 
-### Calendar/contacts import-export
+### Calendar/contacts import-export — `dav-cal-contacts-io` (`parity: tested`)
 
-`#[ApiRoute]` under `/calendar` and `/contacts`. Export: stream ical/jcal/xcal; UserRateLimit 1/60s; own calendar or **admin** + `user` query. Import: NDJSON `application/x-ndjson`; rate 10/3600; calendar/addressbook must be writable. Contacts default format `'ical'` as written.
+Next.js: `src/server/dav/cal-contacts-io.ts`; routes `app/ocs/v2.php/calendar/export|import/route.ts`, `app/ocs/v2.php/contacts/import/route.ts`. Reuses `calendars-store` + `addressbooks-store`.
+
+| Step | Method | Path | Notes |
+| --- | --- | --- | --- |
+| Export | POST | `/ocs/v2.php/calendar/export?format=json` | Body `{target,type?,options?,user?}`. Success **stream** `text/calendar` / `application/calendar+json` / `application/calendar+xml`. Formats `ical\|jcal\|xcal`. Missing calendar / bad format / unknown `user` → **400** `{error:…}`. Non-admin other `user` → **401** `[]`. **PHP bug:** admin + `user` query leaves `$userId` unset — do not invent a working path. |
+| Calendar import | POST | `/ocs/v2.php/calendar/import?format=json` | Body `{transaction,target,options?,data,user?}`. Success **NDJSON** `application/x-ndjson` (map OCS JSON is a lie). Missing / not-writable calendar → **400** `{error:…}`. |
+| Contacts import | POST | `/ocs/v2.php/contacts/import?format=json` | Same NDJSON contract. Default format `'ical'` as written (vcf-only importer → invalid format). Missing book → **400** `{error:…}`. |
+
+Parity extras (`next/parity/tests/dav-cal-contacts-io.parity.test.ts`): unauth 401/997; export missing calendar 400; import missing book 400; export 200 calendar content-type. Reset/seed via `resetParityCalendarsStores()` + `resetParityAddressBooksStores()`.
 
 ## Auth / tenant rules
 

@@ -6474,15 +6474,15 @@ endpoints:
     - status: 401
       shape: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: implemented
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/calendar/export
+  next_handler: src/server/dav/cal-contacts-io.ts
+  parity_test: next/parity/tests/dav-cal-contacts-io.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Stream export ical|jcal|xcal; admin-for-other-user export broken in PHP (undefined userId) — not fixed here.
 - id: dav-calendar_import-import
   feature_ids:
   - dav
@@ -6528,15 +6528,15 @@ endpoints:
     - status: 401
       shape: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: implemented
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/calendar/import
+  next_handler: src/server/dav/cal-contacts-io.ts
+  parity_test: next/parity/tests/dav-cal-contacts-io.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Success is NDJSON application/x-ndjson, not generic OCS JSON.
 - id: dav-contacts_import-import
   feature_ids:
   - dav
@@ -6578,15 +6578,15 @@ endpoints:
     - status: 401
       shape: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: implemented
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/contacts/import
+  next_handler: src/server/dav/cal-contacts-io.ts
+  parity_test: next/parity/tests/dav-cal-contacts-io.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Success is NDJSON application/x-ndjson; default format ical as written (invalid for vcf-only importer).
 - id: dav.LegacyCalDAV#caldav
   feature_ids:
   - dav

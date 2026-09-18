@@ -32,6 +32,7 @@ import { handleWipeMock } from './wipe';
 import { handleDavMock, isDavMockMethod } from './dav';
 import { handleDavDirectMock, isDavDirectMockPath } from './dav-direct';
 import { handleDavOutOfOfficeMock, isDavOutOfOfficeMockPath } from './dav-out-of-office';
+import { handleDavCalContactsIoMock, isDavCalContactsIoMockPath } from './dav-cal-contacts-io';
 import { handleDavCalOcsMock, isDavCalOcsMockPath } from './dav-cal-ocs';
 import { handleDavInvitationHtmlMock, isDavInvitationHtmlMockPath } from './dav-invitation-html';
 import { handleDavBirthdayMock, isDavBirthdayMockPath } from './dav-birthday';
@@ -444,6 +445,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return davCalOcs;
 	}
 
+	const davCalContactsIo = await handleDavCalContactsIoMock(pathname, search, options);
+
+	if (davCalContactsIo) {
+		return davCalContactsIo;
+	}
+
 	const davInvitationHtml = await handleDavInvitationHtmlMock(pathname, search, options);
 
 	if (davInvitationHtml) {
@@ -825,6 +832,10 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (isDavCalOcsMockPath(pathname)) {
+		return true;
+	}
+
+	if (isDavCalContactsIoMockPath(pathname, normalizedMethod)) {
 		return true;
 	}
 

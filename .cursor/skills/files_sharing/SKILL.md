@@ -112,6 +112,28 @@ A successful `authenticate` POST regenerates the session id and must persist bot
 - Success undelete → **200** `data: []`.
 - Parity fixture group: `parity-users` (`admin`, `alice`). Use Basic auth for `alice` on recipient-only calls.
 
+## Remote shares (slice 4)
+
+`RemoteController` + `External\Manager`. Map `auth: mixed` is wrong — **session required**. Not gated by incoming/outgoing S2S flags.
+
+| id | Method | Path |
+| --- | --- | --- |
+| `files_sharing-remote-get-open-shares` | GET | `/remote_shares/pending` |
+| `files_sharing-remote-accept-share` | POST | `/remote_shares/pending/{id}` |
+| `files_sharing-remote-decline-share` | DELETE | `/remote_shares/pending/{id}` |
+| `files_sharing-remote-get-shares` | GET | `/remote_shares` |
+| `files_sharing-remote-get-share` | GET | `/remote_shares/{id}` |
+| `files_sharing-remote-unshare` | DELETE | `/remote_shares/{id}` |
+
+### Traps
+
+- Open vs accepted: `STATUS_PENDING` vs `STATUS_ACCEPTED`. Mapper miss → empty list, not 500.
+- `extendShareInfo`: `parent === '-1'` → **null**; filecache fields only when mount exists, else nulls. Pending shares are usually unmounted.
+- Accept/decline missing or manager false → same **404** `"Wrong share ID, share does not exist."`
+- GET one missing → **404** `"share does not exist"` (different string). Success is an **object**, not a list.
+- Unshare missing → **404** `"Share does not exist"`; `removeShare` false → **403** `"Could not unshare"`.
+- Unshare mount path: `'/' . $userId . '/files' . $mountpoint`.
+
 ## Implementation layout
 
 ```
@@ -124,6 +146,8 @@ src/server/files_sharing/
   share-api.ts
   sharees-api.ts
   deleted-share-api.ts
+  external-share-store.ts
+  remote-share-api.ts
   public-link.ts
   public-session.ts
 app/ocs/v2.php/apps/files_sharing/api/v1/
@@ -138,6 +162,10 @@ app/ocs/v2.php/apps/files_sharing/api/v1/
   sharees_recommended/route.ts
   deletedshares/route.ts
   deletedshares/[id]/route.ts
+  remote_shares/route.ts
+  remote_shares/pending/route.ts
+  remote_shares/pending/[id]/route.ts
+  remote_shares/[id]/route.ts
 app/s/[token]/
   route.ts
   authenticate/[redirect]/route.ts
@@ -149,6 +177,7 @@ parity/legacy-mock/files-sharing-public-link.ts
 parity/tests/files-sharing-share-ocs.parity.test.ts
 parity/tests/files-sharing-public-link.parity.test.ts
 parity/tests/files-sharing-deleted-ocs.parity.test.ts
+parity/tests/files-sharing-remote-ocs.parity.test.ts
 ```
 
 ## Parity notes
@@ -179,8 +208,16 @@ parity/tests/files-sharing-deleted-ocs.parity.test.ts
 | `POST /deletedshares/ocinternal:1` after restore | 200 `[]` |
 | Undelete unknown id | 404 |
 | Undelete active share | 404 `"No deleted share found"` |
+| `GET /remote_shares/pending` unauth | 401/997 |
+| `GET /remote_shares/pending` empty | 200 `[]` |
+| Pending remote share list + accept | 200, `parent: null`, then accepted list |
+| Accept unknown id | 404 `"Wrong share ID, share does not exist."` |
+| GET unknown remote share | 404 `"share does not exist"` |
+| GET one remote share | 200 object in `ocs.data`, not array |
+| Unshare unknown id | 404 `"Share does not exist"` |
+| Unshare accepted share, no mount | 403 `"Could not unshare"` |
 
-Reset `resetDavFileStore()` with files + sharing stores in deleted-ocs parity `beforeEach` so file-id counters do not leak across suites.
+Reset `resetDavFileStore()` with files + sharing stores in remote-ocs parity `beforeEach` so file-id counters do not leak across suites. Seed federated rows with `seedExternalShareOnBothSides()` (mock store + `/api/parity/seed-external-share`).
 
 Seeding a link share for a public-link test needs slice 1: `POST /shares` with `shareType: 3`, then read the token back. `GET /shares/{id}` returns `ocs.data` as a **one-element array**, so the token is `ocs.data[0].token`. Create the share through the parity case so the mock and the Next.js server both hold it, and never send the owner cookie on the `/s/{token}` request.
 

@@ -118,6 +118,43 @@ export interface FormattedDeletedShare {
 	share_with_displayname?: string;
 }
 
+export interface ExternalShareRecord {
+	id: string;
+	parent: string;
+	shareType: number;
+	remote: string;
+	remoteId: string;
+	refreshToken: string;
+	password: string | null;
+	accessToken: string | null;
+	accessTokenExpires: number | null;
+	name: string;
+	owner: string;
+	user: string;
+	mountpoint: string;
+	accepted: number;
+}
+
+export interface FormattedRemoteShare {
+	id: string;
+	parent: string | null;
+	share_type: number;
+	remote: string;
+	remote_id: string;
+	refresh_token: string;
+	name: string;
+	owner: string;
+	user: string;
+	mountpoint: string;
+	accepted: number;
+	file_id: number | null;
+	mimetype: string | null;
+	permissions: number | null;
+	mtime: number | null;
+	type: string | null;
+	item_size: number | null;
+}
+
 export interface ShareesSearchResult {
 	exact: {
 		users: unknown[];

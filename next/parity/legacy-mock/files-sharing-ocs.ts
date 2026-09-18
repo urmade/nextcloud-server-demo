@@ -5,6 +5,14 @@ import {
 	handleUndeleteShare,
 } from '@/src/server/files_sharing/deleted-share-api';
 import {
+	handleAcceptRemoteShare,
+	handleDeclineRemoteShare,
+	handleGetOpenShares,
+	handleGetRemoteShare,
+	handleGetRemoteShares,
+	handleUnshareRemoteShare,
+} from '@/src/server/files_sharing/remote-share-api';
+import {
 	handleAcceptShare,
 	handleCreateShare,
 	handleDeleteShare,
@@ -35,6 +43,10 @@ const PENDING_ID_PATH = /^\/ocs\/v2\.php\/apps\/files_sharing\/api\/v1\/shares\/
 const SEND_EMAIL_PATH = /^\/ocs\/v2\.php\/apps\/files_sharing\/api\/v1\/shares\/(\d+)\/send-email$/;
 const DELETED_SHARES_PATH = '/ocs/v2.php/apps/files_sharing/api/v1/deletedshares';
 const DELETED_SHARE_ID_PATH = /^\/ocs\/v2\.php\/apps\/files_sharing\/api\/v1\/deletedshares\/([^/]+)$/;
+const REMOTE_SHARES_PATH = '/ocs/v2.php/apps/files_sharing/api/v1/remote_shares';
+const REMOTE_PENDING_PATH = '/ocs/v2.php/apps/files_sharing/api/v1/remote_shares/pending';
+const REMOTE_PENDING_ID_PATH = /^\/ocs\/v2\.php\/apps\/files_sharing\/api\/v1\/remote_shares\/pending\/([^/]+)$/;
+const REMOTE_SHARE_ID_PATH = /^\/ocs\/v2\.php\/apps\/files_sharing\/api\/v1\/remote_shares\/([^/]+)$/;
 
 function buildRequest(pathname: string, search: string, options: ParityRequestOptions): Request {
 	const origin = 'http://127.0.0.1:3100';
@@ -108,6 +120,42 @@ export async function handleFilesSharingOcsMock(
 		return responseToSnapshot(handleGetDeletedShares(buildRequest(pathname, search, options)));
 	}
 
+	if (method === 'GET' && pathname === REMOTE_SHARES_PATH) {
+		return responseToSnapshot(handleGetRemoteShares(buildRequest(pathname, search, options)));
+	}
+
+	if (method === 'GET' && pathname === REMOTE_PENDING_PATH) {
+		return responseToSnapshot(handleGetOpenShares(buildRequest(pathname, search, options)));
+	}
+
+	const remotePendingMatch = REMOTE_PENDING_ID_PATH.exec(pathname);
+
+	if (remotePendingMatch) {
+		const id = remotePendingMatch[1];
+
+		if (method === 'POST') {
+			return responseToSnapshot(handleAcceptRemoteShare(buildRequest(pathname, search, options), id));
+		}
+
+		if (method === 'DELETE') {
+			return responseToSnapshot(handleDeclineRemoteShare(buildRequest(pathname, search, options), id));
+		}
+	}
+
+	const remoteShareMatch = REMOTE_SHARE_ID_PATH.exec(pathname);
+
+	if (remoteShareMatch) {
+		const id = remoteShareMatch[1];
+
+		if (method === 'GET') {
+			return responseToSnapshot(handleGetRemoteShare(buildRequest(pathname, search, options), id));
+		}
+
+		if (method === 'DELETE') {
+			return responseToSnapshot(handleUnshareRemoteShare(buildRequest(pathname, search, options), id));
+		}
+	}
+
 	const deletedShareMatch = DELETED_SHARE_ID_PATH.exec(pathname);
 
 	if (method === 'POST' && deletedShareMatch) {
@@ -158,7 +206,10 @@ export function isFilesSharingOcsMockPath(pathname: string, method = 'GET'): boo
 		|| pathname === SHAREES_PATH
 		|| pathname === SHAREES_RECOMMENDED_PATH
 		|| pathname === DELETED_SHARES_PATH
+		|| pathname === REMOTE_SHARES_PATH
+		|| pathname === REMOTE_PENDING_PATH
 		|| SHARE_ID_PATH.test(pathname)
+		|| REMOTE_SHARE_ID_PATH.test(pathname)
 	)) {
 		return true;
 	}
@@ -168,6 +219,7 @@ export function isFilesSharingOcsMockPath(pathname: string, method = 'GET'): boo
 		|| PENDING_ID_PATH.test(pathname)
 		|| SEND_EMAIL_PATH.test(pathname)
 		|| DELETED_SHARE_ID_PATH.test(pathname)
+		|| REMOTE_PENDING_ID_PATH.test(pathname)
 	)) {
 		return true;
 	}
@@ -176,7 +228,11 @@ export function isFilesSharingOcsMockPath(pathname: string, method = 'GET'): boo
 		return true;
 	}
 
-	if (normalizedMethod === 'DELETE' && SHARE_ID_PATH.test(pathname)) {
+	if (normalizedMethod === 'DELETE' && (
+		SHARE_ID_PATH.test(pathname)
+		|| REMOTE_PENDING_ID_PATH.test(pathname)
+		|| REMOTE_SHARE_ID_PATH.test(pathname)
+	)) {
 		return true;
 	}
 

@@ -11085,7 +11085,7 @@ endpoints:
   method: GET
   legacy_path: /ocs/v2.php/apps/files_sharing/api/v1/remote_shares
   legacy_source: openapi.json operationId=files_sharing-remote-get-shares
-  auth: mixed
+  auth: session
   request:
     params: {}
     query: {}
@@ -11108,12 +11108,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files_sharing/api/v1/remote_shares
+  next_handler: src/server/files_sharing/remote-share-api.ts
+  parity_test: next/parity/tests/files-sharing-remote-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -11124,7 +11124,7 @@ endpoints:
   method: GET
   legacy_path: /ocs/v2.php/apps/files_sharing/api/v1/remote_shares/pending
   legacy_source: openapi.json operationId=files_sharing-remote-get-open-shares
-  auth: mixed
+  auth: session
   request:
     params: {}
     query: {}
@@ -11147,12 +11147,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files_sharing/api/v1/remote_shares/pending
+  next_handler: src/server/files_sharing/remote-share-api.ts
+  parity_test: next/parity/tests/files-sharing-remote-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -11163,7 +11163,7 @@ endpoints:
   method: DELETE
   legacy_path: /ocs/v2.php/apps/files_sharing/api/v1/remote_shares/pending/{id}
   legacy_source: openapi.json operationId=files_sharing-remote-decline-share
-  auth: mixed
+  auth: session
   request:
     params:
       id: string
@@ -11192,12 +11192,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files_sharing/api/v1/remote_shares/pending/{id}
+  next_handler: src/server/files_sharing/remote-share-api.ts
+  parity_test: next/parity/tests/files-sharing-remote-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -11208,7 +11208,7 @@ endpoints:
   method: POST
   legacy_path: /ocs/v2.php/apps/files_sharing/api/v1/remote_shares/pending/{id}
   legacy_source: openapi.json operationId=files_sharing-remote-accept-share
-  auth: mixed
+  auth: session
   request:
     params:
       id: string
@@ -11237,12 +11237,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files_sharing/api/v1/remote_shares/pending/{id}
+  next_handler: src/server/files_sharing/remote-share-api.ts
+  parity_test: next/parity/tests/files-sharing-remote-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -11253,7 +11253,7 @@ endpoints:
   method: DELETE
   legacy_path: /ocs/v2.php/apps/files_sharing/api/v1/remote_shares/{id}
   legacy_source: openapi.json operationId=files_sharing-remote-unshare
-  auth: mixed
+  auth: session
   request:
     params:
       id: string
@@ -11288,12 +11288,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files_sharing/api/v1/remote_shares/{id}
+  next_handler: src/server/files_sharing/remote-share-api.ts
+  parity_test: next/parity/tests/files-sharing-remote-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -11304,7 +11304,7 @@ endpoints:
   method: GET
   legacy_path: /ocs/v2.php/apps/files_sharing/api/v1/remote_shares/{id}
   legacy_source: openapi.json operationId=files_sharing-remote-get-share
-  auth: mixed
+  auth: session
   request:
     params:
       id: string
@@ -11333,12 +11333,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files_sharing/api/v1/remote_shares/{id}
+  next_handler: src/server/files_sharing/remote-share-api.ts
+  parity_test: next/parity/tests/files-sharing-remote-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.

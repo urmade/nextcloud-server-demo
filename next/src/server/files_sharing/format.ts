@@ -7,8 +7,16 @@ import {
 	SHARE_TYPE_LINK,
 	SHARE_TYPE_USER,
 } from './constants';
-import { getNodeParentId, nodeHasPreview, resolveUserNode } from './nodes';
-import type { FormattedDeletedShare, FormattedShare, ShareRecord } from './types';
+import { findNodeByRelativePath, getNodeParentId, nodeHasPreview, resolveUserNode } from './nodes';
+import { getDefaultDavUserId } from '@/src/server/dav/store';
+import type { DavFileNode } from '@/src/server/dav/types';
+import type {
+	ExternalShareRecord,
+	FormattedDeletedShare,
+	FormattedRemoteShare,
+	FormattedShare,
+	ShareRecord,
+} from './types';
 
 function displayNameForUser(userId: string): string {
 	return findParityUser(userId)?.displayName ?? userId;
@@ -142,6 +150,55 @@ export function formatDeletedShare(share: ShareRecord, _userId: string): Formatt
 		const group = findParityGroup(share.sharedWith);
 		formatted.share_with = share.sharedWith;
 		formatted.share_with_displayname = group?.displayName ?? share.sharedWith;
+	}
+
+	return formatted;
+}
+
+function tryResolveRemoteMountNode(userId: string, mountpoint: string): DavFileNode | null {
+	if (userId !== getDefaultDavUserId()) {
+		return null;
+	}
+
+	const mountPath = mountpoint.replace(/^\/+/, '');
+
+	if (!mountPath || mountPath.startsWith('{{TemporaryMountPointName#')) {
+		return null;
+	}
+
+	return findNodeByRelativePath(mountPath);
+}
+
+export function formatRemoteShare(share: ExternalShareRecord, userId: string): FormattedRemoteShare {
+	const formatted: FormattedRemoteShare = {
+		id: share.id,
+		parent: share.parent !== '-1' ? share.parent : null,
+		share_type: share.shareType,
+		remote: share.remote,
+		remote_id: share.remoteId,
+		refresh_token: share.refreshToken,
+		name: share.name,
+		owner: share.owner,
+		user: share.user,
+		mountpoint: share.mountpoint,
+		accepted: share.accepted,
+		file_id: null,
+		mimetype: null,
+		permissions: null,
+		mtime: null,
+		type: null,
+		item_size: null,
+	};
+
+	const mountNode = tryResolveRemoteMountNode(userId, share.mountpoint);
+
+	if (mountNode) {
+		formatted.mimetype = mountNode.contentType ?? null;
+		formatted.mtime = mountNode.mtime ?? null;
+		formatted.permissions = 31;
+		formatted.type = mountNode.kind;
+		formatted.file_id = mountNode.fileId;
+		formatted.item_size = mountNode.size ?? null;
 	}
 
 	return formatted;

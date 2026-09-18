@@ -1,3 +1,4 @@
+import { resetExternalShareStore } from '@/src/server/files_sharing/external-share-store';
 import { resetShareStore } from '@/src/server/files_sharing/store';
 
 export async function POST() {
@@ -6,6 +7,7 @@ export async function POST() {
 	}
 
 	resetShareStore();
+	resetExternalShareStore();
 
 	return new Response(null, { status: 204 });
 }

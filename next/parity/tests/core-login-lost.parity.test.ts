@@ -1,15 +1,13 @@
-import { afterEach, describe, expect, it } from 'vitest';
-import { resetCredentialOverrides } from '@/src/server/auth/credentials';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
 	computeDeterministicLostPasswordToken,
 	LOST_PASSWORD_EXPIRED_TOKEN,
-	resetLostPasswordStore,
 	setLostPasswordLinkConfig,
 } from '@/src/server/auth/lost-password-store';
-import { resetSessionStore } from '@/src/server/auth/session-store';
 import { getParityEnv } from '../env';
 import { fetchLegacyMockSnapshot } from '../legacy-mock/adapter';
 import { formatParityMismatches, runParityCase } from '../harness';
+import { resetParityAuthStores } from '../helpers/auth';
 import { cookieJarToHeader, mergeResponseCookies, parseSetCookieHeader } from '../helpers/cookies';
 import type { ParityResponseSnapshot } from '../types';
 
@@ -115,10 +113,12 @@ function adminResetToken(): string {
 }
 
 describe('parity: core-login-lost', () => {
-	afterEach(() => {
-		resetSessionStore();
-		resetLostPasswordStore();
-		resetCredentialOverrides();
+	beforeEach(async () => {
+		await resetParityAuthStores();
+	});
+
+	afterEach(async () => {
+		await resetParityAuthStores();
 	});
 
 	it('POST /lostpassword/email happy path returns success JSON', async () => {

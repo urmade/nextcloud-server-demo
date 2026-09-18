@@ -6,10 +6,17 @@ import { getGridViewEnabled, setGridViewEnabled } from './grid-view';
 import { computeStorageStats } from './stats';
 import {
 	getUserConfigs,
+	setCropImagePreviews,
 	setShowHiddenFiles,
 	setUserConfig,
 	UserConfigValidationError,
 } from './user-config';
+import {
+	FileNotFoundError,
+	resetFileTagsStore,
+	StorageNotAvailableError,
+	updateFileTags,
+} from './tags';
 import { resetFilesUserConfigStore } from './user-config-store';
 import {
 	getViewConfigs,
@@ -292,7 +299,77 @@ export async function handleShowGridView(request: Request): Promise<Response> {
 	return emptyOk();
 }
 
+function jsonDataResponse(data: unknown, status = 200): Response {
+	return new Response(JSON.stringify(data), {
+		status,
+		headers: JSON_HEADERS,
+	});
+}
+
+function notFoundJson(message: string): Response {
+	return jsonDataResponse({ message }, 404);
+}
+
+function serviceUnavailableJson(message: string): Response {
+	return jsonDataResponse({ message }, 503);
+}
+
+export async function handleCropImagePreviews(request: Request): Promise<Response> {
+	const context = await requireFilesApiMutation(request);
+
+	if (context instanceof Response) {
+		return context;
+	}
+
+	const value = context.body.value === true || context.body.value === '1' || context.body.value === 1;
+
+	setCropImagePreviews(context.userId, value);
+
+	return emptyOk();
+}
+
+export async function handleUpdateFileTags(request: Request, path: string): Promise<Response> {
+	const context = await requireFilesApiMutation(request);
+
+	if (context instanceof Response) {
+		return context;
+	}
+
+	if (!('tags' in context.body)) {
+		return jsonDataResponse({});
+	}
+
+	const tags = context.body.tags;
+
+	if (!Array.isArray(tags)) {
+		return notFoundJson('Invalid tags payload');
+	}
+
+	const normalizedTags = tags.filter((tag): tag is string => typeof tag === 'string');
+
+	try {
+		const updatedTags = updateFileTags(context.userId, path, normalizedTags);
+
+		return jsonDataResponse({ tags: updatedTags });
+	} catch (error) {
+		if (error instanceof FileNotFoundError) {
+			return notFoundJson(error.message);
+		}
+
+		if (error instanceof StorageNotAvailableError) {
+			return serviceUnavailableJson(error.message);
+		}
+
+		if (error instanceof Error) {
+			return notFoundJson(error.message);
+		}
+
+		throw error;
+	}
+}
+
 export function resetFilesApiStores(): void {
 	resetFilesUserConfigStore();
 	resetFilesViewConfigStore();
+	resetFileTagsStore();
 }

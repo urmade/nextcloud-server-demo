@@ -8594,21 +8594,23 @@ endpoints:
     params: {}
     query: {}
     headers: {}
-    body: controller-specific
+    body: '{value:bool}'
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: empty
     errors:
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: '{message}'
+    - status: 303
+      shape: redirect-root-strict-cookie
+    - status: 412
+      shape: '{message}'
+  status: parity
+  parity: tested
+  next_path: /apps/files/api/v1/cropimagepreviews
+  next_handler: src/server/files/api.ts
+  parity_test: next/parity/tests/files-json-crop-tags.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: files.Api#updateFileTags.post
@@ -8624,21 +8626,27 @@ endpoints:
       path: string
     query: {}
     headers: {}
-    body: controller-specific
+    body: '{tags?:string[]}'
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: '{tags?:string[]}'
     errors:
     - status: 401
-      shape: login-or-json
+      shape: '{message}'
+    - status: 303
+      shape: redirect-root-strict-cookie
     - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: '{message}'
+    - status: 412
+      shape: '{message}'
+    - status: 503
+      shape: '{message}'
+  status: parity
+  parity: tested
+  next_path: /apps/files/api/v1/files/[...path]
+  next_handler: src/server/files/api.ts
+  parity_test: next/parity/tests/files-json-crop-tags.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: files.Api#getRecentFiles

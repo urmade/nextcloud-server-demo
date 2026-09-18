@@ -121,6 +121,10 @@ Both return **200 `{message:'ok', data:ViewConfigEntry}`** for the updated view.
 
 `showGridView` `POST /showgridview` body `{show:bool}` → **200 empty**; writes legacy **`show_grid`** (`'1'`/`'0'`), not UserConfig `grid_view`.
 
+`cropImagePreviews` `POST /cropimagepreviews` body `{value:bool}` → **200 empty**; writes UserConfig `crop_image_previews` (`'1'`/`'0'`) via `IConfig`, same auth row as other Api mutations.
+
+`updateFileTags` `POST /files/{path}` (`path` `.+`) body `{tags?:string[]}`. Tags omitted → **200 `{}`**. Tags provided → **200 `{tags}`** after replace; missing file → **404 `{message}`**; storage unavailable → **503 `{message}`**. Resolves path against DAV home tree (`welcome.txt`, `Documents/readme.md` in parity seed).
+
 ### Thumbnail
 
 `GET …/thumbnail/{x}/{y}/{file}` with `file => '.+'` (URL-encoded relative path). `NoCSRFRequired` + strict cookies. Shared storage: `canSeeContent()` or 404. 400 bad size; 404 `{message:'File not found.'}`. Deprecated vs core preview; still implement — mapped.
@@ -211,9 +215,13 @@ app/apps/files/api/v1/views/[view]/[key]/route.ts
 app/apps/files/api/v1/stats/route.ts
 app/apps/files/api/v1/showhidden/route.ts
 app/apps/files/api/v1/showgridview/route.ts
+app/apps/files/api/v1/cropimagepreviews/route.ts
+app/apps/files/api/v1/files/[...path]/route.ts
+src/server/files/tags.ts
 parity/legacy-mock/files.ts
 parity/tests/files-json-config.parity.test.ts
 parity/tests/files-json-writes.parity.test.ts
+parity/tests/files-json-crop-tags.parity.test.ts
 ```
 
 List/download still go through DAV modules. `computeStorageStats` reads DAV home tree size.
@@ -232,6 +240,9 @@ List/download still go through DAV modules. `computeStorageStats` reads DAV home
 | Grid split | showGridView then getGridView | `gridview` follows `show_grid` |
 | Happy | showHiddenFiles POST | 200 empty; `show_hidden` user config updated |
 | Happy | showGridView POST | 200 empty; `show_grid` legacy pref updated |
+| Happy | cropImagePreviews POST | 200 empty; `crop_image_previews` user config updated |
+| Happy | updateFileTags POST | 200 `{tags}` or `{}` when tags omitted |
+| Validation | updateFileTags unknown path | 404 `{message}` |
 | Happy | getStorageStats | keys free/used/quota/total + cache-control |
 | Happy | getGridView | `{gridview:false}` default |
 | Thumbnail | getThumbnail | 200 image or 404 JSON |

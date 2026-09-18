@@ -41,3 +41,4 @@ Cross-cutting. Phase-0 map `response.success` / `errors` are hypotheses from Ope
 | Lost setPassword | missing 400/412 in map | missing `password`/`proceed` → 400 empty; CSRF fail → 412 `{ message }` |
 | Well-known caldav/carddav | `success.status: 200`, shape "301 redirect" | Apache `.htaccess` **301** → `/remote.php/dav/`; no `X-NEXTCLOUD-WELL-KNOWN` on happy path; 404 JSON is missing-rewrite misconfig, not product contract |
 | Files Api JSON GET | 401 login-or-json, 404 not-found | `NoAdminRequired` + no `NoCSRFRequired`: strict cookie missing → **303 `/`**; JSON unauth → 401 `{ message }`; `getGridView` body is `{ gridview }` not `{ message, data }`; `getStorageStats` sets 5 min cache |
+| Files Api crop/tags POST | html-or-json, 404 not-found | `cropImagePreviews` → empty 200 + `crop_image_previews` user value; `updateFileTags` → `DataResponse` `{}` or `{ tags }`; missing path 404 / storage 503 `{ message }`; same session + CSRF as other Api mutations |

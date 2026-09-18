@@ -1,4 +1,5 @@
 import {
+	handleCropImagePreviews,
 	handleGetConfigs,
 	handleGetGridView,
 	handleGetStorageStats,
@@ -7,6 +8,7 @@ import {
 	handleSetViewConfig,
 	handleShowGridView,
 	handleShowHiddenFiles,
+	handleUpdateFileTags,
 } from '@/src/server/files/api';
 import { snapshotResponse } from '../compare';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
@@ -57,6 +59,20 @@ const FILES_API_WRITE_HANDLERS: Array<{
 		method: 'POST',
 		match: (pathname) => pathname === '/apps/files/api/v1/showgridview',
 		handle: async (request) => handleShowGridView(request),
+	},
+	{
+		method: 'POST',
+		match: (pathname) => pathname === '/apps/files/api/v1/cropimagepreviews',
+		handle: async (request) => handleCropImagePreviews(request),
+	},
+	{
+		method: 'POST',
+		match: (pathname) => /^\/apps\/files\/api\/v1\/files\/.+/.test(pathname),
+		handle: async (request, pathname) => {
+			const filePath = decodeURIComponent(pathname.replace(/^\/apps\/files\/api\/v1\/files\//, ''));
+
+			return handleUpdateFileTags(request, filePath);
+		},
 	},
 ];
 

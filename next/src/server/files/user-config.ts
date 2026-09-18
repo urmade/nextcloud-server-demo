@@ -81,6 +81,10 @@ export function setShowHiddenFiles(userId: string, enabled: boolean): void {
 	setStoredUserConfigValue(userId, 'show_hidden', enabled ? '1' : '0');
 }
 
+export function setCropImagePreviews(userId: string, enabled: boolean): void {
+	setStoredUserConfigValue(userId, 'crop_image_previews', enabled ? '1' : '0');
+}
+
 export function stringifyControllerValue(value: unknown): string {
 	if (typeof value === 'boolean') {
 		return value ? '1' : '';

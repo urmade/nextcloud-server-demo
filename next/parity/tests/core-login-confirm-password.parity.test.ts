@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it } from 'vitest';
-import { resetSessionStore } from '@/src/server/auth/session-store';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { getParityEnv } from '../env';
+import { resetParityAuthStores } from '../helpers/auth';
 import { fetchLegacyMockSnapshot } from '../legacy-mock/adapter';
 import { formatParityMismatches, runParityCase } from '../harness';
 import { cookieJarToHeader, parseSetCookieHeader } from '../helpers/cookies';
@@ -58,8 +58,12 @@ async function loginLegacyMockJar(): Promise<Record<string, string>> {
 }
 
 describe('parity: core-login-confirm-password', () => {
-	afterEach(() => {
-		resetSessionStore();
+	beforeEach(async () => {
+		await resetParityAuthStores();
+	});
+
+	afterEach(async () => {
+		await resetParityAuthStores();
 	});
 
 	it('POST /login/confirm happy path returns confirm timestamp', async () => {

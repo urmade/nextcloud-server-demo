@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { getParityEnv } from '../env';
+import { resetParityAuthStores } from '../helpers/auth';
 import { formatParityMismatches, runParityCase } from '../harness';
 import {
 	basicAuthHeader,
@@ -25,6 +26,10 @@ function normalizeLocation(location: string | null | undefined): string | null {
 }
 
 describe('parity: core platform probes', () => {
+	beforeEach(async () => {
+		await resetParityAuthStores();
+	});
+
 	it('GET /.well-known/change-password redirects to security settings', async () => {
 		const result = await runParityCase({
 			name: 'well-known-change-password',

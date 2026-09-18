@@ -1,0 +1,878 @@
+---
+description: Nextcloud → Next.js feature map (Phase 0). Read before implementing a slice.
+globs:
+alwaysApply: true
+---
+
+<!--
+ - SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+ - SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
+# Feature map
+
+One row per sliceable domain. `feature_id` equals endpoint-map `feature_ids[]` entries.
+First `feature_ids` value on an endpoint owns that row.
+Skill path is created when that slice starts (slice-workflow step 1), except `core-status` which already exists.
+Status is `inventoried` until a slice moves it. Features: 32. Endpoints: 509.
+
+Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then **core-login** (session/login/CSRF).
+
+## `core-status`
+
+- feature_id: `core-status`
+- name: Status + capabilities
+- summary: Public /status.php and OCS /cloud/capabilities. Highest client fan-in.
+- skill: `.cursor/skills/core-status/SKILL.md`
+- status: in-progress
+- depends_on: []
+- endpoint_ids: (3)
+  - `core.OCS#getCapabilities.v1`
+  - `core.OCS#getCapabilities`
+  - `core.status#get`
+
+## `core-login`
+
+- feature_id: `core-login`
+- name: Login + session
+- summary: Form login/logout, CSRF, client login flows v1/v2, WebAuthn, 2FA challenge, lost password.
+- skill: `.cursor/skills/core-login/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `core-status`
+- endpoint_ids: (21)
+  - `core.CSRFToken#index`
+  - `core.heartbeat#get`
+  - `oauth2-login_redirector-authorize`
+  - `core-csrf_token-index`
+  - `core-login-confirm-password`
+  - `core-client_flow_login_v2-init`
+  - `core-client_flow_login_v2-poll`
+  - `core.Login#tryLogin`
+  - `core.Login#tryLogin.post`
+  - `core.TwoFactorChallenge#showChallenge`
+  - `core.TwoFactorChallenge#solve`
+  - `core.TwoFactorChallenge#select`
+  - `core.ClientFlowLoginV2#init`
+  - `core.ClientFlowLoginV2#flow`
+  - `core.ClientFlowLoginV2#grant`
+  - `core.ClientFlowLoginV2#poll`
+  - `core.WebAuthn#finish`
+  - `core.WebAuthn#start`
+  - `core.Login#logout`
+  - `core.Lost#email`
+  - `user_status-heartbeat-heartbeat`
+
+## `core`
+
+- feature_id: `core`
+- name: Core platform APIs
+- summary: Remaining core HTTP/OCS: preview, search, avatars, app passwords, AI, navigation, well-known, cron.
+- skill: `.cursor/skills/core/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `core-login`
+- endpoint_ids: (80)
+  - `core.WellKnown#handle.change-password`
+  - `core.WellKnown#handle.security-txt`
+  - `core-guest_avatar-get-avatar`
+  - `core-guest_avatar-get-avatar-dark`
+  - `core-avatar-get-avatar`
+  - `core-avatar-get-avatar-dark`
+  - `core-preview-get-mime-icon-url`
+  - `core-preview-get-preview-by-file-id`
+  - `core-preview-get-preview`
+  - `core-reference-preview`
+  - `core-wipe-check-wipe`
+  - `core-wipe-wipe-done`
+  - `core.ocs-provider#get`
+  - `provisioning_api-users-search-by-phone-numbers`
+  - `core-collaboration_resources-search-collections`
+  - `core-collaboration_resources-remove-resource`
+  - `core-collaboration_resources-list-collection`
+  - `core-collaboration_resources-add-resource`
+  - `core-collaboration_resources-rename-collection`
+  - `core-collaboration_resources-create-collection-on-resource`
+  - `core-collaboration_resources-get-collections-by-resource`
+  - `core-app_password-delete-app-password`
+  - `core-app_password-confirm-user-password`
+  - `core-app_password-rotate-app-password`
+  - `core-auto_complete-get`
+  - `core-app_password-get-app-password`
+  - `core-app_password-get-app-password-with-one-time-password`
+  - `core-navigation-get-apps-navigation`
+  - `core-navigation-get-settings-navigation`
+  - `core-hover_card-get-user`
+  - `core-reference_api-extract`
+  - `core-reference_api-extract-public`
+  - `core-reference_api-touch-provider`
+  - `core-reference_api-get-providers-info`
+  - `core-reference_api-resolve-one`
+  - `core-reference_api-resolve`
+  - `core-reference_api-resolve-one-public`
+  - `core-reference_api-resolve-public`
+  - `core-unified_search-get-providers`
+  - `core-unified_search-search`
+  - `core-task_processing_api-queue-stats`
+  - `core-task_processing_api-schedule`
+  - `core-task_processing_api-delete-task`
+  - `core-task_processing_api-get-task`
+  - `core-task_processing_api-list-tasks`
+  - `core-task_processing_api-list-tasks-by-app`
+  - `core-task_processing_api-cancel-task`
+  - `core-task_processing_api-get-file-contents`
+  - `core-task_processing_api-get-task-queue-position`
+  - `core-task_processing_api-schedule-ex-app-endpoint`
+  - `core-task_processing_api-delete-task-ex-app-endpoint`
+  - `core-task_processing_api-get-task-ex-app-endpoint`
+  - `core-task_processing_api-cancel-task-ex-app-endpoint`
+  - `core-task_processing_api-task-types-ex-app-endpoint`
+  - `core-task_processing_api-get-next-scheduled-task`
+  - `core-task_processing_api-get-next-scheduled-task-batch`
+  - `core-task_processing_api-set-file-contents-ex-app`
+  - `core-task_processing_api-get-file-contents-ex-app`
+  - `core-task_processing_api-set-progress`
+  - `core-task_processing_api-set-result`
+  - `core-task_processing_api-set-intermediate-result`
+  - `core-task_processing_api-task-types`
+  - `core-teams_api-list-teams`
+  - `core-teams_api-resolve-one`
+  - `core-text_to_image_api-is-available`
+  - `core-text_to_image_api-schedule`
+  - `core-text_to_image_api-delete-task`
+  - `core-text_to_image_api-get-task`
+  - `core-text_to_image_api-get-image`
+  - `core-text_to_image_api-list-tasks-by-app`
+  - `core-text_processing_api-schedule`
+  - `core-text_processing_api-delete-task`
+  - `core-text_processing_api-get-task`
+  - `core-text_processing_api-list-tasks-by-app`
+  - `core-text_processing_api-task-types`
+  - `core-translation_api-languages`
+  - `core-translation_api-translate`
+  - `core-two_factor_api-disable`
+  - `core-two_factor_api-enable`
+  - `core-two_factor_api-state`
+
+## `profile`
+
+- feature_id: `profile`
+- name: Profile
+- summary: Profile page and OCS get/set.
+- skill: `.cursor/skills/profile/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `core-login`
+- endpoint_ids: (3)
+  - `profile-profile_api-get-resources`
+  - `core-profile_api-get-profile-fields`
+  - `core-profile_api-set-visibility`
+
+## `provisioning_api`
+
+- feature_id: `provisioning_api`
+- name: Provisioning
+- summary: OCS users/groups/apps/config.
+- skill: `.cursor/skills/provisioning_api/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `core-login`
+- endpoint_ids: (50)
+  - `provisioning_api.Verification#showVerifyMail`
+  - `provisioning_api.Verification#verifyMail.post`
+  - `provisioning_api-app_config-get-apps`
+  - `provisioning_api-app_config-get-keys`
+  - `provisioning_api-app_config-delete-key`
+  - `provisioning_api-app_config-get-value`
+  - `provisioning_api-app_config-set-value`
+  - `provisioning_api-preferences-delete-multiple-preference`
+  - `provisioning_api-preferences-set-multiple-preferences`
+  - `provisioning_api-preferences-delete-preference`
+  - `provisioning_api-preferences-set-preference`
+  - `provisioning_api-apps-get-apps`
+  - `provisioning_api-apps-disable`
+  - `provisioning_api-apps-get-app-info`
+  - `provisioning_api-apps-enable`
+  - `provisioning_api-groups-get-groups`
+  - `provisioning_api-groups-add-group`
+  - `provisioning_api-groups-get-groups-details`
+  - `provisioning_api-groups-delete-group`
+  - `provisioning_api-groups-get-group`
+  - `provisioning_api-groups-update-group`
+  - `provisioning_api-groups-get-sub-admins-of-group`
+  - `provisioning_api-groups-get-group-users`
+  - `provisioning_api-groups-get-group-users-details`
+  - `provisioning_api-users-get-current-user`
+  - `provisioning_api-users-get-enabled-apps`
+  - `provisioning_api-users-get-editable-fields`
+  - `provisioning_api-users-get-editable-fields-for-user`
+  - `provisioning_api-users-get-users`
+  - `provisioning_api-users-add-user`
+  - `provisioning_api-users-get-users-details`
+  - `provisioning_api-users-get-disabled-users-details`
+  - `provisioning_api-users-get-last-logged-in-users`
+  - `provisioning_api-users-delete-user`
+  - `provisioning_api-users-get-user`
+  - `provisioning_api-users-edit-user-multi-field`
+  - `provisioning_api-users-edit-user`
+  - `provisioning_api-users-disable-user`
+  - `provisioning_api-users-enable-user`
+  - `provisioning_api-users-remove-from-group`
+  - `provisioning_api-users-get-users-groups`
+  - `provisioning_api-users-add-to-group`
+  - `provisioning_api-users-get-users-groups-details`
+  - `provisioning_api-users-remove-sub-admin`
+  - `provisioning_api-users-get-user-sub-admin-groups`
+  - `provisioning_api-users-add-sub-admin`
+  - `provisioning_api-users-get-user-sub-admin-groups-details`
+  - `provisioning_api-users-resend-welcome-message`
+  - `provisioning_api-users-wipe-user-devices`
+  - `provisioning_api-users-edit-user-multi-value`
+
+## `settings`
+
+- feature_id: `settings`
+- name: Settings
+- summary: Admin and personal settings, tokens, declarative forms.
+- skill: `.cursor/skills/settings/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `core-login`
+- endpoint_ids: (44)
+  - `files_sharing.Settings#setDefaultAccept.put`
+  - `files_sharing.Settings#resetUserShareFolder.delete`
+  - `files_sharing.Settings#setUserShareFolder.put`
+  - `settings.AuthorizedGroup#saveSettings.post`
+  - `twofactor_backupcodes.settings#createCodes.post`
+  - `settings-log_settings-download`
+  - `settings-declarative_settings-get-forms`
+  - `settings-declarative_settings-set-value`
+  - `settings-declarative_settings-set-sensitive-value`
+  - `settings.LogSettings#download`
+  - `settings.MailSettings#setMailSettings.post`
+  - `settings.MailSettings#storeCredentials.post`
+  - `settings.MailSettings#sendTestMail.post`
+  - `settings.AdminSettings#index`
+  - `settings.CheckSetup#check`
+  - `settings.AISettings#update.put`
+  - `settings.TwoFactorSettings#index`
+  - `settings.TwoFactorSettings#update.put`
+  - `settings.WebAuthn#startRegistration`
+  - `settings.WebAuthn#finishRegistration.post`
+  - `settings.WebAuthn#deleteRegistration.delete`
+  - `settings.Reasons#getPdf`
+  - `settings.Help#help`
+  - `settings.CheckSetup#getFailedIntegrityCheckFiles`
+  - `settings.CheckSetup#rescanFailedIntegrityCheck`
+  - `settings.AuthSettings#destroyOthers.delete`
+  - `settings.AuthSettings#create.post`
+  - `settings.AuthSettings#wipe.post`
+  - `settings.AuthSettings#destroy.delete`
+  - `settings.AuthSettings#update.put`
+  - `settings.ChangePassword#changePersonalPassword.post`
+  - `settings.Preset#getPreset`
+  - `settings.Preset#getCurrentPreset`
+  - `settings.Preset#setCurrentPreset.post`
+  - `settings.CheckSetup#setupCheckManager`
+  - `settings.PersonalSettings#index`
+  - `settings.Users#usersList`
+  - `settings.ChangePassword#changeUserPassword.post`
+  - `settings.Users#setPreference.post`
+  - `settings.Users#getVerificationCode`
+  - `settings.Users#usersListByGroup`
+  - `settings.Users#setEMailAddress.put`
+  - `settings.Users#setDisplayName.post`
+  - `settings.Users#setUserSettings.put`
+
+## `oauth2`
+
+- feature_id: `oauth2`
+- name: OAuth2
+- summary: Authorize + token for clients.
+- skill: `.cursor/skills/oauth2/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `core-login`
+- endpoint_ids: (6)
+  - `oauth2.OauthApi#pushToken.post`
+  - `oauth2.OauthApi#getToken.post`
+  - `oauth2.LoginRedirector#authorize`
+  - `oauth2.Settings#addClient.post`
+  - `oauth2.Settings#deleteClient.delete`
+  - `oauth2-oauth_api-get-token`
+
+## `files`
+
+- feature_id: `files`
+- name: Files app
+- summary: Files UI + JSON API, templates, direct editing.
+- skill: `.cursor/skills/files/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `dav`
+- endpoint_ids: (35)
+  - `files.view#index`
+  - `files.Api#setConfig.put`
+  - `files.Api#getConfigs`
+  - `files.Api#cropImagePreviews.post`
+  - `files.Api#updateFileTags.post`
+  - `files.Api#getRecentFiles`
+  - `files.Api#getGridView`
+  - `files.Api#showGridView.post`
+  - `files.Api#showHiddenFiles.post`
+  - `files.Api#getStorageStats`
+  - `files.Api#getThumbnail`
+  - `files.Api#getViewConfigs`
+  - `files.Api#setViewConfig.put.2`
+  - `files.Api#setViewConfig.put`
+  - `files.DirectEditingView#edit`
+  - `files.Api#serviceWorker`
+  - `files.view#indexView`
+  - `files.view#indexViewFileid`
+  - `files.View#showFile`
+  - `files-api-get-thumbnail`
+  - `files-conversion_api-convert`
+  - `files-direct_editing-info`
+  - `files-direct_editing-create`
+  - `files-direct_editing-open`
+  - `files-direct_editing-templates`
+  - `files-api-get-folder-tree`
+  - `files-open_local_editor-create`
+  - `files-open_local_editor-validate`
+  - `files-template-list`
+  - `files-template-create`
+  - `files-template-list-template-fields`
+  - `files-template-path`
+  - `files-transfer_ownership-transfer`
+  - `files-transfer_ownership-reject`
+  - `files-transfer_ownership-accept`
+
+## `files_versions`
+
+- feature_id: `files_versions`
+- name: Versions
+- summary: Version preview/restore.
+- skill: `.cursor/skills/files_versions/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `dav`
+- endpoint_ids: (2)
+  - `files_versions.Preview#getPreview`
+  - `files_versions-preview-get-preview`
+
+## `files_trashbin`
+
+- feature_id: `files_trashbin`
+- name: Trashbin
+- summary: Deleted-file preview/DAV.
+- skill: `.cursor/skills/files_trashbin/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `dav`
+- endpoint_ids: (2)
+  - `files_trashbin.Preview#getPreview`
+  - `files_trashbin-preview-get-preview`
+
+## `files_external`
+
+- feature_id: `files_external`
+- name: External storage
+- summary: Mount CRUD + OCS mounts.
+- skill: `.cursor/skills/files_external/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `dav`
+- endpoint_ids: (19)
+  - `files_external.Ajax#getApplicableEntities`
+  - `files_external.Ajax#getSshKeys.post`
+  - `files_external.Ajax#saveGlobalCredentials.post`
+  - `files_external.global_storages#index`
+  - `files_external.global_storages#create.post`
+  - `files_external.global_storages#destroy.delete`
+  - `files_external.global_storages#show`
+  - `files_external.global_storages#update.put`
+  - `files_external.user_global_storages#index`
+  - `files_external.user_global_storages#create.post`
+  - `files_external.user_global_storages#destroy.delete`
+  - `files_external.user_global_storages#show`
+  - `files_external.user_global_storages#update.put`
+  - `files_external.user_storages#index`
+  - `files_external.user_storages#create.post`
+  - `files_external.user_storages#destroy.delete`
+  - `files_external.user_storages#show`
+  - `files_external.user_storages#update.put`
+  - `files_external-api-get-user-mounts`
+
+## `files_reminders`
+
+- feature_id: `files_reminders`
+- name: Reminders
+- summary: File due-date reminders.
+- skill: `.cursor/skills/files_reminders/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `files`
+- endpoint_ids: (3)
+  - `files_reminders-api-remove`
+  - `files_reminders-api-get`
+  - `files_reminders-api-set`
+
+## `dav`
+
+- feature_id: `dav`
+- name: WebDAV / CalDAV / CardDAV
+- summary: Sabre tree: files, calendars, address books, uploads, tags, comments.
+- skill: `.cursor/skills/dav/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `core-login`
+- endpoint_ids: (48)
+  - `core.WellKnown#handle.caldav`
+  - `core.WellKnown#handle.carddav`
+  - `dav.birthday_calendar#disable.post`
+  - `dav.birthday_calendar#enable.post`
+  - `dav.invitation_response#accept`
+  - `dav.invitation_response#decline`
+  - `dav.invitation_response#options`
+  - `dav.invitation_response#processMoreOptionsResult.post`
+  - `dav-direct-get-url`
+  - `dav-upcoming_events-get-events`
+  - `dav-federated_calendar-get-pending`
+  - `dav-federated_calendar-decline`
+  - `dav-federated_calendar-accept`
+  - `dav-out_of_office-clear-out-of-office`
+  - `dav-out_of_office-get-out-of-office`
+  - `dav-out_of_office-set-out-of-office`
+  - `dav-out_of_office-get-current-out-of-office-data`
+  - `dav-calendar_export-export`
+  - `dav-calendar_import-import`
+  - `dav-contacts_import-import`
+  - `dav.LegacyCalDAV#caldav`
+  - `dav.LegacyCalDAV#calendar`
+  - `dav.LegacyCardDAV#carddav`
+  - `dav.LegacyCardDAV#contacts`
+  - `dav.Collection#addressbooks-system`
+  - `dav.Collection#addressbooks-users`
+  - `dav.Collection#avatars`
+  - `dav.Collection#calendars`
+  - `dav.Collection#comments`
+  - `dav.Collection#files`
+  - `dav.Collection#principals-calendar-resources`
+  - `dav.Collection#principals-calendar-rooms`
+  - `dav.Collection#principals-groups`
+  - `dav.Collection#principals-system`
+  - `dav.Collection#principals-users`
+  - `dav.Collection#apple-provisioning`
+  - `dav.Collection#public-calendars`
+  - `dav.Collection#remote-calendars`
+  - `dav.Collection#system-calendars-resources`
+  - `dav.Collection#system-calendars-rooms`
+  - `dav.Collection#systemtags-assigned`
+  - `dav.Collection#systemtags-relations`
+  - `dav.Collection#systemtags`
+  - `dav.Collection#uploads`
+  - `dav.Root#tree`
+  - `dav.Direct#get`
+  - `dav.LegacyWebDAV#files`
+  - `dav.LegacyWebDAV#webdav`
+
+## `files_sharing`
+
+- feature_id: `files_sharing`
+- name: Sharing
+- summary: Share OCS, public links /s/{token}, public DAV, sharees, remote shares.
+- skill: `.cursor/skills/files_sharing/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `dav`
+- endpoint_ids: (39)
+  - `files_sharing.Accept#showAccept`
+  - `files_sharing.Accept#accept.post`
+  - `files_sharing.ExternalShares#index`
+  - `files_sharing.ExternalShares#create.post`
+  - `files_sharing.ExternalShares#destroy.delete`
+  - `files_sharing.ExternalShares#show`
+  - `files_sharing.ExternalShares#update.put`
+  - `files_sharing.PublicPreview#getPreview`
+  - `files_sharing.ShareInfo#info.post`
+  - `files_sharing-public_preview-get-preview`
+  - `files_sharing-share_info-info`
+  - `files_sharing-public_preview-direct-link`
+  - `files_sharing-deleted_shareapi-index`
+  - `files_sharing-deleted_shareapi-undelete`
+  - `files_sharing-remote-get-shares`
+  - `files_sharing-remote-get-open-shares`
+  - `files_sharing-remote-decline-share`
+  - `files_sharing-remote-accept-share`
+  - `files_sharing-remote-unshare`
+  - `files_sharing-remote-get-share`
+  - `files_sharing-shareesapi-search`
+  - `files_sharing-shareesapi-find-recommended`
+  - `files_sharing-shareapi-get-shares`
+  - `files_sharing-shareapi-create-share`
+  - `files_sharing-shareapi-get-inherited-shares`
+  - `files_sharing-shareapi-pending-shares`
+  - `files_sharing-shareapi-accept-share`
+  - `files_sharing-shareapi-delete-share`
+  - `files_sharing-shareapi-get-share`
+  - `files_sharing-shareapi-update-share`
+  - `files_sharing-shareapi-send-share-email`
+  - `files_sharing-shareapi-generate-token`
+  - `dav.Public#tree`
+  - `dav.Public#legacy-webdav`
+  - `files_sharing.Share#showShare`
+  - `files_sharing.Share#showAuthenticate`
+  - `files_sharing.Share#authenticate.post`
+  - `files_sharing.Share#downloadShare`
+  - `files_sharing.PublicPreview#directLink`
+
+## `sharing`
+
+- feature_id: `sharing`
+- name: Sharing registry v1
+- summary: New sharing OCS (sources/recipients/presets).
+- skill: `.cursor/skills/sharing/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `files_sharing`
+- endpoint_ids: (17)
+  - `sharing-api_v1-search-recipients`
+  - `sharing-api_v1-generate-secret`
+  - `sharing-api_v1-create-share`
+  - `sharing-api_v1-delete-share`
+  - `sharing-api_v1-get-share`
+  - `sharing-api_v1-update-share-permission`
+  - `sharing-api_v1-select-share-permission-preset`
+  - `sharing-api_v1-update-share-property`
+  - `sharing-api_v1-remove-share-recipient`
+  - `sharing-api_v1-add-share-recipient`
+  - `sharing-api_v1-update-share-recipient-permission`
+  - `sharing-api_v1-update-share-recipient-secret`
+  - `sharing-api_v1-remove-share-source`
+  - `sharing-api_v1-add-share-source`
+  - `sharing-api_v1-update-share-state`
+  - `sharing-api_v1-update-share-user-status`
+  - `sharing-api_v1-get-shares`
+
+## `federatedfilesharing`
+
+- feature_id: `federatedfilesharing`
+- name: Outgoing federation
+- summary: Federated share request handler + public mount.
+- skill: `.cursor/skills/federatedfilesharing/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `cloud_federation_api`
+- endpoint_ids: (11)
+  - `federatedfilesharing.MountPublicLink#askForFederatedShare.post`
+  - `federatedfilesharing.MountPublicLink#createFederatedShare.post`
+  - `federatedfilesharing-mount_public_link-create-federated-share`
+  - `federatedfilesharing-request_handler-create-share`
+  - `federatedfilesharing-request_handler-accept-share`
+  - `federatedfilesharing-request_handler-decline-share`
+  - `federatedfilesharing-request_handler-move`
+  - `federatedfilesharing-request_handler-update-permissions`
+  - `federatedfilesharing-request_handler-re-share`
+  - `federatedfilesharing-request_handler-revoke`
+  - `federatedfilesharing-request_handler-unshare`
+
+## `federation`
+
+- feature_id: `federation`
+- name: Trusted servers
+- summary: Federation shared-secret OCS + settings.
+- skill: `.cursor/skills/federation/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `cloud_federation_api`
+- endpoint_ids: (7)
+  - `federation-ocs_authapi-request-shared-secret-legacy`
+  - `federation-ocs_authapi-get-shared-secret-legacy`
+  - `federation-settings-get-servers`
+  - `federation-settings-add-server`
+  - `federation-settings-remove-server`
+  - `federation-ocs_authapi-get-shared-secret`
+  - `federation-ocs_authapi-request-shared-secret`
+
+## `cloud_federation_api`
+
+- feature_id: `cloud_federation_api`
+- name: OCM
+- summary: Cloud Federation shares, notifications, JWKS, discovery.
+- skill: `.cursor/skills/cloud_federation_api/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `core`
+- endpoint_ids: (12)
+  - `core.WellKnown#handle.ocm`
+  - `cloud_federation_api.Token#jwks`
+  - `core-ocm-discovery`
+  - `cloud_federation_api-request_handler-receive-notification`
+  - `cloud_federation_api-request_handler-add-share`
+  - `core.OCM#discovery`
+  - `cloud_federation_api.RequestHandler#receiveNotification.post`
+  - `cloud_federation_api.RequestHandler#addShare.post`
+  - `cloud_federation_api.OCMRequest#manageOCMRequests.delete`
+  - `cloud_federation_api.OCMRequest#manageOCMRequests`
+  - `cloud_federation_api.OCMRequest#manageOCMRequests.post`
+  - `cloud_federation_api.OCMRequest#manageOCMRequests.put`
+
+## `comments`
+
+- feature_id: `comments`
+- name: Comments
+- summary: Comment HTTP + DAV comments collection.
+- skill: `.cursor/skills/comments/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `dav`
+- endpoint_ids: (1)
+  - `comments.Notifications#view`
+
+## `systemtags`
+
+- feature_id: `systemtags`
+- name: System tags
+- summary: Last-used tags HTTP + DAV tag collections.
+- skill: `.cursor/skills/systemtags/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `dav`
+- endpoint_ids: (1)
+  - `systemtags.LastUsed#getLastUsedTagIds`
+
+## `user_status`
+
+- feature_id: `user_status`
+- name: User status
+- summary: Status CRUD, heartbeat, predefined.
+- skill: `.cursor/skills/user_status/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `core-login`
+- endpoint_ids: (9)
+  - `user_status-predefined_status-find-all`
+  - `user_status-statuses-find-all`
+  - `user_status-statuses-find`
+  - `user_status-user_status-get-status`
+  - `user_status-user_status-clear-message`
+  - `user_status-user_status-set-custom-message`
+  - `user_status-user_status-set-predefined-message`
+  - `user_status-user_status-revert-status`
+  - `user_status-user_status-set-status`
+
+## `dashboard`
+
+- feature_id: `dashboard`
+- name: Dashboard
+- summary: Dashboard page + widget APIs.
+- skill: `.cursor/skills/dashboard/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `user_status`
+- endpoint_ids: (7)
+  - `dashboard-dashboard_api-get-widget-items`
+  - `dashboard-dashboard_api-get-widgets`
+  - `dashboard-dashboard_api-get-widget-items-v2`
+  - `dashboard-dashboard_api-get-layout`
+  - `dashboard-dashboard_api-update-layout`
+  - `dashboard-dashboard_api-get-statuses`
+  - `dashboard-dashboard_api-update-statuses`
+
+## `theming`
+
+- feature_id: `theming`
+- name: Theming
+- summary: Theme CSS, icons, logos, user prefs.
+- skill: `.cursor/skills/theming/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `core`
+- endpoint_ids: (25)
+  - `theming.Theming#undoAll.post`
+  - `theming.Theming#undo.post`
+  - `theming.Theming#updateAppMenu.put`
+  - `theming.Theming#updateStylesheet.post`
+  - `theming.Theming#uploadImage.post`
+  - `theming.userTheme#getBackground`
+  - `theming.userTheme#deleteBackground.delete`
+  - `theming.userTheme#setBackground.post`
+  - `theming.Icon#getFavicon`
+  - `theming.Icon#getTouchIcon`
+  - `theming.Theming#getImage`
+  - `theming.Icon#getThemedIcon`
+  - `theming.Theming#getManifest`
+  - `theming.Theming#getThemeStylesheet`
+  - `theming-user_theme-get-background`
+  - `theming-user_theme-delete-background`
+  - `theming-user_theme-set-background`
+  - `theming-icon-get-favicon`
+  - `theming-icon-get-touch-icon`
+  - `theming-theming-get-image`
+  - `theming-icon-get-themed-icon`
+  - `theming-theming-get-manifest`
+  - `theming-theming-get-theme-stylesheet`
+  - `theming-user_theme-disable-theme`
+  - `theming-user_theme-enable-theme`
+
+## `weather_status`
+
+- feature_id: `weather_status`
+- name: Weather status
+- summary: Weather widget API.
+- skill: `.cursor/skills/weather_status/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `dashboard`
+- endpoint_ids: (7)
+  - `weather_status-weather_status-get-favorites`
+  - `weather_status-weather_status-set-favorites`
+  - `weather_status-weather_status-get-forecast`
+  - `weather_status-weather_status-get-location`
+  - `weather_status-weather_status-set-location`
+  - `weather_status-weather_status-set-mode`
+  - `weather_status-weather_status-use-personal-address`
+
+## `workflowengine`
+
+- feature_id: `workflowengine`
+- name: Flow
+- summary: Admin/user workflow CRUD.
+- skill: `.cursor/skills/workflowengine/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `files`
+- endpoint_ids: (10)
+  - `workflowengine-global_workflows-index`
+  - `workflowengine-global_workflows-create`
+  - `workflowengine-global_workflows-destroy`
+  - `workflowengine-global_workflows-show`
+  - `workflowengine-global_workflows-update`
+  - `workflowengine-user_workflows-index`
+  - `workflowengine-user_workflows-create`
+  - `workflowengine-user_workflows-destroy`
+  - `workflowengine-user_workflows-show`
+  - `workflowengine-user_workflows-update`
+
+## `encryption`
+
+- feature_id: `encryption`
+- name: Server-side encryption
+- summary: Status/recovery/settings.
+- skill: `.cursor/skills/encryption/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `dav`
+- endpoint_ids: (6)
+  - `encryption.Recovery#adminRecovery.post`
+  - `encryption.Recovery#changeRecoveryPassword.post`
+  - `encryption.Status#getStatus`
+  - `encryption.Settings#setEncryptHomeStorage.post`
+  - `encryption.Settings#updatePrivateKeyPassword.post`
+  - `encryption.Recovery#userSetRecovery.post`
+
+## `user_ldap`
+
+- feature_id: `user_ldap`
+- name: LDAP
+- summary: Wizard, config API, renew password.
+- skill: `.cursor/skills/user_ldap/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `core-login`
+- endpoint_ids: (12)
+  - `user_ldap.renewPassword#tryRenewPassword.post`
+  - `user_ldap.renewPassword#cancel`
+  - `user_ldap.renewPassword#showLoginFormInvalidPassword`
+  - `user_ldap.renewPassword#showRenewPasswordForm`
+  - `user_ldap-configapi-create`
+  - `user_ldap-configapi-delete`
+  - `user_ldap-configapi-show`
+  - `user_ldap-configapi-modify`
+  - `user_ldap-configapi-copy-configuration`
+  - `user_ldap-configapi-test-configuration`
+  - `user_ldap-wizard-clear-mappings`
+  - `user_ldap-wizard-action`
+
+## `webhook_listeners`
+
+- feature_id: `webhook_listeners`
+- name: Webhooks
+- summary: Admin webhook CRUD.
+- skill: `.cursor/skills/webhook_listeners/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `core-login`
+- endpoint_ids: (6)
+  - `webhook_listeners-webhooks-index`
+  - `webhook_listeners-webhooks-create`
+  - `webhook_listeners-webhooks-delete-by-app-id`
+  - `webhook_listeners-webhooks-destroy`
+  - `webhook_listeners-webhooks-show`
+  - `webhook_listeners-webhooks-update`
+
+## `appstore`
+
+- feature_id: `appstore`
+- name: App store
+- summary: App list/enable/disable/discover.
+- skill: `.cursor/skills/appstore/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `provisioning_api`
+- endpoint_ids: (7)
+  - `appstore-api-list-apps`
+  - `appstore-api-list-categories`
+  - `appstore-api-disable-app`
+  - `appstore-api-enable-app`
+  - `appstore-api-uninstall-app`
+  - `appstore-api-update-app`
+  - `appstore-api-enable-bundle`
+
+## `updatenotification`
+
+- feature_id: `updatenotification`
+- name: Update notification
+- summary: Available updates + changelog.
+- skill: `.cursor/skills/updatenotification/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `appstore`
+- endpoint_ids: (5)
+  - `updatenotification.Changelog#showChangelog`
+  - `updatenotification.Admin#setChannel.post`
+  - `updatenotification.Admin#createCredentials`
+  - `updatenotification-api-get-app-list`
+  - `updatenotification-api-get-app-changelog-entry`
+
+## `twofactor_backupcodes`
+
+- feature_id: `twofactor_backupcodes`
+- name: 2FA backup codes
+- summary: Generate/regenerate backup codes.
+- skill: `.cursor/skills/twofactor_backupcodes/SKILL.md`
+- status: inventoried
+- depends_on:
+  - `core-login`
+- endpoint_ids: (0)
+
+## `testing`
+
+- feature_id: `testing`
+- name: Testing app
+- summary: Dev-only routes; not product.
+- skill: `.cursor/skills/testing/SKILL.md`
+- status: inventoried
+- depends_on: []
+- endpoint_ids: (11)
+  - `testing.RateLimitTest#onlyAnonProtected`
+  - `testing.RateLimitTest#userAndAnonProtected`
+  - `testing.Config#deleteAppValue.delete`
+  - `testing.Config#setAppValue.post`
+  - `testing.Locking#isLockingEnabled`
+  - `testing.Locking#releaseAll.delete`
+  - `testing.Locking#releaseLock.delete`
+  - `testing.Locking#isLocked`
+  - `testing.Locking#acquireLock.post`
+  - `testing.Locking#changeLock.put`
+  - `testing.Routes#getRoutesInRoutesPhp`

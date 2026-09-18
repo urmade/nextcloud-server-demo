@@ -29,6 +29,9 @@ export interface ProvisioningUserRecord {
 	timezone: string;
 	manager: string;
 	notifyEmail: string;
+	quota: string;
+	firstDayOfWeek: string;
+	additionalMailScopes: Record<string, AccountScope>;
 	firstLoginTimestamp: number;
 	lastLoginTimestamp: number;
 	properties: Record<string, ProvisioningAccountProperty>;
@@ -117,6 +120,9 @@ function buildDefaultUser(
 		timezone: 'UTC',
 		manager: '',
 		notifyEmail: email,
+		quota: 'default',
+		firstDayOfWeek: '-1',
+		additionalMailScopes: {},
 		firstLoginTimestamp: 1_700_000_000,
 		lastLoginTimestamp: 1_700_100_000,
 		properties: defaultProperties(),

@@ -43,6 +43,7 @@ import { handleProvisioningPreferencesMock, isProvisioningPreferencesMockPath } 
 import { handleProvisioningSelfReadMock, isProvisioningSelfReadMockPath } from './provisioning-self-read';
 import { handleProvisioningUsersListMock, isProvisioningUsersListMockPath } from './provisioning-users-list';
 import { handleProvisioningUsersLifecycleMock, isProvisioningUsersLifecycleMockPath } from './provisioning-users-lifecycle';
+import { handleProvisioningUsersEditMock, isProvisioningUsersEditMockPath } from './provisioning-users-edit';
 import { handleFilesApiMock, isFilesApiPath, isFilesApiWritePath } from './files';
 import { handleFilesDirectEditingMock, isFilesDirectEditingMockPath } from './files-direct-editing';
 import { handleFilesFilenamesMock, isFilesFilenamesMockPath } from './files-filenames';
@@ -682,6 +683,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return contactsMenu;
 	}
 
+	const provisioningUsersEdit = await handleProvisioningUsersEditMock(pathname, search, options);
+
+	if (provisioningUsersEdit) {
+		return provisioningUsersEdit;
+	}
+
 	const provisioningSelfRead = await handleProvisioningSelfReadMock(pathname, search, options);
 
 	if (provisioningSelfRead) {
@@ -897,6 +904,10 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (isDavExampleContentMockPath(pathname)) {
+		return true;
+	}
+
+	if (isProvisioningUsersEditMockPath(pathname, normalizedMethod)) {
 		return true;
 	}
 

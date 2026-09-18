@@ -141,6 +141,28 @@ export function ocsCreatedResponse<TData>(
 	});
 }
 
+export function ocsUnprocessableResponse(
+	ocsVersion: OcsApiVersion,
+	data: { errors: Record<string, string> },
+): Response {
+	const envelope = {
+		ocs: {
+			meta: {
+				status: 'failure' as const,
+				statuscode: 422,
+				message: '',
+				...(ocsVersion === 1 ? { totalitems: '', itemsperpage: '' } : {}),
+			},
+			data,
+		},
+	};
+
+	return Response.json(envelope, {
+		status: getOcsHttpStatus(ocsVersion, 422),
+		headers: OCS_JSON_HEADERS,
+	});
+}
+
 export function ocsBadRequestStringResponse(
 	ocsVersion: OcsApiVersion,
 	message: string,

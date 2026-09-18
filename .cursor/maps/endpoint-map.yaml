@@ -9181,15 +9181,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files/api/v1/convert
+  next_handler: src/server/files/conversion.ts
+  parity_test: next/parity/tests/files-remaining-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: NoAdminRequired OCS. Parity stubs image/jpeg→image/png; success HTTP 201. v2 route canonical.
 - id: files-direct_editing-info
   feature_ids:
   - files
@@ -9436,15 +9436,15 @@ endpoints:
       shape:
         message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files/api/v1/folder-tree
+  next_handler: src/server/files/folder-tree.ts
+  parity_test: next/parity/tests/files-remaining-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: ApiController raw JSON array (not OCS envelope). CSRF required; OCS-APIRequest does not bypass. v2 route canonical.
 - id: files-open_local_editor-create
   feature_ids:
   - files
@@ -9487,15 +9487,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files/api/v1/openlocaleditor
+  next_handler: src/server/files/open-local-editor.ts
+  parity_test: next/parity/tests/files-remaining-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: NoAdminRequired OCS. Returns {userId,pathHash,expirationTime,token}; pathHash=sha1(path). v2 route canonical.
 - id: files-open_local_editor-validate
   feature_ids:
   - files
@@ -9539,15 +9539,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files/api/v1/openlocaleditor/{token}
+  next_handler: src/server/files/open-local-editor.ts
+  parity_test: next/parity/tests/files-remaining-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: One-shot validate; deletes row then checks expiry. Second call → 404 data [].
 - id: files-template-list
   feature_ids:
   - files
@@ -9773,15 +9773,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files/api/v1/transferownership
+  next_handler: src/server/files/transfer-ownership.ts
+  parity_test: next/parity/tests/files-remaining-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Inserts user_transfer_owner row; {id} is row id not file id. v2 route canonical.
 - id: files-transfer_ownership-reject
   feature_ids:
   - files
@@ -9824,15 +9824,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files/api/v1/transferownership/{id}
+  next_handler: src/server/files/transfer-ownership.ts
+  parity_test: next/parity/tests/files-remaining-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Target user only; deletes row. v2 route canonical.
 - id: files-transfer_ownership-accept
   feature_ids:
   - files
@@ -9875,15 +9875,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files/api/v1/transferownership/{id}
+  next_handler: src/server/files/transfer-ownership.ts
+  parity_test: next/parity/tests/files-remaining-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Target user only; queues ownership job without deleting row. v2 route canonical.
 - id: files_external.Ajax#getApplicableEntities
   feature_ids:
   - files_external

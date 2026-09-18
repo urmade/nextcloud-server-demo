@@ -17,7 +17,7 @@ import {
 	hasWebAuthnCredentials,
 } from '@/src/server/auth/webauthn-store';
 import {
-	isTwoFactorEnabledForUser,
+	isTwoFactorAuthenticated,
 	prepareTwoFactorLogin,
 } from '@/src/server/auth/two-factor-challenge';
 
@@ -228,7 +228,7 @@ export function handleWebAuthnFinish(
 	session.lastPasswordConfirm = Math.floor(Date.now() / 1000);
 	clearWebAuthnSession(session);
 
-	if (isTwoFactorEnabledForUser(uid)) {
+	if (isTwoFactorAuthenticated(uid)) {
 		const credentials = getWebAuthnCredentials(uid);
 		const userVerified = credentials.every((credential) => credential.userVerification);
 

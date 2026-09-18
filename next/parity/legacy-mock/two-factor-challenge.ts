@@ -1,10 +1,13 @@
 import { SESSION_COOKIE, USERNAME_COOKIE } from '@/src/server/auth/cookies';
 import {
 	getTwoFactorLoginRedirectUrl,
+	handleConfirmProviderSetupPost,
 	handleSelectChallengeGet,
+	handleSetupProviderGet,
+	handleSetupProvidersGet,
 	handleShowChallengeGet,
 	handleSolveChallengePost,
-	isTwoFactorEnabledForUser,
+	isTwoFactorAuthenticated,
 	needsSecondFactor,
 	prepareTwoFactorLogin,
 } from '@/src/server/auth/two-factor-challenge';
@@ -48,7 +51,7 @@ function ensureSessionFromLoginCookies(options: ParityRequestOptions): void {
 		session.lastPasswordConfirm = Math.floor(Date.now() / 1000);
 	}
 
-	if (isTwoFactorEnabledForUser(userId) && session.twoFactorPendingUid !== userId && session.twoFactorDone !== userId) {
+	if (isTwoFactorAuthenticated(userId) && session.twoFactorPendingUid !== userId && session.twoFactorDone !== userId) {
 		prepareTwoFactorLogin(session);
 	}
 
@@ -56,6 +59,7 @@ function ensureSessionFromLoginCookies(options: ParityRequestOptions): void {
 }
 
 const CHALLENGE_PATH = /^\/login\/challenge\/([^/]+)$/;
+const SETUP_PROVIDER_PATH = /^\/login\/setupchallenge\/([^/]+)$/;
 
 export async function handleTwoFactorChallengeMock(
 	pathname: string,
@@ -70,6 +74,28 @@ export async function handleTwoFactorChallengeMock(
 		const request = buildRequest(pathname, search, options);
 
 		return responseToSnapshot(handleSelectChallengeGet(request, resolveSession(request)));
+	}
+
+	if (method === 'GET' && pathname === '/login/setupchallenge') {
+		const request = buildRequest(pathname, search, options);
+
+		return responseToSnapshot(handleSetupProvidersGet(request, resolveSession(request)));
+	}
+
+	const setupMatch = SETUP_PROVIDER_PATH.exec(pathname);
+
+	if (setupMatch) {
+		const providerId = decodeURIComponent(setupMatch[1]);
+		const request = buildRequest(pathname, search, options);
+		const resolved = resolveSession(request);
+
+		if (method === 'GET') {
+			return responseToSnapshot(handleSetupProviderGet(request, resolved, providerId));
+		}
+
+		if (method === 'POST') {
+			return responseToSnapshot(handleConfirmProviderSetupPost(request, resolved, providerId));
+		}
 	}
 
 	const challengeMatch = CHALLENGE_PATH.exec(pathname);
@@ -112,5 +138,8 @@ export function seedTwoFactorPendingSession(sessionId: string, userId = 'admin')
 }
 
 export function isTwoFactorChallengePath(pathname: string): boolean {
-	return pathname === '/login/selectchallenge' || CHALLENGE_PATH.test(pathname);
+	return pathname === '/login/selectchallenge'
+		|| pathname === '/login/setupchallenge'
+		|| SETUP_PROVIDER_PATH.test(pathname)
+		|| CHALLENGE_PATH.test(pathname);
 }

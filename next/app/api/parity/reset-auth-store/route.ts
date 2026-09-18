@@ -1,6 +1,7 @@
 import { resetCredentialOverrides } from '@/src/server/auth/credentials';
 import { resetLostPasswordStore } from '@/src/server/auth/lost-password-store';
 import { resetSessionStore } from '@/src/server/auth/session-store';
+import { resetMandatoryTwoFactorEnforcement } from '@/src/server/two-factor/enforcement';
 import { resetTwoFactorStore } from '@/src/server/two-factor/store';
 
 export async function POST() {
@@ -12,6 +13,7 @@ export async function POST() {
 	resetTwoFactorStore();
 	resetCredentialOverrides();
 	resetLostPasswordStore();
+	resetMandatoryTwoFactorEnforcement();
 
 	return new Response(null, { status: 204 });
 }

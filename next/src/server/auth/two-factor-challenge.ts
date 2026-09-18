@@ -10,17 +10,30 @@ import {
 	type ResolvedSession,
 } from '@/src/server/auth/session';
 import { updateSession } from '@/src/server/auth/session-store';
-import { getParityTwoFactorProviders } from '@/src/server/two-factor/catalog';
+import { getParityTwoFactorProviders, getLoginSetupProviderIds } from '@/src/server/two-factor/catalog';
+import { isMandatoryTwoFactorEnforced } from '@/src/server/two-factor/enforcement';
 import { getTwoFactorProviderStates } from '@/src/server/two-factor/store';
 
 export const FIXTURE_PROVIDER_ID = 'parity-totp';
 export const FIXTURE_PROVIDER_DISPLAY_NAME = 'Parity TOTP';
+export const FIXTURE_SETUP_PROVIDER_ID = 'parity-setup';
+export const FIXTURE_SETUP_PROVIDER_DISPLAY_NAME = 'Parity Setup';
 export const FIXTURE_CHALLENGE_CODE = process.env.NC_PARITY_TWO_FACTOR_CODE?.trim() || '123456';
 
 export function isTwoFactorEnabledForUser(userId: string): boolean {
 	const states = getTwoFactorProviderStates(userId);
 
-	return getParityTwoFactorProviders().some((provider) => states[provider.id] === true);
+	return getParityTwoFactorProviders()
+		.filter((provider) => provider.enableByAdmin)
+		.some((provider) => states[provider.id] === true);
+}
+
+export function isTwoFactorAuthenticated(userId: string): boolean {
+	if (isMandatoryTwoFactorEnforced(userId)) {
+		return true;
+	}
+
+	return isTwoFactorEnabledForUser(userId);
 }
 
 export function needsSecondFactor(session: ResolvedSession['session']): boolean {
@@ -36,7 +49,7 @@ export function needsSecondFactor(session: ResolvedSession['session']): boolean 
 		return false;
 	}
 
-	if (!isTwoFactorEnabledForUser(session.userId)) {
+	if (!isTwoFactorAuthenticated(session.userId)) {
 		return false;
 	}
 
@@ -129,8 +142,81 @@ function getEnabledProviders(userId: string): string[] {
 	const states = getTwoFactorProviderStates(userId);
 
 	return getParityTwoFactorProviders()
-		.filter((provider) => states[provider.id] === true)
+		.filter((provider) => provider.enableByAdmin && states[provider.id] === true)
 		.map((provider) => provider.id);
+}
+
+function requireTwoFactorSetupAccess(
+	request: Request,
+	resolved: ResolvedSession,
+): Response | null {
+	const { session } = resolved;
+
+	if (!session.userId) {
+		return buildRedirectResponse(request, '/login', ensureSessionCookie(request, resolved));
+	}
+
+	if (session.twoFactorDone === session.userId) {
+		return buildRedirectResponse(request, getDefaultPageUrl(request), ensureSessionCookie(request, resolved));
+	}
+
+	if (getEnabledProviders(session.userId).length > 0) {
+		return buildRedirectResponse(request, '/login/selectchallenge', ensureSessionCookie(request, resolved));
+	}
+
+	if (!needsSecondFactor(session)) {
+		return buildRedirectResponse(request, getDefaultPageUrl(request), ensureSessionCookie(request, resolved));
+	}
+
+	return null;
+}
+
+function renderSetupSelectionPage(userId: string, redirectUrl: string | null): string {
+	const providers = getLoginSetupProviderIds();
+	const logoutUrl = getLogoutUrl();
+	const redirectAttr = redirectUrl ? ` data-redirect-url="${redirectUrl}"` : '';
+
+	return `<!DOCTYPE html>
+<html>
+<head><title>Two-factor authentication – Nextcloud</title></head>
+<body id="body-login">
+<div class="body-login-container update two-factor" id="twofactor-setup-select"${redirectAttr}>
+<h2 class="two-factor-header">Set up two-factor authentication</h2>
+<ul>
+${providers.map((providerId) => `<li><a class="two-factor-provider" href="/login/setupchallenge/${providerId}">${providerId}</a></li>`).join('\n')}
+</ul>
+<p><a id="cancel-login" class="two-factor-secondary" href="${logoutUrl}">Cancel login</a></p>
+</div>
+</body>
+</html>`;
+}
+
+function renderSetupChallengePage(providerId: string, redirectUrl: string | null): string {
+	const logoutUrl = getLogoutUrl();
+	const redirectField = redirectUrl
+		? `<input type="hidden" name="redirect_url" value="${redirectUrl}" />`
+		: '';
+	const displayName = providerId === FIXTURE_SETUP_PROVIDER_ID
+		? FIXTURE_SETUP_PROVIDER_DISPLAY_NAME
+		: providerId;
+
+	return `<!DOCTYPE html>
+<html>
+<head><title>Two-factor authentication – Nextcloud</title></head>
+<body id="body-login">
+<div class="body-login-container update two-factor" id="twofactor-setup-challenge">
+<h2 class="two-factor-header">${displayName}</h2>
+<div class="two-factor-setup-body">
+<p>Set up ${displayName} to continue.</p>
+</div>
+<form method="post" action="/login/setupchallenge/${providerId}">
+${redirectField}
+<button type="submit">Continue</button>
+</form>
+<p><a id="cancel-login" class="two-factor-secondary" href="${logoutUrl}">Cancel login</a></p>
+</div>
+</body>
+</html>`;
 }
 
 function renderSelectChallengePage(userId: string, request: Request, redirectUrl: string | null): string {
@@ -313,10 +399,75 @@ export function handleSolveChallengePost(
 
 export function getTwoFactorLoginRedirectUrl(request: Request, userId: string): string {
 	const providers = getEnabledProviders(userId);
+	const setupProviders = getLoginSetupProviderIds();
+
+	if (providers.length === 0 && setupProviders.length > 0 && isMandatoryTwoFactorEnforced(userId)) {
+		return '/login/setupchallenge';
+	}
 
 	if (providers.length === 1) {
 		return `/login/challenge/${providers[0]}`;
 	}
 
 	return '/login/selectchallenge';
+}
+
+export function handleSetupProvidersGet(request: Request, resolved: ResolvedSession): Response {
+	const denied = requireTwoFactorSetupAccess(request, resolved);
+
+	if (denied) {
+		return denied;
+	}
+
+	const redirectUrl = new URL(request.url).searchParams.get('redirect_url');
+	const cookieHeaders = ensureSessionCookie(request, resolved);
+
+	return buildHtmlResponse(
+		renderSetupSelectionPage(resolved.session.userId ?? '', redirectUrl),
+		cookieHeaders,
+	);
+}
+
+export function handleSetupProviderGet(
+	request: Request,
+	resolved: ResolvedSession,
+	providerId: string,
+): Response {
+	const denied = requireTwoFactorSetupAccess(request, resolved);
+
+	if (denied) {
+		return denied;
+	}
+
+	const setupProviders = getLoginSetupProviderIds();
+
+	if (!setupProviders.includes(providerId)) {
+		return buildRedirectResponse(request, '/login/selectchallenge', ensureSessionCookie(request, resolved));
+	}
+
+	const redirectUrl = new URL(request.url).searchParams.get('redirect_url');
+
+	return buildHtmlResponse(
+		renderSetupChallengePage(providerId, redirectUrl),
+		ensureSessionCookie(request, resolved),
+	);
+}
+
+export function handleConfirmProviderSetupPost(
+	request: Request,
+	resolved: ResolvedSession,
+	providerId: string,
+): Response {
+	const denied = requireTwoFactorSetupAccess(request, resolved);
+
+	if (denied) {
+		return denied;
+	}
+
+	const redirectUrl = new URL(request.url).searchParams.get('redirect_url');
+	const location = redirectUrl
+		? `/login/challenge/${providerId}?redirect_url=${encodeURIComponent(redirectUrl)}`
+		: `/login/challenge/${providerId}`;
+
+	return buildRedirectResponse(request, location, ensureSessionCookie(request, resolved));
 }

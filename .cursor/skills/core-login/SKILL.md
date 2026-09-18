@@ -27,6 +27,9 @@ description: Core session login, logout, CSRF token, and client login flows v1 a
 - `GET /login/flow/grant` — v1 grant page HTML (session + `stateToken` query)
 - `POST /login/flow` — v1 grant confirm; mints an app password and redirects to `nc://login/...`
 - `POST /login/flow/apptoken` — v1 completion with an existing app password (303 `nc://login/...`)
+- `GET /login/setupchallenge` — pick login-time 2FA setup provider (HTML, mandatory 2FA pending)
+- `GET /login/setupchallenge/{providerId}` — show setup challenge for activatable provider (HTML)
+- `POST /login/setupchallenge/{providerId}` — confirm setup; always 303 to showChallenge
 - `GET /login/selectchallenge` — pick 2FA provider (HTML, 2FA pending session)
 - `GET /login/challenge/{challengeProviderId}` — show provider challenge (HTML)
 - `POST /login/challenge/{challengeProviderId}` — submit challenge code (form `challenge`)
@@ -49,7 +52,6 @@ description: Core session login, logout, CSRF token, and client login flows v1 a
 ## Non-scope (same feature, later slices)
 
 - Settings WebAuthn registration (`/settings/api/personal/webauthn/*`)
-- 2FA setup challenge (`/login/setupchallenge*`)
 - OAuth redirect variant of `POST /login/flow` (`oauth2.enable_oc_clients`, `providedRedirectUri`) — owned by `oauth2`
 - Brute-force throttle timing (status codes only; no delay simulation)
 - `Clear-Site-Data` header (HTTPS non-Chrome only on legacy)
@@ -86,6 +88,9 @@ Map ids with `feature_ids: [core-login]` and `parity: tested`:
 - `core.ClientFlowLogin#grantPage`
 - `core.ClientFlowLogin#generateAppPassword.post`
 - `core.ClientFlowLogin#apptokenRedirect.post`
+- `core.TwoFactorChallenge#setupProviders`
+- `core.TwoFactorChallenge#setupProvider`
+- `core.TwoFactorChallenge#confirmProviderSetup.post`
 
 ## Auth model
 
@@ -106,6 +111,9 @@ Map ids with `feature_ids: [core-login]` and `parity: tested`:
 | `GET /login/flow/grant` | `session` (logged-in user) + matching `stateToken`; `NoSameSiteCookieRequired` |
 | `POST /login/flow` | `session` + CSRF + matching `stateToken` + fresh password confirm |
 | `POST /login/flow/apptoken` | `none` (public) + CSRF + matching `stateToken` + existing app password |
+| `GET /login/setupchallenge` | `session` with mandatory 2FA pending and no primary providers; unauth/complete/has-providers → 303 |
+| `GET /login/setupchallenge/{id}` | same as setupProviders; unknown id → 303 selectChallenge |
+| `POST /login/setupchallenge/{id}` | same; NoCSRFRequired; always 303 showChallenge |
 | `GET /login/selectchallenge` | `session` with 2FA pending (`twoFactorPendingUid`); redirects if unauthenticated or 2FA complete |
 | `GET /login/challenge/{id}` | same as selectchallenge |
 | `POST /login/challenge/{id}` | same; form field `challenge` (NoCSRFRequired on legacy) |
@@ -133,7 +141,7 @@ src/server/auth/
   login-flow-v2-store.ts   # in-memory pending flows
   login-flow-v2.ts         # init/poll/flow/grant handlers
   login-flow-v1.ts         # auth picker/grant/generate/apptoken handlers
-  two-factor-challenge.ts  # select/show/solve + pending-session state
+  two-factor-challenge.ts  # select/show/solve + setup + pending-session state
   webauthn-store.ts        # in-memory fixture credentials
   webauthn.ts              # start/finish handlers
   confirm-password.ts      # sudo confirm handler
@@ -154,6 +162,8 @@ app/
   login/flow/route.ts
   login/flow/grant/route.ts
   login/flow/apptoken/route.ts
+  login/setupchallenge/route.ts
+  login/setupchallenge/[providerId]/route.ts
   login/selectchallenge/route.ts
   login/challenge/[challengeProviderId]/route.ts
   login/webauthn/start/route.ts
@@ -225,6 +235,19 @@ Fixture provider `parity-totp` (enable via OCS `/ocs/v2.php/twofactor/enable`). 
 4. Failure → session flash `twoFactorAuthError` → 303 back to showChallenge (error shown on next GET).
 
 Unauthenticated → 303 `/login`. Already 2FA-complete → 303 default page. Unknown providerId → 303 `/login/selectchallenge`.
+
+## Login-time 2FA setup (mandatory)
+
+Fixture provider `parity-setup` (`IActivatableAtLogin`). Do **not** enable `parity-totp` for setup-only users — that routes to showChallenge instead.
+
+Toggle mandatory enforcement: `NC_PARITY_TWO_FACTOR_ENFORCED=true` or `POST /api/parity/set-auth-config` with `{ twoFactorEnforced: true }`.
+
+1. User with mandatory 2FA and no enabled primary providers `POST /login` → 303 `/login/setupchallenge`.
+2. `GET /login/setupchallenge` → 200 `#twofactor-setup-select`.
+3. `GET /login/setupchallenge/parity-setup` → 200 `#twofactor-setup-challenge`.
+4. `POST /login/setupchallenge/{id}` → **always 303** `/login/challenge/{id}` (even invalid id).
+
+Access guards: unauth → 303 `/login`; has primary providers → 303 selectChallenge; 2FA-complete → 303 default page.
 
 ## Client login flow v2
 
@@ -359,6 +382,14 @@ Failed login sets session flash `loginMessages: [[errorCode], []]`.
 | Apptoken no CSRF | `POST /login/flow/apptoken` | 412 `{ message }` |
 | Apptoken bad password | `POST /login/flow/apptoken` | 403 HTML `Invalid app password` |
 | Apptoken happy | `POST /login/flow/apptoken` | 303 `nc://login/...` reusing the existing app password |
+| Unauthenticated | `GET /login/setupchallenge` | 303 to `/login` |
+| Happy setup select | `GET /login/setupchallenge` | 200 HTML `#twofactor-setup-select` after mandatory login |
+| Has providers | `GET /login/setupchallenge` | 303 to `/login/selectchallenge` |
+| 2FA complete | `GET /login/setupchallenge` | 303 to default page |
+| Happy setup show | `GET /login/setupchallenge/parity-setup` | 200 HTML `#twofactor-setup-challenge` |
+| Unknown setup provider | `GET /login/setupchallenge/unknown` | 303 to `/login/selectchallenge` |
+| Setup confirm | `POST /login/setupchallenge/{id}` | always 303 to `/login/challenge/{id}` |
+| Mandatory login | `POST /login` | 303 to `/login/setupchallenge` when enforced + no providers |
 | Unauthenticated | `GET /login/selectchallenge` | 303 to `/login` |
 | Happy select | `GET /login/selectchallenge` | 200 HTML `#twofactor-select` after 2FA-pending login |
 | Happy show | `GET /login/challenge/parity-totp` | 200 HTML `#twofactor-challenge` + `name="challenge"` |

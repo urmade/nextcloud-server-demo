@@ -17,7 +17,7 @@ import {
 import { updateSession } from '@/src/server/auth/session-store';
 import {
 	getTwoFactorLoginRedirectUrl,
-	isTwoFactorEnabledForUser,
+	isTwoFactorAuthenticated,
 	needsSecondFactor,
 	prepareTwoFactorLogin,
 } from '@/src/server/auth/two-factor-challenge';
@@ -233,7 +233,7 @@ export function handleLoginPost(request: Request, resolved: ResolvedSession, bod
 	const maxAge = form.rememberme ? 60 * 60 * 24 * 15 : 60 * 60 * 24;
 	const loginCookies = buildLoginCookieHeaders(trimmedUser, loginToken, session.id, maxAge);
 
-	if (isTwoFactorEnabledForUser(trimmedUser)) {
+	if (isTwoFactorAuthenticated(trimmedUser)) {
 		prepareTwoFactorLogin(session, form.rememberme);
 
 		return buildRedirectResponse(

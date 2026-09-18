@@ -21584,13 +21584,13 @@ endpoints:
       shape: twofactorsetupselection guest HTML
     errors: []
   status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  parity: tested
+  next_path: /login/setupchallenge
+  next_handler: app/login/setupchallenge/route.ts
+  parity_test: next/parity/tests/core-login-2fa-setup.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: 'NoAdminRequired + NoCSRFRequired. OpenAPI SCOPE_IGNORE. PHP url lacks leading slash; RouteParser ltrim yields /login/setupchallenge. providers from TwoFactorManager::getLoginSetupProviders. Unauthenticated/error envelopes not asserted.'
+  notes: 'NoAdminRequired + NoCSRFRequired. Unauth/has-providers/2FA-complete are 303 redirects. Fixture parity-setup (IActivatableAtLogin). Mandatory 2FA via NC_PARITY_TWO_FACTOR_ENFORCED or set-auth-config.'
 - id: core.TwoFactorChallenge#setupProvider
   feature_ids:
   - core-login
@@ -21615,13 +21615,13 @@ endpoints:
     - status: 303
       shape: redirect to core.TwoFactorChallenge.selectChallenge when providerId is unknown
   status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  parity: tested
+  next_path: /login/setupchallenge/{providerId}
+  next_handler: app/login/setupchallenge/[providerId]/route.ts
+  parity_test: next/parity/tests/core-login-2fa-setup.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: 'NoAdminRequired + NoCSRFRequired. Provider body HTML comes from IActivatableAtLogin::getLoginSetup. Exact redirect status (302 vs 303) not asserted beyond RedirectResponse.'
+  notes: 'NoAdminRequired + NoCSRFRequired. Unknown providerId → 303 selectChallenge. Provider body from parity-setup fixture.'
 - id: core.TwoFactorChallenge#confirmProviderSetup.post
   feature_ids:
   - core-login
@@ -21643,13 +21643,13 @@ endpoints:
       shape: redirect to core.TwoFactorChallenge.showChallenge with challengeProviderId + redirect_url
     errors: []
   status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  parity: tested
+  next_path: /login/setupchallenge/{providerId}
+  next_handler: app/login/setupchallenge/[providerId]/route.ts
+  parity_test: next/parity/tests/core-login-2fa-setup.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: 'NoAdminRequired + NoCSRFRequired. PHP only redirects; invalid providerId is an acknowledged unhandled edge case in the controller. Exact redirect status not asserted beyond RedirectResponse.'
+  notes: 'NoAdminRequired + NoCSRFRequired. POST always 303 showChallenge (even invalid providerId). NoCSRFRequired.'
 - id: core.ClientFlowLoginV2#apptokenRedirect.post
   feature_ids:
   - core-login

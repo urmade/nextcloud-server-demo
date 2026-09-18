@@ -8971,7 +8971,7 @@ endpoints:
   method: GET
   legacy_path: /apps/files/preview-service-worker.js
   legacy_source: apps/files/appinfo/routes.php Api#serviceWorker
-  auth: session
+  auth: none
   request:
     params: {}
     query: {}
@@ -8980,10 +8980,9 @@ endpoints:
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: application/javascript service worker script
+      content_type: application/javascript
     errors:
-    - status: 401
-      shape: login-or-json
     - status: 404
       shape: not-found
   status: parity
@@ -8993,7 +8992,7 @@ endpoints:
   parity_test: next/parity/tests/files-service-worker.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: PublicPage + NoCSRFRequired; map auth session and html-or-json are wrong. Streams dist/preview-service-worker.js with Service-Worker-Allowed / and CSP worker/script/connect self.
+  notes: PublicPage + NoCSRFRequired. Streams dist/preview-service-worker.js with Service-Worker-Allowed / and CSP worker/script/connect self.
 - id: files.view#indexView
   feature_ids:
   - files

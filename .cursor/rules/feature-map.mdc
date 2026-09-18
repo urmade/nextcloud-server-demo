@@ -40,7 +40,7 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
 - status: inventoried
 - depends_on:
   - `core-status`
-- endpoint_ids: (21)
+- endpoint_ids: (31)
   - `core.CSRFToken#index`
   - `core.heartbeat#get`
   - `oauth2-login_redirector-authorize`
@@ -62,6 +62,16 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
   - `core.Login#logout`
   - `core.Lost#email`
   - `user_status-heartbeat-heartbeat`
+  - `core.ClientFlowLogin#showAuthPickerPage`
+  - `core.ClientFlowLogin#generateAppPassword.post`
+  - `core.ClientFlowLogin#apptokenRedirect.post`
+  - `core.ClientFlowLogin#grantPage`
+  - `core.TwoFactorChallenge#setupProviders`
+  - `core.TwoFactorChallenge#setupProvider`
+  - `core.TwoFactorChallenge#confirmProviderSetup.post`
+  - `core.ClientFlowLoginV2#apptokenRedirect.post`
+  - `core.ClientFlowLoginV2#landing`
+  - `core.ClientFlowLoginV2#grantPage`
 
 ## `core`
 
@@ -72,7 +82,7 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
 - status: in-progress
 - depends_on:
   - `core-login`
-- endpoint_ids: (80)
+- endpoint_ids: (91)
   - `core.WellKnown#handle.change-password`
   - `core.WellKnown#handle.security-txt`
   - `core-guest_avatar-get-avatar`
@@ -153,6 +163,17 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
   - `core-two_factor_api-disable`
   - `core-two_factor_api-enable`
   - `core-two_factor_api-state`
+  - `core.Avatar#deleteAvatar.delete`
+  - `core.Avatar#postAvatar.post`
+  - `core.ContactsMenu#index.post`
+  - `core.ContactsMenu#findOne.post`
+  - `core.ContactsMenu#getTeams`
+  - `core.User#getDisplayNames.post`
+  - `core.OpenMetrics#export`
+  - `core.OCS#getConfig`
+  - `core.Update#update`
+  - `core.OCS#getIdentityProof`
+  - `core.OCS#personCheck.post`
 
 ## `profile`
 
@@ -310,7 +331,7 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
 - status: inventoried
 - depends_on:
   - `dav`
-- endpoint_ids: (35)
+- endpoint_ids: (39)
   - `files.view#index`
   - `files.Api#setConfig.put`
   - `files.Api#getConfigs`
@@ -346,6 +367,10 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
   - `files-transfer_ownership-transfer`
   - `files-transfer_ownership-reject`
   - `files-transfer_ownership-accept`
+  - `files.Filenames#stopSanitization.delete`
+  - `files.Filenames#getStatus`
+  - `files.Filenames#sanitizeFilenames.post`
+  - `files.Filenames#toggleWindowFilenameSupport.post`
 
 ## `files_versions`
 
@@ -426,7 +451,7 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
 - status: inventoried
 - depends_on:
   - `core-login`
-- endpoint_ids: (48)
+- endpoint_ids: (56)
   - `core.WellKnown#handle.caldav`
   - `core.WellKnown#handle.carddav`
   - `dav.birthday_calendar#disable.post`
@@ -475,6 +500,14 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
   - `dav.Direct#get`
   - `dav.LegacyWebDAV#files`
   - `dav.LegacyWebDAV#webdav`
+  - `dav.ExampleContent#setEnableDefaultContact.put`
+  - `dav.ExampleContent#getDefaultContact`
+  - `dav.ExampleContent#setDefaultContact.put`
+  - `dav.ExampleContent#setCreateExampleEvent.post`
+  - `dav.ExampleContent#deleteExampleEvent.delete`
+  - `dav.ExampleContent#downloadExampleEvent`
+  - `dav.ExampleContent#uploadExampleEvent.post`
+  - `dav.Collection#principals-remote-users`
 
 ## `files_sharing`
 
@@ -603,7 +636,7 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
 - status: inventoried
 - depends_on:
   - `core`
-- endpoint_ids: (12)
+- endpoint_ids: (13)
   - `core.WellKnown#handle.ocm`
   - `cloud_federation_api.Token#jwks`
   - `core-ocm-discovery`
@@ -616,6 +649,7 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
   - `cloud_federation_api.OCMRequest#manageOCMRequests`
   - `cloud_federation_api.OCMRequest#manageOCMRequests.post`
   - `cloud_federation_api.OCMRequest#manageOCMRequests.put`
+  - `cloud_federation_api.Token#accessToken.post`
 
 ## `comments`
 
@@ -742,7 +776,7 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
 - status: inventoried
 - depends_on:
   - `files`
-- endpoint_ids: (10)
+- endpoint_ids: (11)
   - `workflowengine-global_workflows-index`
   - `workflowengine-global_workflows-create`
   - `workflowengine-global_workflows-destroy`
@@ -753,6 +787,7 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
   - `workflowengine-user_workflows-destroy`
   - `workflowengine-user_workflows-show`
   - `workflowengine-user_workflows-update`
+  - `workflowengine.RequestTime#getTimezones`
 
 ## `encryption`
 
@@ -820,7 +855,7 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
 - status: inventoried
 - depends_on:
   - `provisioning_api`
-- endpoint_ids: (7)
+- endpoint_ids: (9)
   - `appstore-api-list-apps`
   - `appstore-api-list-categories`
   - `appstore-api-disable-app`
@@ -828,6 +863,8 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
   - `appstore-api-uninstall-app`
   - `appstore-api-update-app`
   - `appstore-api-enable-bundle`
+  - `appstore.Discover#getAppDiscoverJSON`
+  - `appstore.Discover#getAppDiscoverMedia`
 
 ## `updatenotification`
 

@@ -156,11 +156,19 @@ OCS Two-Factor admin/state API (`/ocs/v2.php/twofactor/…`). Admin-only (`mixed
 
 Parity registers fixture provider `parity-totp` (admin enable/disable). Real Nextcloud loads app 2FA providers dynamically; this slice models the OCS contract only.
 
+### Slice 11 — device wipe HTTP API (done)
+
+Plain HTTP remote-wipe handshake (`/index.php/core/wipe/…`). `@PublicPage` — **no cookie session**; app-password `token` in JSON body is the credential. In-memory wipe-pending flags on stored app-password tokens only.
+
+- `POST /index.php/core/wipe/check` — device polls whether wipe is required; success `{ wipe: true }`
+- `POST /index.php/core/wipe/success` — device reports wipe finished; success `{}`; invalidates token
+
+Parity seeds wipe-pending tokens via `markAppPasswordForWipe`. Real Nextcloud marks tokens through settings/provisioning admin flows; this slice models the device-facing HTTP contract only.
+
 ## Non-scope (later core sub-slices)
 
 | Sub-slice | Endpoint ids (prefix / theme) |
 | --- | --- |
-| **core-wipe** | `core-wipe-*` |
 | **core-collaboration** | `core-collaboration_resources-*` |
 | **core-teams** | `core-teams_api-*` |
 | **core-misc** | `provisioning_api-users-search-by-phone-numbers` (owned by map under `core`) |
@@ -267,6 +275,11 @@ Slice 10:
 - `core-two_factor_api-enable`
 - `core-two_factor_api-disable`
 
+Slice 11:
+
+- `core-wipe-check-wipe`
+- `core-wipe-wipe-done`
+
 ## Auth model
 
 | Route | Auth |
@@ -285,6 +298,7 @@ Slice 10:
 | Deprecated TextProcessing / TextToImage (other) | `mixed` — session or Basic; unauthenticated → **401** OCS 997 |
 | Translation API | `@PublicPage` — unauthenticated **200** (not 401) |
 | Two-factor admin API | `mixed` — session or Basic; **admin only** — non-admin → **403** `Logged in account must be an admin` |
+| Device wipe HTTP | `@PublicPage` — token in JSON body; no session required; invalid/unknown/non-pending token → **404** `[]` |
 
 Unauthenticated OCS calls → v2 HTTP **401**, `ocs.meta.statuscode` **997**, empty `data` (except `@PublicPage` routes above).
 
@@ -328,6 +342,10 @@ src/server/
     catalog.ts                 # fixture provider ids + admin enable/disable flags
     store.ts                   # in-memory provider states per user
     api.ts                     # twofactor/* handlers
+  wipe/
+    catalog.ts                 # parity fixture tokens (W/N 72-char app passwords)
+    store.ts                   # in-memory wipe-pending flags on app-password tokens
+    api.ts                     # wipe/check + wipe/success handlers
   fixtures/
     binary.ts                  # deterministic PNG bytes (no real photos)
   http/
@@ -389,6 +407,8 @@ app/
   ocs/v2.php/twofactor/state/route.ts
   ocs/v2.php/twofactor/enable/route.ts
   ocs/v2.php/twofactor/disable/route.ts
+  core/wipe/check/route.ts
+  core/wipe/success/route.ts
 ```
 
 Config:
@@ -468,6 +488,11 @@ Config:
 - Two-factor `enable` requires fresh `last-password-confirm` (30m + 15s); stale → **403** + `x-nc-auth-notconfirmed: true`
 - Two-factor `disable` is strict password confirm — requires Basic auth password header; missing → **403** `Required authorization header missing`
 - Unknown provider ids in enable/disable are silently ignored (`tryEnable` / `tryDisable` no-op) — state still returned
+- Wipe endpoints are plain HTTP JSON — **not** OCS envelope
+- Wipe `check` success is `{ wipe: true }`; `success` success is `{}` (empty object)
+- Wipe failures (invalid token, valid token not wipe-pending, missing body token) all return HTTP **404** with JSON body `[]` — not `{ message }`
+- Wipe auth is the app-password token in POST JSON — do not require cookie session
+- `finish` (`/success`) invalidates the app-password token from the in-memory store
 
 ## Parity extras
 
@@ -549,5 +574,9 @@ Config:
 | Validation | two-factor enable | stale password confirm → 403 + `x-nc-auth-notconfirmed` |
 | Validation | two-factor disable | missing Basic password → 403 `Required authorization header missing` |
 | Happy | two-factor state / enable / disable | 200 provider map; fixture `parity-totp` |
+| Auth failure | wipe check / success | unknown token → 404 `[]` (no 401) |
+| Validation | wipe check / success | valid token not wipe-pending → 404 `[]` |
+| Happy | wipe check | 200 `{ wipe: true }` for wipe-pending token |
+| Happy | wipe success | 200 `{}`; token invalidated |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` fixtures (not waived).

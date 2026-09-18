@@ -1155,13 +1155,14 @@ endpoints:
     - status: 404
       shape: any
       content_type: application/json
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: implemented
+  parity: tested
+  next_path: /core/wipe/check
+  next_handler: app/core/wipe/check/route.ts
+  parity_test: next/parity/tests/core-wipe.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: PublicPage — token in JSON body is the credential; no cookie session. 404 returns empty JSON array [].
 - id: core-wipe-wipe-done
   feature_ids:
   - core
@@ -1187,13 +1188,14 @@ endpoints:
     - status: 404
       shape: any
       content_type: application/json
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: implemented
+  parity: tested
+  next_path: /core/wipe/success
+  next_handler: app/core/wipe/success/route.ts
+  parity_test: next/parity/tests/core-wipe.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: PublicPage — token in JSON body; success is empty JSON object {}; invalidates wipe-pending app password token.
 - id: core.ocs-provider#get
   feature_ids:
   - core

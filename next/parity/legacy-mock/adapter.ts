@@ -17,6 +17,7 @@ import { handleTextToImageMock } from './text-to-image';
 import { handleTranslationMock } from './translation';
 import { handleTwoFactorMock } from './two-factor';
 import { handleUnifiedSearchMock } from './unified-search';
+import { handleWipeMock } from './wipe';
 import { snapshotResponse } from '../compare';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
 
@@ -442,6 +443,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return twoFactor;
 	}
 
+	const wipe = await handleWipeMock(pathname, options);
+
+	if (wipe) {
+		return wipe;
+	}
+
 	const avatar = handleAvatarMock(pathname, search);
 
 	if (avatar) {
@@ -529,6 +536,15 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (normalizedMethod === 'POST' && pathname.startsWith('/ocs/v2.php/twofactor/')) {
+		return true;
+	}
+
+	if (normalizedMethod === 'POST' && (
+		pathname === '/index.php/core/wipe/check'
+		|| pathname === '/core/wipe/check'
+		|| pathname === '/index.php/core/wipe/success'
+		|| pathname === '/core/wipe/success'
+	)) {
 		return true;
 	}
 

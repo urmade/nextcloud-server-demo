@@ -26,6 +26,8 @@ OCS `/ocs/v{1,2}.php/apps/sharing/api/v1/*` — 17 map ids. Capability `sharing`
 
 **Slice `sharing-v1-sources-recipients` (tested):** add-share-source, remove-share-source, add-share-recipient, remove-share-recipient, update-share-recipient-secret, update-share-recipient-permission.
 
+**Slice `sharing-v1-share-attrs` (tested):** update-share-state, update-share-user-status, update-share-property, update-share-permission, select-share-permission-preset.
+
 ## Non-scope
 
 - Legacy ShareAPI / sharees / remote / public `/s/{token}` / public DAV (`files_sharing`)
@@ -76,17 +78,17 @@ Canonical prefix `/ocs/v2.php/apps/sharing/api/v1`. `ocs_version: both`.
 | `sharing-api_v1-get-shares` | GET | `/shares` | session | cursor `lastShareID`, limit default 100 |
 | `sharing-api_v1-get-share` | **POST** | `/share/{id}` | public | body `secret?`, `arguments?`; GET → **405** |
 | `sharing-api_v1-delete-share` | DELETE | `/share/{id}` | session | **204** empty body |
-| `sharing-api_v1-update-share-state` | PUT | `/share/{id}/state` | session | pending |
-| `sharing-api_v1-update-share-user-status` | PUT | `/share/{id}/user-status` | session | pending |
+| `sharing-api_v1-update-share-state` | PUT | `/share/{id}/state` | session | body `state`; enum `ValueError` → 400 message |
+| `sharing-api_v1-update-share-user-status` | PUT | `/share/{id}/user-status` | session | body `userStatus`; 404 only (no 403 catch) |
 | `sharing-api_v1-add-share-source` | POST | `/share/{id}/source` | session | body `class`, `value` |
 | `sharing-api_v1-remove-share-source` | DELETE | `/share/{id}/source` | session | query `class`, `value` (not body) |
 | `sharing-api_v1-add-share-recipient` | POST | `/share/{id}/recipient` | session | body `class`, `value`, `instance?` |
 | `sharing-api_v1-remove-share-recipient` | DELETE | `/share/{id}/recipient` | session | query `class`, `value`, `instance?` |
 | `sharing-api_v1-update-share-recipient-secret` | PUT | `/share/{id}/recipient/secret` | session | body `class`, `value`, `instance?`, `secret` |
 | `sharing-api_v1-update-share-recipient-permission` | PUT | `/share/{id}/recipient/permission` | session | body `recipientClass`, `recipientValue`, `recipientInstance?`, `permissionClass`, `enabled` |
-| `sharing-api_v1-update-share-property` | PUT | `/share/{id}/property` | session | pending |
-| `sharing-api_v1-update-share-permission` | PUT | `/share/{id}/permission` | session | pending |
-| `sharing-api_v1-select-share-permission-preset` | PUT | `/share/{id}/permission/preset` | session | pending |
+| `sharing-api_v1-update-share-property` | PUT | `/share/{id}/property` | session | body `class`, `value?` (`?string`) |
+| `sharing-api_v1-update-share-permission` | PUT | `/share/{id}/permission` | session | body `class`, `enabled` |
+| `sharing-api_v1-select-share-permission-preset` | PUT | `/share/{id}/permission/preset` | session | body `permissionPresetClass`; map 400 is a lie |
 
 ## Failure modes
 
@@ -117,9 +119,14 @@ app/ocs/v2.php/apps/sharing/api/v1/share/[id]/source/route.ts
 app/ocs/v2.php/apps/sharing/api/v1/share/[id]/recipient/route.ts
 app/ocs/v2.php/apps/sharing/api/v1/share/[id]/recipient/secret/route.ts
 app/ocs/v2.php/apps/sharing/api/v1/share/[id]/recipient/permission/route.ts
+app/ocs/v2.php/apps/sharing/api/v1/share/[id]/state/route.ts
+app/ocs/v2.php/apps/sharing/api/v1/share/[id]/user-status/route.ts
+app/ocs/v2.php/apps/sharing/api/v1/share/[id]/property/route.ts
+app/ocs/v2.php/apps/sharing/api/v1/share/[id]/permission/route.ts
+app/ocs/v2.php/apps/sharing/api/v1/share/[id]/permission/preset/route.ts
 ```
 
-Parity: `next/parity/tests/sharing-v1-gate-lifecycle.parity.test.ts`, `next/parity/tests/sharing-v1-sources-recipients.parity.test.ts`. Enable flag via `/api/parity/set-sharing-v1-config`.
+Parity: `next/parity/tests/sharing-v1-gate-lifecycle.parity.test.ts`, `next/parity/tests/sharing-v1-sources-recipients.parity.test.ts`, `next/parity/tests/sharing-v1-share-attrs.parity.test.ts`. Enable flag via `/api/parity/set-sharing-v1-config`.
 
 ## Traps
 
@@ -158,6 +165,20 @@ Do not mark `parity: tested` on vacuous 501-vs-501; seed shares where needed.
 | Unknown `{id}` on any mutation | **404** `"Share not found."` |
 | Missing required body/query params | raw **400** empty body |
 | DELETE source/recipient | query `class`/`value`/`instance?`, not JSON body |
+
+## Parity notes (slice 3)
+
+| Case | Expectation |
+| --- | --- |
+| Unauth PUT `/share/{id}/state`, API off | **401/997** |
+| Auth PUT `/share/{id}/state`, API off | **501** |
+| Unknown `{id}` on any mutation | **404** `"Share not found."` |
+| PUT state `nope` | **400** enum `ValueError` message in `ocs.data` |
+| `updateShareState` | no `ShareInvalidException` catch — do not invent 400 |
+| `select-share-permission-preset` | map 400 is a lie; controller has no 400 catch |
+| `update-share-user-status` | no 403 catch in PHP |
+
+Do not mark `parity: tested` on vacuous 501-vs-501.
 
 ## Repo paths
 

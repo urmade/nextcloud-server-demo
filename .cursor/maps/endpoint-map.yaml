@@ -16635,7 +16635,7 @@ endpoints:
   method: PUT
   legacy_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/permission
   legacy_source: openapi.json operationId=sharing-api_v1-update-share-permission
-  auth: mixed
+  auth: session
   request:
     params:
       id: string
@@ -16680,12 +16680,18 @@ endpoints:
           meta: OCSMeta
           data: string
       content_type: application/json
-  status: discovered
-  parity: pending
+    - status: 501
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: object
+      content_type: application/json
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/permission
+  next_handler: app/ocs/v2.php/apps/sharing/api/v1/share/[id]/permission/route.ts
+  parity_test: next/parity/tests/sharing-v1-share-attrs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -16696,7 +16702,7 @@ endpoints:
   method: PUT
   legacy_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/permission/preset
   legacy_source: openapi.json operationId=sharing-api_v1-select-share-permission-preset
-  auth: mixed
+  auth: session
   request:
     params:
       id: string
@@ -16740,15 +16746,21 @@ endpoints:
           meta: OCSMeta
           data: string
       content_type: application/json
-  status: discovered
-  parity: pending
+    - status: 501
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: object
+      content_type: application/json
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/permission/preset
+  next_handler: app/ocs/v2.php/apps/sharing/api/v1/share/[id]/permission/preset/route.ts
+  parity_test: next/parity/tests/sharing-v1-share-attrs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. Map 400 is a lie; controller has no 400 catch.
 - id: sharing-api_v1-update-share-property
   feature_ids:
   - sharing
@@ -16756,7 +16768,7 @@ endpoints:
   method: PUT
   legacy_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/property
   legacy_source: openapi.json operationId=sharing-api_v1-update-share-property
-  auth: mixed
+  auth: session
   request:
     params:
       id: string
@@ -16801,15 +16813,21 @@ endpoints:
           meta: OCSMeta
           data: string
       content_type: application/json
-  status: discovered
-  parity: pending
+    - status: 501
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: object
+      content_type: application/json
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/property
+  next_handler: app/ocs/v2.php/apps/sharing/api/v1/share/[id]/property/route.ts
+  parity_test: next/parity/tests/sharing-v1-share-attrs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. `value` is `?string` in PHP.
 - id: sharing-api_v1-remove-share-recipient
   feature_ids:
   - sharing
@@ -17204,7 +17222,7 @@ endpoints:
   method: PUT
   legacy_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/state
   legacy_source: openapi.json operationId=sharing-api_v1-update-share-state
-  auth: mixed
+  auth: session
   request:
     params:
       id: string
@@ -17248,15 +17266,21 @@ endpoints:
           meta: OCSMeta
           data: string
       content_type: application/json
-  status: discovered
-  parity: pending
+    - status: 501
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: object
+      content_type: application/json
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/state
+  next_handler: app/ocs/v2.php/apps/sharing/api/v1/share/[id]/state/route.ts
+  parity_test: next/parity/tests/sharing-v1-share-attrs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. `updateShareState` does not catch ShareInvalidException.
 - id: sharing-api_v1-update-share-user-status
   feature_ids:
   - sharing
@@ -17264,7 +17288,7 @@ endpoints:
   method: PUT
   legacy_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/user-status
   legacy_source: openapi.json operationId=sharing-api_v1-update-share-user-status
-  auth: mixed
+  auth: session
   request:
     params:
       id: string
@@ -17302,15 +17326,21 @@ endpoints:
           meta: OCSMeta
           data: string
       content_type: application/json
-  status: discovered
-  parity: pending
+    - status: 501
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: object
+      content_type: application/json
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/sharing/api/v1/share/{id}/user-status
+  next_handler: app/ocs/v2.php/apps/sharing/api/v1/share/[id]/user-status/route.ts
+  parity_test: next/parity/tests/sharing-v1-share-attrs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. No 403 catch in PHP.
 - id: sharing-api_v1-get-shares
   feature_ids:
   - sharing

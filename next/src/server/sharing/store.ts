@@ -1,6 +1,8 @@
 import { findParityUser } from '@/src/server/config/users';
 import type {
+	SharingPropertyRecord,
 	SharingRecipientRecord,
+	SharingSharePermissionRecord,
 	SharingSourceRecord,
 } from '@/src/server/sharing/types';
 
@@ -15,6 +17,9 @@ export interface SharingShareRecord {
 	userStatus: SharingUserStatus | null;
 	sources: SharingSourceRecord[];
 	recipients: SharingRecipientRecord[];
+	properties?: SharingPropertyRecord[];
+	permissions?: SharingSharePermissionRecord[];
+	permissionPreset?: string | null;
 }
 
 const globalForSharing = globalThis as typeof globalThis & {
@@ -68,6 +73,9 @@ export function seedSharingShare(share: SharingShareRecord): void {
 			...share,
 			sources: share.sources ?? [],
 			recipients: share.recipients ?? [],
+			properties: share.properties ?? [],
+			permissions: share.permissions ?? [],
+			permissionPreset: share.permissionPreset ?? null,
 		});
 	}
 }
@@ -81,6 +89,9 @@ export function createSharingShare(ownerId: string): SharingShareRecord {
 		userStatus: null,
 		sources: [],
 		recipients: [],
+		properties: [],
+		permissions: [],
+		permissionPreset: null,
 	};
 
 	getShares().push(share);
@@ -257,6 +268,103 @@ export function updateSharingShareRecipientPermission(
 	return touchShare(share);
 }
 
+export function updateSharingShareState(
+	shareId: string,
+	state: SharingState,
+): SharingShareRecord | undefined {
+	const share = getSharingShareById(shareId);
+
+	if (!share) {
+		return undefined;
+	}
+
+	share.state = state;
+
+	return touchShare(share);
+}
+
+export function updateSharingShareUserStatus(
+	shareId: string,
+	userStatus: SharingUserStatus,
+): SharingShareRecord | undefined {
+	const share = getSharingShareById(shareId);
+
+	if (!share) {
+		return undefined;
+	}
+
+	share.userStatus = userStatus;
+
+	return touchShare(share);
+}
+
+export function updateSharingShareProperty(
+	shareId: string,
+	propertyClass: string,
+	value: string | null,
+): SharingShareRecord | undefined {
+	const share = getSharingShareById(shareId);
+
+	if (!share) {
+		return undefined;
+	}
+
+	const existing = (share.properties ?? []).find((property) => property.class === propertyClass);
+
+	if (existing) {
+		existing.value = value;
+	} else {
+		if (!share.properties) {
+			share.properties = [];
+		}
+
+		share.properties.push({ class: propertyClass, value });
+	}
+
+	return touchShare(share);
+}
+
+export function updateSharingSharePermission(
+	shareId: string,
+	permissionClass: string,
+	enabled: boolean,
+): SharingShareRecord | undefined {
+	const share = getSharingShareById(shareId);
+
+	if (!share) {
+		return undefined;
+	}
+
+	const existing = (share.permissions ?? []).find((permission) => permission.class === permissionClass);
+
+	if (existing) {
+		existing.enabled = enabled;
+	} else {
+		if (!share.permissions) {
+			share.permissions = [];
+		}
+
+		share.permissions.push({ class: permissionClass, enabled });
+	}
+
+	return touchShare(share);
+}
+
+export function selectSharingSharePermissionPreset(
+	shareId: string,
+	presetClass: string,
+): SharingShareRecord | undefined {
+	const share = getSharingShareById(shareId);
+
+	if (!share) {
+		return undefined;
+	}
+
+	share.permissionPreset = presetClass;
+
+	return touchShare(share);
+}
+
 export function formatSharingOwner(request: Request, userId: string) {
 	const user = findParityUser(userId);
 	const origin = new URL(request.url).origin;
@@ -314,8 +422,20 @@ export function formatSharingShare(request: Request, share: SharingShareRecord) 
 		user_status: share.userStatus,
 		sources: share.sources.map(formatSharingSource),
 		recipients: share.recipients.map((recipient) => formatSharingRecipient(request, recipient)),
-		properties: [],
-		permissions: [],
-		permission_preset: null,
+		properties: (share.properties ?? []).map((property) => ({
+			class: property.class,
+			value: property.value,
+			display_name: property.class,
+		})),
+		permissions: (share.permissions ?? []).map((permission) => ({
+			class: permission.class,
+			source_class: null,
+			display_name: permission.class,
+			hint: null,
+			priority: 50,
+			presets: [],
+			enabled: permission.enabled,
+		})),
+		permission_preset: share.permissionPreset ?? null,
 	};
 }

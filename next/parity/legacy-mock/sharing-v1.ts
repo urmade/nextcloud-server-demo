@@ -12,8 +12,13 @@ import {
 	handleRemoveShareRecipient,
 	handleRemoveShareSource,
 	handleSearchRecipients,
+	handleSelectSharePermissionPreset,
+	handleUpdateSharePermission,
+	handleUpdateShareProperty,
 	handleUpdateShareRecipientPermission,
 	handleUpdateShareRecipientSecret,
+	handleUpdateShareState,
+	handleUpdateShareUserStatus,
 } from '@/src/server/sharing/api-v1';
 import { snapshotResponse } from '../compare';
 import type { ParityRequestOptions, ParityResponseSnapshot } from '../types';
@@ -28,6 +33,11 @@ const SHARE_SOURCE_PATH = /^\/ocs\/v2\.php\/apps\/sharing\/api\/v1\/share\/([^/]
 const SHARE_RECIPIENT_PATH = /^\/ocs\/v2\.php\/apps\/sharing\/api\/v1\/share\/([^/]+)\/recipient$/;
 const SHARE_RECIPIENT_SECRET_PATH = /^\/ocs\/v2\.php\/apps\/sharing\/api\/v1\/share\/([^/]+)\/recipient\/secret$/;
 const SHARE_RECIPIENT_PERMISSION_PATH = /^\/ocs\/v2\.php\/apps\/sharing\/api\/v1\/share\/([^/]+)\/recipient\/permission$/;
+const SHARE_STATE_PATH = /^\/ocs\/v2\.php\/apps\/sharing\/api\/v1\/share\/([^/]+)\/state$/;
+const SHARE_USER_STATUS_PATH = /^\/ocs\/v2\.php\/apps\/sharing\/api\/v1\/share\/([^/]+)\/user-status$/;
+const SHARE_PROPERTY_PATH = /^\/ocs\/v2\.php\/apps\/sharing\/api\/v1\/share\/([^/]+)\/property$/;
+const SHARE_PERMISSION_PATH = /^\/ocs\/v2\.php\/apps\/sharing\/api\/v1\/share\/([^/]+)\/permission$/;
+const SHARE_PERMISSION_PRESET_PATH = /^\/ocs\/v2\.php\/apps\/sharing\/api\/v1\/share\/([^/]+)\/permission\/preset$/;
 
 function buildRequest(pathname: string, search: string, options: ParityRequestOptions): Request {
 	const origin = 'http://127.0.0.1:3100';
@@ -133,6 +143,51 @@ export async function handleSharingV1Mock(
 		));
 	}
 
+	const stateMatch = SHARE_STATE_PATH.exec(pathname);
+
+	if (stateMatch && method === 'PUT') {
+		return responseToSnapshot(await handleUpdateShareState(
+			buildRequest(pathname, search, options),
+			stateMatch[1],
+		));
+	}
+
+	const userStatusMatch = SHARE_USER_STATUS_PATH.exec(pathname);
+
+	if (userStatusMatch && method === 'PUT') {
+		return responseToSnapshot(await handleUpdateShareUserStatus(
+			buildRequest(pathname, search, options),
+			userStatusMatch[1],
+		));
+	}
+
+	const propertyMatch = SHARE_PROPERTY_PATH.exec(pathname);
+
+	if (propertyMatch && method === 'PUT') {
+		return responseToSnapshot(await handleUpdateShareProperty(
+			buildRequest(pathname, search, options),
+			propertyMatch[1],
+		));
+	}
+
+	const permissionMatch = SHARE_PERMISSION_PATH.exec(pathname);
+
+	if (permissionMatch && method === 'PUT') {
+		return responseToSnapshot(await handleUpdateSharePermission(
+			buildRequest(pathname, search, options),
+			permissionMatch[1],
+		));
+	}
+
+	const permissionPresetMatch = SHARE_PERMISSION_PRESET_PATH.exec(pathname);
+
+	if (permissionPresetMatch && method === 'PUT') {
+		return responseToSnapshot(await handleSelectSharePermissionPreset(
+			buildRequest(pathname, search, options),
+			permissionPresetMatch[1],
+		));
+	}
+
 	const shareMatch = SHARE_ID_PATH.exec(pathname);
 
 	if (shareMatch) {
@@ -187,6 +242,11 @@ export function isSharingV1MockPath(pathname: string, method: string): boolean {
 	if (normalizedMethod === 'PUT' && (
 		SHARE_RECIPIENT_SECRET_PATH.test(pathname)
 		|| SHARE_RECIPIENT_PERMISSION_PATH.test(pathname)
+		|| SHARE_STATE_PATH.test(pathname)
+		|| SHARE_USER_STATUS_PATH.test(pathname)
+		|| SHARE_PROPERTY_PATH.test(pathname)
+		|| SHARE_PERMISSION_PATH.test(pathname)
+		|| SHARE_PERMISSION_PRESET_PATH.test(pathname)
 	)) {
 		return true;
 	}

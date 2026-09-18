@@ -20,3 +20,13 @@ export interface SharingRecipientRecord {
 	secret: string | null;
 	permissions: SharingRecipientPermissionRecord[];
 }
+
+export interface SharingPropertyRecord {
+	class: string;
+	value: string | null;
+}
+
+export interface SharingSharePermissionRecord {
+	class: string;
+	enabled: boolean;
+}

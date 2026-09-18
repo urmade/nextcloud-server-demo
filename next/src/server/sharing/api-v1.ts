@@ -23,9 +23,16 @@ import {
 	listSharingShares,
 	removeSharingShareRecipient,
 	removeSharingShareSource,
+	selectSharingSharePermissionPreset,
+	updateSharingSharePermission,
+	updateSharingShareProperty,
 	updateSharingShareRecipientPermission,
 	updateSharingShareRecipientSecret,
+	updateSharingShareState,
+	updateSharingShareUserStatus,
 	type SharingShareRecord,
+	type SharingState,
+	type SharingUserStatus,
 } from '@/src/server/sharing/store';
 
 const API_DISABLED_MESSAGE = 'The Unified Sharing API is not enabled.';
@@ -196,6 +203,28 @@ function optionalQueryString(request: Request, key: string): string | null | Res
 	}
 
 	return value;
+}
+
+function parseShareState(request: Request, state: string): SharingState | Response {
+	if (!['active', 'draft', 'deleted'].includes(state)) {
+		return ocsBadRequestStringResponse(
+			parseOcsVersion(request),
+			`"${state}" is not a valid backing value for enum NCU\\Sharing\\ShareState`,
+		);
+	}
+
+	return state as SharingState;
+}
+
+function parseShareUserStatus(request: Request, userStatus: string): SharingUserStatus | Response {
+	if (!['pending', 'accepted', 'rejected'].includes(userStatus)) {
+		return ocsBadRequestStringResponse(
+			parseOcsVersion(request),
+			`"${userStatus}" is not a valid backing value for enum NCU\\Sharing\\ShareUserStatus`,
+		);
+	}
+
+	return userStatus as SharingUserStatus;
 }
 
 function parseLimit(
@@ -622,6 +651,162 @@ export async function handleUpdateShareRecipientPermission(request: Request, id:
 		permissionClass,
 		enabled,
 	)!;
+
+	return ocsSuccessResponse(formatSharingShare(request, updated), parseOcsVersion(request));
+}
+
+export async function handleUpdateShareState(request: Request, id: string): Promise<Response> {
+	const shareOrResponse = getOwnedShare(request, id);
+
+	if (shareOrResponse instanceof Response) {
+		return shareOrResponse;
+	}
+
+	const body = await readJsonObject(request);
+
+	if (body instanceof Response) {
+		return body;
+	}
+
+	const stateValue = requireStringField(body, 'state');
+
+	if (stateValue instanceof Response) {
+		return stateValue;
+	}
+
+	const state = parseShareState(request, stateValue);
+
+	if (state instanceof Response) {
+		return state;
+	}
+
+	const updated = updateSharingShareState(shareOrResponse.id, state)!;
+
+	return ocsSuccessResponse(formatSharingShare(request, updated), parseOcsVersion(request));
+}
+
+export async function handleUpdateShareUserStatus(request: Request, id: string): Promise<Response> {
+	const blocked = checkGate(request, 'required');
+
+	if (blocked) {
+		return blocked;
+	}
+
+	const userId = requireUser(request);
+
+	if (userId instanceof Response) {
+		return userId;
+	}
+
+	const share = getSharingShareById(id);
+
+	if (!share) {
+		return ocsStringErrorResponse(parseOcsVersion(request), 404, SHARE_NOT_FOUND);
+	}
+
+	const body = await readJsonObject(request);
+
+	if (body instanceof Response) {
+		return body;
+	}
+
+	const userStatusValue = requireStringField(body, 'userStatus');
+
+	if (userStatusValue instanceof Response) {
+		return userStatusValue;
+	}
+
+	const userStatus = parseShareUserStatus(request, userStatusValue);
+
+	if (userStatus instanceof Response) {
+		return userStatus;
+	}
+
+	const updated = updateSharingShareUserStatus(share.id, userStatus)!;
+
+	return ocsSuccessResponse(formatSharingShare(request, updated), parseOcsVersion(request));
+}
+
+export async function handleUpdateShareProperty(request: Request, id: string): Promise<Response> {
+	const shareOrResponse = getOwnedShare(request, id);
+
+	if (shareOrResponse instanceof Response) {
+		return shareOrResponse;
+	}
+
+	const body = await readJsonObject(request);
+
+	if (body instanceof Response) {
+		return body;
+	}
+
+	const propertyClass = requireStringField(body, 'class');
+
+	if (propertyClass instanceof Response) {
+		return propertyClass;
+	}
+
+	const value = optionalStringField(body, 'value');
+
+	if (value instanceof Response) {
+		return value;
+	}
+
+	const updated = updateSharingShareProperty(shareOrResponse.id, propertyClass, value)!;
+
+	return ocsSuccessResponse(formatSharingShare(request, updated), parseOcsVersion(request));
+}
+
+export async function handleUpdateSharePermission(request: Request, id: string): Promise<Response> {
+	const shareOrResponse = getOwnedShare(request, id);
+
+	if (shareOrResponse instanceof Response) {
+		return shareOrResponse;
+	}
+
+	const body = await readJsonObject(request);
+
+	if (body instanceof Response) {
+		return body;
+	}
+
+	const permissionClass = requireStringField(body, 'class');
+
+	if (permissionClass instanceof Response) {
+		return permissionClass;
+	}
+
+	const enabled = requireBooleanField(body, 'enabled');
+
+	if (enabled instanceof Response) {
+		return enabled;
+	}
+
+	const updated = updateSharingSharePermission(shareOrResponse.id, permissionClass, enabled)!;
+
+	return ocsSuccessResponse(formatSharingShare(request, updated), parseOcsVersion(request));
+}
+
+export async function handleSelectSharePermissionPreset(request: Request, id: string): Promise<Response> {
+	const shareOrResponse = getOwnedShare(request, id);
+
+	if (shareOrResponse instanceof Response) {
+		return shareOrResponse;
+	}
+
+	const body = await readJsonObject(request);
+
+	if (body instanceof Response) {
+		return body;
+	}
+
+	const presetClass = requireStringField(body, 'permissionPresetClass');
+
+	if (presetClass instanceof Response) {
+		return presetClass;
+	}
+
+	const updated = selectSharingSharePermissionPreset(shareOrResponse.id, presetClass)!;
 
 	return ocsSuccessResponse(formatSharingShare(request, updated), parseOcsVersion(request));
 }

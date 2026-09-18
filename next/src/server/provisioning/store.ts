@@ -2,6 +2,7 @@ import { findParityUser, getParityUsers } from '@/src/server/config/users';
 import { getParityGroups } from '@/src/server/config/groups';
 import { getConfiguredAdminUserId } from '@/src/server/ocs/admin-auth';
 import { resetKnownUsersStore } from '@/src/server/provisioning/known-users';
+import { resetMailVerifyStore } from '@/src/server/provisioning/mail-verify';
 import { resetParityProvisioningConfig } from '@/src/server/provisioning/config';
 import { resetParityPreferenceListeners } from '@/src/server/provisioning/preference-events';
 import { resetUserPreferencesStore } from '@/src/server/provisioning/preference-store';
@@ -271,6 +272,7 @@ export function resetProvisioningStore(): void {
 	globalForProvisioning.__ncProvisioningUsers = seedDefaultUsers();
 	globalForProvisioning.__ncProvisioningSubadmins = new Map();
 	resetKnownUsersStore();
+	resetMailVerifyStore();
 	resetParityProvisioningConfig();
 	resetParityPreferenceListeners();
 	resetUserPreferencesStore();

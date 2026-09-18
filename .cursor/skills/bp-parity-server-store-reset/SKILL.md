@@ -16,7 +16,8 @@ The Next.js app under test is a **separate process** from Vitest. Clearing an in
 
 - Add `POST /api/parity/reset-<store>` guarded by `NC_PARITY_EXAPP === 'true'` (else **404**). Not a product endpoint. Do not map it.
 - Helper must reset **all three**: Vitest-side module state, legacy mock, Next.js server via HTTP.
-- Call it from `beforeEach` of the suite that reads the store, and `afterEach` of the suite that mutates it (order in the full run matters).
+- **Every full-suite-sensitive auth test file** must call `resetParityAuthStores()` in `beforeEach` — not only in `afterEach`. Isolation-only green is not enough; the next file in the run must start from a clean server.
+- Also call `resetParityAuthStores()` in `afterEach` when the suite mutates auth state (2FA enable, login, confirm-password).
 - Keep independent HTTP sequences and cookie jars per side.
 
 Existing resets:
@@ -32,6 +33,16 @@ Existing resets:
 - Reset only the mock.
 - Leave 2FA/session mutations in a file that runs immediately before `core-auth`.
 - Document the reset route on the product endpoint map.
+
+## Suites that must reset auth
+
+| Suite | Hook | Why |
+| --- | --- | --- |
+| `core-two-factor-api` | `afterEach` | Enables/disables 2FA via OCS |
+| `core-login-2fa-challenge` | `beforeEach` + `afterEach` | Enables 2FA for `admin` on server |
+| `core-login-confirm-password` | `beforeEach` + `afterEach` | Creates authenticated sessions |
+| `core-auth` | `beforeEach` | Reads login redirect state |
+| `core-platform` | `beforeEach` | `loginParitySession` + ETag probes need clean `admin` |
 
 ## Related
 

@@ -1,9 +1,9 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SESSION_COOKIE } from '@/src/server/auth/cookies';
 import { FIXTURE_CHALLENGE_CODE, FIXTURE_PROVIDER_ID } from '@/src/server/auth/two-factor-challenge';
-import { resetSessionStore } from '@/src/server/auth/session-store';
-import { resetTwoFactorStore, tryEnableTwoFactorProvider } from '@/src/server/two-factor/store';
+import { tryEnableTwoFactorProvider } from '@/src/server/two-factor/store';
 import { getParityEnv } from '../env';
+import { resetParityAuthStores } from '../helpers/auth';
 import { fetchLegacyMockSnapshot } from '../legacy-mock/adapter';
 import { formatParityMismatches, runParityCase } from '../harness';
 import { cookieJarToHeader, mergeResponseCookies } from '../helpers/cookies';
@@ -72,9 +72,12 @@ async function loginWithTwoFactorEnabled(baseUrl = getParityEnv().newBaseUrl): P
 }
 
 describe('parity: core-login-2fa-challenge', () => {
-	afterEach(() => {
-		resetSessionStore();
-		resetTwoFactorStore();
+	beforeEach(async () => {
+		await resetParityAuthStores();
+	});
+
+	afterEach(async () => {
+		await resetParityAuthStores();
 	});
 
 	it('GET /login/selectchallenge unauthenticated redirects to login', async () => {

@@ -4499,15 +4499,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/twofactor/disable
+  next_handler: app/ocs/v2.php/twofactor/disable/route.ts
+  parity_test: next/parity/tests/core-two-factor-api.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Admin-only; PasswordConfirmationRequired(strict) re-checks Basic auth password. Unknown user → 404 data null. Provider states map in ocs.data. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
 - id: core-two_factor_api-enable
   feature_ids:
   - core
@@ -4554,15 +4554,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/twofactor/enable
+  next_handler: app/ocs/v2.php/twofactor/enable/route.ts
+  parity_test: next/parity/tests/core-two-factor-api.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Admin-only; PasswordConfirmationRequired checks last-password-confirm window. Unknown user → 404 data null. Provider states map in ocs.data. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
 - id: core-two_factor_api-state
   feature_ids:
   - core
@@ -4605,15 +4605,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/twofactor/state
+  next_handler: app/ocs/v2.php/twofactor/state/route.ts
+  parity_test: next/parity/tests/core-two-factor-api.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Admin-only; query param user required. Unknown user → 404 data null. Provider states map in ocs.data. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
 - id: core.CSRFToken#index
   feature_ids:
   - core-login

@@ -146,11 +146,20 @@ OCS Translation API (`/ocs/v2.php/translation/…`). `@PublicPage` on both route
 - `GET /ocs/v2.php/translation/languages` — `{ languages: [{ from, fromLabel, to, toLabel }], languageDetection: bool }`
 - `POST /ocs/v2.php/translation/translate` — translate text (`text`, `fromLanguage?`, `toLanguage`)
 
+### Slice 10 — two-factor admin API (done)
+
+OCS Two-Factor admin/state API (`/ocs/v2.php/twofactor/…`). Admin-only (`mixed` auth — session or Basic). Distinct from `twofactor_backupcodes` settings HTML.
+
+- `GET /ocs/v2.php/twofactor/state?user=` — provider enablement map `{ [providerId]: bool }`
+- `POST /ocs/v2.php/twofactor/enable` — enable providers for user (`user`, `providers[]`); `PasswordConfirmationRequired`
+- `POST /ocs/v2.php/twofactor/disable` — disable providers for user; `PasswordConfirmationRequired(strict: true)`
+
+Parity registers fixture provider `parity-totp` (admin enable/disable). Real Nextcloud loads app 2FA providers dynamically; this slice models the OCS contract only.
+
 ## Non-scope (later core sub-slices)
 
 | Sub-slice | Endpoint ids (prefix / theme) |
 | --- | --- |
-| **core-2fa** | `core-two_factor_api-*` |
 | **core-wipe** | `core-wipe-*` |
 | **core-collaboration** | `core-collaboration_resources-*` |
 | **core-teams** | `core-teams_api-*` |
@@ -252,6 +261,12 @@ Slice 9:
 - `core-translation_api-languages`
 - `core-translation_api-translate`
 
+Slice 10:
+
+- `core-two_factor_api-state`
+- `core-two_factor_api-enable`
+- `core-two_factor_api-disable`
+
 ## Auth model
 
 | Route | Auth |
@@ -269,6 +284,7 @@ Slice 9:
 | Deprecated TextProcessing `tasktypes` | `@PublicPage` — unauthenticated **200** (not 401) |
 | Deprecated TextProcessing / TextToImage (other) | `mixed` — session or Basic; unauthenticated → **401** OCS 997 |
 | Translation API | `@PublicPage` — unauthenticated **200** (not 401) |
+| Two-factor admin API | `mixed` — session or Basic; **admin only** — non-admin → **403** `Logged in account must be an admin` |
 
 Unauthenticated OCS calls → v2 HTTP **401**, `ocs.meta.statuscode` **997**, empty `data` (except `@PublicPage` routes above).
 
@@ -308,6 +324,10 @@ src/server/
   translation/
     catalog.ts                 # fixture language pairs + provider toggle
     api.ts                     # translation/* handlers
+  two-factor/
+    catalog.ts                 # fixture provider ids + admin enable/disable flags
+    store.ts                   # in-memory provider states per user
+    api.ts                     # twofactor/* handlers
   fixtures/
     binary.ts                  # deterministic PNG bytes (no real photos)
   http/
@@ -366,6 +386,9 @@ app/
   ocs/v2.php/text2image/tasks/app/[appId]/route.ts
   ocs/v2.php/translation/languages/route.ts
   ocs/v2.php/translation/translate/route.ts
+  ocs/v2.php/twofactor/state/route.ts
+  ocs/v2.php/twofactor/enable/route.ts
+  ocs/v2.php/twofactor/disable/route.ts
 ```
 
 Config:
@@ -381,6 +404,7 @@ Config:
 | `NC_PARITY_TEXT_PROCESSING_PROVIDER` | `true` | Toggle deprecated TextProcessing schedule provider |
 | `NC_PARITY_TEXT_TO_IMAGE_PROVIDER` | `true` | Toggle TextToImage `isAvailable` + schedule provider |
 | `NC_PARITY_TRANSLATION_PROVIDER` | `true` | Toggle translation catalog + translate provider |
+| `NC_PARITY_TWO_FACTOR_PROVIDER` | `true` | Toggle fixture provider `parity-totp` |
 
 ## Traps
 
@@ -438,6 +462,12 @@ Config:
 - Translation `fromLanguage === toLanguage` returns input unchanged; unsupported pair → **400** `Unable to translate` with `from` in `data`
 - Translation missing `fromLanguage` without detection → **400** `Could not detect language`
 - Parity fixture translate reverses text (mirrors `FakeTranslationProvider::mb_strrev`) — not a real translation
+- Two-factor admin API requires admin session (`NC_ADMIN_USER`, default `admin`); non-admin → **403** with stable message
+- Two-factor unknown target user → HTTP **404** with `ocs.data: null` (not `{}` or `[]`)
+- Two-factor success `ocs.data` is a provider-id → bool map; empty user has `{}`
+- Two-factor `enable` requires fresh `last-password-confirm` (30m + 15s); stale → **403** + `x-nc-auth-notconfirmed: true`
+- Two-factor `disable` is strict password confirm — requires Basic auth password header; missing → **403** `Required authorization header missing`
+- Unknown provider ids in enable/disable are silently ignored (`tryEnable` / `tryDisable` no-op) — state still returned
 
 ## Parity extras
 
@@ -514,5 +544,10 @@ Config:
 | Public | translation languages | 200 without auth; fixture language pairs |
 | Public | translation translate | 200 without auth; reversed text for `en`→`de` |
 | Validation | translation translate | no provider (`NC_PARITY_TRANSLATION_PROVIDER=false`) → 412 |
+| Auth failure | two-factor admin API | 401 OCS 997 |
+| Validation | two-factor state | unknown `user` → 404 `data: null` |
+| Validation | two-factor enable | stale password confirm → 403 + `x-nc-auth-notconfirmed` |
+| Validation | two-factor disable | missing Basic password → 403 `Required authorization header missing` |
+| Happy | two-factor state / enable / disable | 200 provider map; fixture `parity-totp` |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` fixtures (not waived).

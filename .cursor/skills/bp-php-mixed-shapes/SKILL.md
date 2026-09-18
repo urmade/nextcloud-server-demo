@@ -52,6 +52,13 @@ Cross-cutting. Applies when PHP types a success body as `mixed`, `array`, or pro
 - Provider toggle: `NC_PARITY_TRANSLATION_PROVIDER` (default on). Compare representative catalog paths, not full provider union.
 - Translate success `{ text, from }` — `from` may be `null` in OpenAPI but is set on success when provided or detected.
 
+## Two-factor admin API (core slice 10)
+
+- Success `ocs.data` is `{ [providerId: string]: boolean }` from registry — compare representative provider keys only.
+- Unknown target user → HTTP **404** with `data: null`.
+- Admin auth failure → **403** with stable `meta.message`; password confirm failures add `x-nc-auth-notconfirmed` on non-strict enable.
+- Provider toggle: `NC_PARITY_TWO_FACTOR_PROVIDER` (default on). Fixture id `parity-totp`.
+
 ## Parity
 
 - Happy path: fixture-backed partial paths.

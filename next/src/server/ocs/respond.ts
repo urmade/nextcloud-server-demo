@@ -96,6 +96,25 @@ export function ocsNotModifiedResponse(): Response {
 	});
 }
 
+export function ocsNotFoundNullResponse(ocsVersion: OcsApiVersion): Response {
+	const envelope = {
+		ocs: {
+			meta: {
+				status: 'failure' as const,
+				statuscode: 404,
+				message: '',
+				...(ocsVersion === 1 ? { totalitems: '', itemsperpage: '' } : {}),
+			},
+			data: null,
+		},
+	};
+
+	return Response.json(envelope, {
+		status: getOcsHttpStatus(ocsVersion, 404),
+		headers: OCS_JSON_HEADERS,
+	});
+}
+
 export function ocsBadRequestStringResponse(
 	ocsVersion: OcsApiVersion,
 	message: string,

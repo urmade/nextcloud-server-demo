@@ -78,6 +78,14 @@ v1 success adds `totalitems` and `itemsperpage` (empty strings) to `meta`.
 
 **Trap:** Translation `translate` missing provider → HTTP **412** with `data.message` `No translation provider available`; unsupported language pair → **400** `Unable to translate` (may include `from`).
 
+**Trap:** Two-factor admin API non-admin → HTTP **403** with `meta.message` `Logged in account must be an admin` and `data: {}`.
+
+**Trap:** Two-factor unknown target user → HTTP **404** with `ocs.data: null` (DataResponse null), not `{}`.
+
+**Trap:** Two-factor `enable` stale password confirm → HTTP **403** + header `X-NC-Auth-NotConfirmed: true` + message `Password confirmation is required`.
+
+**Trap:** Two-factor `disable` strict confirm missing Basic password → HTTP **403** `Required authorization header missing`.
+
 ## Implementation
 
 - Shared helpers: `src/server/ocs/envelope.ts` (`buildOcsSuccessEnvelope`, `buildOcsFailureEnvelope`, `getOcsHttpStatus`); `src/server/ocs/respond.ts` (`ocsBadRequestStringResponse` for string `data` on 400).

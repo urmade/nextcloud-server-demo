@@ -26,6 +26,7 @@ import {
 import { getRecentFiles } from './recent';
 import { getServiceWorkerResponse } from './service-worker';
 import { getThumbnailResponse } from './thumbnail';
+import { resetFilenamesStore } from './filenames-store';
 import { resetFilesViewConfigStore } from './view-config-store';
 
 const JSON_HEADERS = {
@@ -399,4 +400,5 @@ export function resetFilesApiStores(): void {
 	resetFilesUserConfigStore();
 	resetFilesViewConfigStore();
 	resetFileTagsStore();
+	resetFilenamesStore();
 }

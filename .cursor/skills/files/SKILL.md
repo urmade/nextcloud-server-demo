@@ -33,7 +33,7 @@ Capabilities `files` (other slice `core-status` providers): `bigfilechunking`, `
 
 ## Endpoints owned
 
-35 map ids. Frontpage JSON is **not** OCS. OCS uses `bp-ocs-envelope`.
+39 map ids. Frontpage JSON is **not** OCS. OCS uses `bp-ocs-envelope`.
 
 ### UI
 
@@ -84,8 +84,10 @@ Capabilities `files` (other slice `core-status` providers): `bigfilechunking`, `
 | `files-transfer_ownership-transfer` | POST | `…/transferownership` |
 | `files-transfer_ownership-accept` | POST | `…/transferownership/{id}` |
 | `files-transfer_ownership-reject` | DELETE | `…/transferownership/{id}` |
-
-`FilenamesController` (windows-compat / sanitization) is **not** in this feature map — leave it.
+| `files.Filenames#getStatus` | GET | `/ocs/v2.php/apps/files/api/v1/filenames/sanitization` |
+| `files.Filenames#sanitizeFilenames.post` | POST | same sanitization path |
+| `files.Filenames#stopSanitization.delete` | DELETE | same sanitization path |
+| `files.Filenames#toggleWindowFilenameSupport.post` | POST | `/ocs/v2.php/apps/files/api/v1/filenames/windows-compatibility` |
 
 ## Endpoint walkthrough
 
@@ -157,6 +159,18 @@ Frontpage `GET /directEditing/{token}`: **`PublicPage`**, `NoCSRFRequired`, `Use
 
 `transfer(recipient, path)`: owner UID + `IHomeStorage` else 403; bad user/path 400. `accept`/`reject` `{id}` = transfer row; only targetUser else 403; missing 404. Accept schedules job; reject deletes row.
 
+### Filenames OCS (implemented)
+
+`FilenamesController` — **admin OCS** (`filenames-auth`), not `auth: mixed`. CSRF on all methods unless `OCS-APIRequest: true`, Bearer, or `requesttoken` → **412** `{message}`. Unauth v2 **401/997** `data:[]` message `Current user is not logged in`; non-admin **403** `data:[]`. Process-local job flag + status fields; no real filesystem sanitization in parity.
+
+`toggleWindowFilenameSupport` `POST …/windows-compatibility` body `{enabled}` → OCS `{enabled}`. Side effect: merge/remove Windows forbidden basenames/characters/extensions; clears sanitization status/index/errors.
+
+`sanitizeFilenames` `POST …/sanitization` body `{limit?}` default 10, `{charReplacement?}` → OCS `[]`. 400 meta.message when `limit < 1`, empty/`>1` char replacement, or job already running.
+
+`getStatus` `GET …/sanitization` → `{status, processed, total, errors}`. `processed` default **-1**. `total` = seen-user count. `errors` uid→path **lists**; empty store → JSON `[]`. Status **1** when job queued and stored status is 0. Enum: 0 unknown, 1 scheduled, 2 running, 3 done, 4 error.
+
+`stopSanitization` `DELETE …/sanitization` → OCS `[]` or 400 when no job. Removes job only — does **not** clear status/index/errors.
+
 ## Auth / tenant rules
 
 | Surface | Auth |
@@ -188,7 +202,6 @@ CSRF: cookie POSTs need `requesttoken` unless `OCS-APIRequest: true`.
 - Do not implement WebDAV PUT/GET bytes (`dav`).
 - Do not implement share OCS / `/s/{token}` (`files_sharing`).
 - Do not implement versions/trash/external/reminders features.
-- Do not implement `FilenamesController` (not mapped).
 - Do not implement core preview (`core-preview-*`) — thumbnail here is the deprecated files route only.
 - Do not wrap folder-tree in OCS meta if PHP returns a bare array (match OpenAPI / controller).
 - Do not invent extra UserConfig keys.
@@ -207,6 +220,9 @@ src/server/files/
   view-config.ts
   stats.ts
   grid-view.ts
+  filenames-store.ts
+  filenames-auth.ts
+  filenames.ts
   api.ts                 # requireFilesApiUser + GET handlers
 app/apps/files/api/v1/config/[key]/route.ts
 app/apps/files/api/v1/configs/route.ts
@@ -217,11 +233,17 @@ app/apps/files/api/v1/showhidden/route.ts
 app/apps/files/api/v1/showgridview/route.ts
 app/apps/files/api/v1/cropimagepreviews/route.ts
 app/apps/files/api/v1/files/[...path]/route.ts
+app/ocs/v2.php/apps/files/api/v1/filenames/sanitization/route.ts
+app/ocs/v2.php/apps/files/api/v1/filenames/windows-compatibility/route.ts
 src/server/files/tags.ts
 parity/legacy-mock/files.ts
+parity/legacy-mock/files-filenames.ts
+parity/helpers/files.ts
+app/api/parity/reset-files-store/route.ts
 parity/tests/files-json-config.parity.test.ts
 parity/tests/files-json-writes.parity.test.ts
 parity/tests/files-json-crop-tags.parity.test.ts
+parity/tests/files-json-filenames.parity.test.ts
 ```
 
 List/download still go through DAV modules. `computeStorageStats` reads DAV home tree size.
@@ -253,6 +275,13 @@ List/download still go through DAV modules. `computeStorageStats` reads DAV home
 | Token page | DirectEditingView | public GET 200 or 404 |
 | Open-local | validate twice | second 404 |
 | Transfer | reject as non-target | 403 |
+| Auth | Filenames OCS | 401/997 unauth; 403 non-admin |
+| Happy | getStatus | `{status,processed:-1,total,errors:{}}` |
+| Happy | sanitizeFilenames POST | `[]`; status becomes 1 while job active |
+| Validation | sanitize limit 0 / empty replacement / duplicate start | 400 meta.message |
+| Happy | stopSanitization DELETE | `[]` after start |
+| Validation | stop when idle | 400 meta.message |
+| Happy | toggleWindowFilenameSupport | `{enabled}` echo |
 
 HTML index: 200 `text/html` for logged-in; unauthenticated → login redirect (AppFramework), not 200. Service worker: 200 JS without session.
 
@@ -264,7 +293,8 @@ Waive chunked **DAV** upload in `dav`, not here.
 - `apps/files/lib/Controller/ApiController.php`
 - `ViewController.php`, `DirectEditingController.php`, `DirectEditingViewController.php`
 - `TemplateController.php`, `OpenLocalEditorController.php`
-- `ConversionApiController.php`, `TransferOwnershipController.php`
+- `ConversionApiController.php`, `TransferOwnershipController.php`, `FilenamesController.php`
+- `apps/files/lib/Service/SettingsService.php`
 - `apps/files/lib/Capabilities.php`, `ResponseDefinitions.php`
 - `lib/private/Files/Conversion/ConversionManager.php`
 - Cross: `dav` files tree; `core` preview; `files_sharing`; `bp-ocs-envelope`; `bp-observe-php-contract`

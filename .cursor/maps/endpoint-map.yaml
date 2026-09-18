@@ -21772,7 +21772,7 @@ endpoints:
   method: DELETE
   legacy_path: /ocs/v2.php/apps/files/api/v1/filenames/sanitization
   legacy_source: apps/files/lib/Controller/FilenamesController.php Filenames#stopSanitization Route TYPE_API DELETE /api/v1/filenames/sanitization
-  auth: mixed
+  auth: admin
   request:
     params: {}
     query: {}
@@ -21788,21 +21788,34 @@ endpoints:
           data: []
       content_type: application/json
     errors:
-    - status: 400
+    - status: 401
       shape:
         ocs:
           meta: OCSMeta
-          data: any
+          data: {}
       content_type: application/json
-  status: discovered
-  parity: pending
+    - status: 403
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: {}
+      content_type: application/json
+    - status: 400
+      shape:
+        ocs:
+          meta:
+            message: string
+          data: {}
+      content_type: application/json
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files/api/v1/filenames/sanitization
+  next_handler: src/server/files/filenames.ts
+  parity_test: next/parity/tests/files-json-filenames.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: 'OpenAPI SCOPE_IGNORE. No PublicPage/NoAdminRequired — login+admin defaults. OCSBadRequestException if no sanitization job is running. Side effect: removes SanitizeFilenames jobs. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.'
+  notes: 'Admin-only OCS (no NoAdminRequired). OCSBadRequestException → 400 meta.message when no job running. Side effect: removes SanitizeFilenames jobs. v2 route canonical.'
 - id: files.Filenames#getStatus
   feature_ids:
   - files
@@ -21810,7 +21823,7 @@ endpoints:
   method: GET
   legacy_path: /ocs/v2.php/apps/files/api/v1/filenames/sanitization
   legacy_source: apps/files/lib/Controller/FilenamesController.php Filenames#getStatus Route TYPE_API GET /api/v1/filenames/sanitization
-  auth: mixed
+  auth: admin
   request:
     params: {}
     query: {}
@@ -21828,18 +21841,30 @@ endpoints:
             processed: int
             total: int
             errors:
-              '{uid}': string
+              '{uid}': list[string]
       content_type: application/json
-    errors: []
-  status: discovered
-  parity: pending
+    errors:
+    - status: 401
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: {}
+      content_type: application/json
+    - status: 403
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: {}
+      content_type: application/json
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files/api/v1/filenames/sanitization
+  next_handler: src/server/files/filenames.ts
+  parity_test: next/parity/tests/files-json-filenames.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: 'OpenAPI SCOPE_IGNORE. SettingsService::getSanitizationStatus. Numeric status enum values not named here. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.'
+  notes: 'Admin-only OCS. SettingsService::getSanitizationStatus → {status,processed,total,errors}; status 1 when job queued and app status 0. v2 route canonical.'
 - id: files.Filenames#sanitizeFilenames.post
   feature_ids:
   - files
@@ -21847,7 +21872,7 @@ endpoints:
   method: POST
   legacy_path: /ocs/v2.php/apps/files/api/v1/filenames/sanitization
   legacy_source: apps/files/lib/Controller/FilenamesController.php Filenames#sanitizeFilenames Route TYPE_API POST /api/v1/filenames/sanitization
-  auth: mixed
+  auth: admin
   request:
     params: {}
     query: {}
@@ -21865,21 +21890,34 @@ endpoints:
           data: []
       content_type: application/json
     errors:
-    - status: 400
+    - status: 401
       shape:
         ocs:
           meta: OCSMeta
-          data: any
+          data: {}
       content_type: application/json
-  status: discovered
-  parity: pending
+    - status: 403
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: {}
+      content_type: application/json
+    - status: 400
+      shape:
+        ocs:
+          meta:
+            message: string
+          data: {}
+      content_type: application/json
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files/api/v1/filenames/sanitization
+  next_handler: src/server/files/filenames.ts
+  parity_test: next/parity/tests/files-json-filenames.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: 'OpenAPI SCOPE_IGNORE. Default limit 10. 400 when limit < 1, charReplacement empty or longer than 1 char, or a sanitization job is already running. Side effect: schedules Files\BackgroundJob\SanitizeFilenames. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.'
+  notes: 'Admin-only OCS. Default limit 10. 400 meta.message when limit < 1, charReplacement empty/>1 char, or job already running. Schedules SanitizeFilenames job. v2 route canonical.'
 - id: files.Filenames#toggleWindowFilenameSupport.post
   feature_ids:
   - files
@@ -21887,7 +21925,7 @@ endpoints:
   method: POST
   legacy_path: /ocs/v2.php/apps/files/api/v1/filenames/windows-compatibility
   legacy_source: apps/files/lib/Controller/FilenamesController.php Filenames#toggleWindowFilenameSupport Route TYPE_API POST /api/v1/filenames/windows-compatibility
-  auth: mixed
+  auth: admin
   request:
     params: {}
     query: {}
@@ -21904,16 +21942,28 @@ endpoints:
           data:
             enabled: boolean
       content_type: application/json
-    errors: []
-  status: discovered
-  parity: pending
+    errors:
+    - status: 401
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: {}
+      content_type: application/json
+    - status: 403
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: {}
+      content_type: application/json
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files/api/v1/filenames/windows-compatibility
+  next_handler: src/server/files/filenames.ts
+  parity_test: next/parity/tests/files-json-filenames.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: 'OpenAPI SCOPE_IGNORE. Side effect: SettingsService::setFilesWindowsSupport mutates forbidden_filename_* system values and clears sanitization status/index. Error statuses not asserted. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.'
+  notes: 'Admin-only OCS. SettingsService::setFilesWindowsSupport mutates forbidden_filename_* system values and clears sanitization state. v2 route canonical.'
 - id: workflowengine.RequestTime#getTimezones
   feature_ids:
   - workflowengine

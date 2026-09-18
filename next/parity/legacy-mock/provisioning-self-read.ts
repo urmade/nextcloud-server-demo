@@ -51,7 +51,10 @@ export function isProvisioningSelfReadMockPath(pathname: string, method = 'GET')
 		|| pathname === '/ocs/v2.php/cloud/user/fields'
 		|| pathname === '/ocs/v2.php/cloud/user/apps'
 		|| /^\/ocs\/v2\.php\/cloud\/user\/fields\/[^/]+$/.test(pathname)
-		|| /^\/ocs\/v2\.php\/cloud\/users\/[^/]+$/.test(pathname);
+		|| /^\/ocs\/v2\.php\/cloud\/users\/[^/]+$/.test(pathname)
+			&& pathname !== '/ocs/v2.php/cloud/users/details'
+			&& pathname !== '/ocs/v2.php/cloud/users/disabled'
+			&& pathname !== '/ocs/v2.php/cloud/users/recent';
 }
 
 export async function handleProvisioningSelfReadMock(

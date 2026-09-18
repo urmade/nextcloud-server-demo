@@ -78,6 +78,7 @@ const DEFAULT_ENABLED_APPS = [
 const globalForProvisioning = globalThis as typeof globalThis & {
 	__ncProvisioningUsers?: Map<string, ProvisioningUserRecord>;
 	__ncProvisioningSubadmins?: Map<string, Set<string>>;
+	__ncDelegatedUsersAdmins?: Set<string>;
 };
 
 function defaultProperties(): Record<string, ProvisioningAccountProperty> {
@@ -176,6 +177,53 @@ export function listProvisioningUserIds(): string[] {
 	return [...getUsersMap().keys()];
 }
 
+export function listProvisioningUserRecords(): ProvisioningUserRecord[] {
+	return [...getUsersMap().values()];
+}
+
+export function isDelegatedUsersAdmin(userId: string): boolean {
+	return globalForProvisioning.__ncDelegatedUsersAdmins?.has(userId) ?? false;
+}
+
+export function setDelegatedUsersAdmin(userId: string, enabled: boolean): void {
+	if (!globalForProvisioning.__ncDelegatedUsersAdmins) {
+		globalForProvisioning.__ncDelegatedUsersAdmins = new Set();
+	}
+
+	if (enabled) {
+		globalForProvisioning.__ncDelegatedUsersAdmins.add(userId);
+	} else {
+		globalForProvisioning.__ncDelegatedUsersAdmins.delete(userId);
+	}
+}
+
+export function setProvisioningSubadminGroups(userId: string, groups: string[]): void {
+	const subadminMap = getSubadminMap();
+	subadminMap.set(userId, new Set(groups));
+
+	const user = getProvisioningUser(userId);
+
+	if (user) {
+		user.subadminGroups = [...groups];
+	}
+}
+
+export function setProvisioningUserEnabled(userId: string, enabled: boolean): void {
+	const user = getProvisioningUser(userId);
+
+	if (user) {
+		user.enabled = enabled;
+	}
+}
+
+export function setProvisioningUserLastLogin(userId: string, lastLoginTimestamp: number): void {
+	const user = getProvisioningUser(userId);
+
+	if (user) {
+		user.lastLoginTimestamp = lastLoginTimestamp;
+	}
+}
+
 export function isProvisioningSubAdmin(userId: string): boolean {
 	const explicit = getSubadminMap().get(userId);
 
@@ -271,6 +319,7 @@ export function searchUsersByPhone(phoneNumbers: string[]): Record<string, strin
 export function resetProvisioningStore(): void {
 	globalForProvisioning.__ncProvisioningUsers = seedDefaultUsers();
 	globalForProvisioning.__ncProvisioningSubadmins = new Map();
+	globalForProvisioning.__ncDelegatedUsersAdmins = new Set();
 	resetKnownUsersStore();
 	resetMailVerifyStore();
 	resetParityProvisioningConfig();

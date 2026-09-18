@@ -41,6 +41,7 @@ import { handleProvisioningPhoneSearchMock, isProvisioningPhoneSearchMockPath } 
 import { handleProvisioningMailVerifyMock, isProvisioningMailVerifyMockPath } from './provisioning-mail-verify';
 import { handleProvisioningPreferencesMock, isProvisioningPreferencesMockPath } from './provisioning-preferences';
 import { handleProvisioningSelfReadMock, isProvisioningSelfReadMockPath } from './provisioning-self-read';
+import { handleProvisioningUsersListMock, isProvisioningUsersListMockPath } from './provisioning-users-list';
 import { handleFilesApiMock, isFilesApiPath, isFilesApiWritePath } from './files';
 import { handleFilesDirectEditingMock, isFilesDirectEditingMockPath } from './files-direct-editing';
 import { handleFilesFilenamesMock, isFilesFilenamesMockPath } from './files-filenames';
@@ -692,6 +693,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return provisioningPhoneSearch;
 	}
 
+	const provisioningUsersList = await handleProvisioningUsersListMock(pathname, search, options);
+
+	if (provisioningUsersList) {
+		return provisioningUsersList;
+	}
+
 	const provisioningPreferences = await handleProvisioningPreferencesMock(pathname, search, options);
 
 	if (provisioningPreferences) {
@@ -887,6 +894,10 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (isProvisioningSelfReadMockPath(pathname, normalizedMethod)) {
+		return true;
+	}
+
+	if (isProvisioningUsersListMockPath(pathname, normalizedMethod)) {
 		return true;
 	}
 

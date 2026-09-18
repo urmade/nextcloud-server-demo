@@ -344,8 +344,9 @@ Failed login sets session flash `loginMessages: [[errorCode], []]`.
 - v1 auth-picker rejection is HTTP **200** guest error HTML, not 403. Do not "fix" the map to 403.
 - v1 `POST /login/flow` state token is single-use. Legacy mock and Next.js server keep separate session stores, so each side must be seeded with its own copy before the case runs; calling the mock and then the in-process handler makes the second one fail the state check.
 - v1 success is a 303 with an **empty body**; only `Location` distinguishes it. Each side mints its own app password, so compare the `nc://` server/user fields and the password format rather than the whole header.
-- `request.url` in a Next.js route handler is reconstructed from the address the server is bound to and reports `localhost` whatever the client asked for. Client-visible URLs (`nc://login/server:…`, grant URL, login redirect) must come from `x-forwarded-host` / `host`, which is what PHP's `getAbsoluteURL` does.
+- `request.url` in a Next.js route handler is reconstructed from the address the server is bound to and reports `localhost` whatever the client asked for. Client-visible URLs (`nc://login/server:…`, grant URL, login redirect, v2 `login` JSON, v2 landing/grant 303 `Location`) must come from `x-forwarded-host` / `host`, which is what PHP's `getAbsoluteURL` does. See `bp-request-origin`.
 - v1 and v2 `apptoken` differ: v1 is a 303 `nc://` redirect, v2 is a 200 done HTML page.
+- v2 landing 303 and grant unauth 303 are absolute `Location` headers; parity must assert origin from client host headers, not pathname-only.
 
 ## Parity extras
 

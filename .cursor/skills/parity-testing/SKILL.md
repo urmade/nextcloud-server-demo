@@ -59,7 +59,7 @@ Strip or canonicalize before equality checks:
 | JSON object key order | Ignore. |
 | Host/URL prefixes | Rewrite to a canonical origin before compare. |
 | Binary bodies | Status + content-type + size class — see `bp-binary-parity`. |
-| Redirect `Location` | Compare pathname + search only; ignore `127.0.0.1` vs `localhost` host drift — see `bp-binary-parity`. |
+| Redirect `Location` | Default: compare pathname + search only; ignore `127.0.0.1` vs `localhost` host drift — see `bp-binary-parity`. When the contract is client-visible absolute URLs (login v1/v2 303, share links), send `host` / `x-forwarded-host` / `x-forwarded-proto` on both sides and assert origin + path — see `bp-request-origin`. |
 
 Put normalizers in the shared harness. Do not copy ad-hoc regex into each test.
 

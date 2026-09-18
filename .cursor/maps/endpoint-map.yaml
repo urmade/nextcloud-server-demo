@@ -834,7 +834,7 @@ endpoints:
   method: GET
   legacy_path: /index.php/avatar/guest/{guestName}/{size}
   legacy_source: openapi.json operationId=core-guest_avatar-get-avatar
-  auth: mixed
+  auth: none
   request:
     params:
       guestName: string
@@ -854,13 +854,14 @@ endpoints:
       content_type: '*/*'
     - status: 500
       shape: unspecified
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /avatar/guest/[guestName]/[size]
+  next_handler: app/avatar/guest/[guestName]/[size]/route.ts
+  parity_test: next/parity/tests/core-avatars-preview.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Binary parity compares status + content-type + size class, not pixel bytes.
 - id: core-guest_avatar-get-avatar-dark
   feature_ids:
   - core
@@ -868,7 +869,7 @@ endpoints:
   method: GET
   legacy_path: /index.php/avatar/guest/{guestName}/{size}/dark
   legacy_source: openapi.json operationId=core-guest_avatar-get-avatar-dark
-  auth: mixed
+  auth: none
   request:
     params:
       guestName: string
@@ -887,13 +888,14 @@ endpoints:
       content_type: '*/*'
     - status: 500
       shape: unspecified
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /avatar/guest/[guestName]/[size]/dark
+  next_handler: app/avatar/guest/[guestName]/[size]/dark/route.ts
+  parity_test: next/parity/tests/core-avatars-preview.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Binary parity compares status + content-type + size class, not pixel bytes.
 - id: core-avatar-get-avatar
   feature_ids:
   - core
@@ -901,7 +903,7 @@ endpoints:
   method: GET
   legacy_path: /index.php/avatar/{userId}/{size}
   legacy_source: openapi.json operationId=core-avatar-get-avatar
-  auth: mixed
+  auth: none
   request:
     params:
       userId: string
@@ -924,13 +926,14 @@ endpoints:
       content_type: application/json
     - status: 500
       shape: unspecified
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /avatar/[userId]/[size]
+  next_handler: app/avatar/[userId]/[size]/route.ts
+  parity_test: next/parity/tests/core-avatars-preview.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Binary parity compares status + content-type + size class, not pixel bytes.
 - id: core-avatar-get-avatar-dark
   feature_ids:
   - core
@@ -938,7 +941,7 @@ endpoints:
   method: GET
   legacy_path: /index.php/avatar/{userId}/{size}/dark
   legacy_source: openapi.json operationId=core-avatar-get-avatar-dark
-  auth: mixed
+  auth: none
   request:
     params:
       userId: string
@@ -961,13 +964,14 @@ endpoints:
       content_type: application/json
     - status: 500
       shape: unspecified
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /avatar/[userId]/[size]/dark
+  next_handler: app/avatar/[userId]/[size]/dark/route.ts
+  parity_test: next/parity/tests/core-avatars-preview.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Binary parity compares status + content-type + size class, not pixel bytes.
 - id: core-preview-get-mime-icon-url
   feature_ids:
   - core
@@ -975,7 +979,7 @@ endpoints:
   method: GET
   legacy_path: /index.php/core/mimeicon
   legacy_source: openapi.json operationId=core-preview-get-mime-icon-url
-  auth: mixed
+  auth: none
   request:
     params: {}
     query:
@@ -989,11 +993,11 @@ endpoints:
     errors:
     - status: 303
       shape: The mime icon url
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /core/mimeicon
+  next_handler: app/core/mimeicon/route.ts
+  parity_test: next/parity/tests/core-avatars-preview.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: core-preview-get-preview-by-file-id
@@ -1003,7 +1007,7 @@ endpoints:
   method: GET
   legacy_path: /index.php/core/preview
   legacy_source: openapi.json operationId=core-preview-get-preview-by-file-id
-  auth: mixed
+  auth: session
   request:
     params: {}
     query:
@@ -1037,13 +1041,14 @@ endpoints:
     - status: 404
       shape: any
       content_type: application/json
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /core/preview
+  next_handler: app/core/preview/route.ts
+  parity_test: next/parity/tests/core-avatars-preview.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Binary parity compares status + content-type + size class, not pixel bytes.
 - id: core-preview-get-preview
   feature_ids:
   - core
@@ -1051,7 +1056,7 @@ endpoints:
   method: GET
   legacy_path: /index.php/core/preview.png
   legacy_source: openapi.json operationId=core-preview-get-preview
-  auth: mixed
+  auth: session
   request:
     params: {}
     query:
@@ -1085,13 +1090,14 @@ endpoints:
     - status: 404
       shape: any
       content_type: application/json
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /core/preview.png
+  next_handler: app/core/preview.png/route.ts
+  parity_test: next/parity/tests/core-avatars-preview.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Binary parity compares status + content-type + size class, not pixel bytes.
 - id: core-reference-preview
   feature_ids:
   - core
@@ -1099,7 +1105,7 @@ endpoints:
   method: GET
   legacy_path: /index.php/core/references/preview/{referenceId}
   legacy_source: openapi.json operationId=core-reference-preview
-  auth: mixed
+  auth: none
   request:
     params:
       referenceId: string
@@ -1115,13 +1121,14 @@ endpoints:
     - status: 404
       shape: string
       content_type: application/json
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /core/references/preview/[referenceId]
+  next_handler: app/core/references/preview/[referenceId]/route.ts
+  parity_test: next/parity/tests/core-avatars-preview.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Binary parity compares status + content-type + size class, not pixel bytes.
 - id: core-wipe-check-wipe
   feature_ids:
   - core

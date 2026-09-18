@@ -1,6 +1,6 @@
 ---
 name: core
-description: Core platform APIs after login — well-known, ocs-provider, navigation, autocomplete, hover card. Use when implementing or testing this slice or planning later core sub-slices.
+description: Core platform APIs after login — well-known, ocs-provider, navigation, autocomplete, hover card, avatars, previews. Use when implementing or testing this slice or planning later core sub-slices.
 ---
 
 <!--
@@ -10,7 +10,9 @@ description: Core platform APIs after login — well-known, ocs-provider, naviga
 
 # core
 
-## Scope (slice 1 — platform probes)
+## Scope
+
+### Slice 1 — platform probes (done)
 
 High fan-in endpoints used immediately after login:
 
@@ -22,13 +24,27 @@ High fan-in endpoints used immediately after login:
 - `GET /ocs/v2.php/core/autocomplete/get` — collaborator search
 - `GET /ocs/v2.php/hovercard/v1/{userId}` — hover card payload
 
-v1 OCS paths mirror v2 routes in legacy; this slice implements **v2 canonical paths** only (same as capabilities slice).
+v1 OCS paths mirror v2 routes in legacy; implemented **v2 canonical paths** only.
+
+### Slice 2 — avatars + preview (done)
+
+Binary-ish HTTP endpoints with high fan-in after navigation:
+
+- `GET /index.php/avatar/{userId}/{size}` — user avatar (64 or 512)
+- `GET /index.php/avatar/{userId}/{size}/dark` — dark theme variant
+- `GET /index.php/avatar/guest/{guestName}/{size}` — generated guest avatar (201)
+- `GET /index.php/avatar/guest/{guestName}/{size}/dark` — dark guest avatar
+- `GET /index.php/core/preview?fileId=…` — preview by file id (auth required)
+- `GET /index.php/core/preview.png?file=…` — preview by path (auth required)
+- `GET /index.php/core/mimeicon?mime=…` — 303 redirect to mime icon SVG (public)
+- `GET /index.php/core/references/preview/{referenceId}` — cached reference image (public)
+
+Legacy paths use `/index.php/…`; Next.js rewrites to `/avatar/…` and `/core/…`.
 
 ## Non-scope (later core sub-slices)
 
 | Sub-slice | Endpoint ids (prefix / theme) |
 | --- | --- |
-| **core-avatars** | `core-avatar-*`, `core-guest_avatar-*`, `core-preview-*`, `core-reference-preview` |
 | **core-app-passwords** | `core-app_password-*` |
 | **core-unified-search** | `core-unified_search-*` |
 | **core-reference** | `core-reference_api-*` |
@@ -42,7 +58,9 @@ v1 OCS paths mirror v2 routes in legacy; this slice implements **v2 canonical pa
 
 Well-known **ocm/caldav/carddav** belong to `cloud_federation_api` / `dav`, not this feature.
 
-## Endpoints owned (this slice)
+## Endpoints owned
+
+Slice 1:
 
 - `core.WellKnown#handle.change-password`
 - `core.WellKnown#handle.security-txt`
@@ -52,13 +70,28 @@ Well-known **ocm/caldav/carddav** belong to `cloud_federation_api` / `dav`, not 
 - `core-auto_complete-get`
 - `core-hover_card-get-user`
 
+Slice 2:
+
+- `core-avatar-get-avatar`
+- `core-avatar-get-avatar-dark`
+- `core-guest_avatar-get-avatar`
+- `core-guest_avatar-get-avatar-dark`
+- `core-preview-get-preview`
+- `core-preview-get-preview-by-file-id`
+- `core-preview-get-mime-icon-url`
+- `core-reference-preview`
+
 ## Auth model
 
 | Route | Auth |
 | --- | --- |
 | Well-known | `none` — public |
 | `/ocs-provider/` | `none` — public catalog |
-| Navigation / autocomplete / hover card | `mixed` — session cookie (`nc_username` + `nc_session_id`) **or** valid Basic (`NC_ADMIN_USER` / `NC_ADMIN_PASSWORD`) |
+| Navigation / autocomplete / hover card | `mixed` — session or Basic |
+| User / guest avatars | `none` — `@PublicPage` in legacy |
+| Preview by file id / path | `session` or Basic — unauthenticated → **401** JSON `{ message }` |
+| Mime icon redirect | `none` — public |
+| Reference preview | `none` — public |
 
 Unauthenticated OCS calls → v2 HTTP **401**, `ocs.meta.statuscode` **997**, empty `data`.
 
@@ -66,23 +99,30 @@ Unauthenticated OCS calls → v2 HTTP **401**, `ocs.meta.statuscode` **997**, em
 
 ```
 src/server/
-  well-known/handlers.ts       # change-password redirect, security.txt body
-  ocs/
-    auth.ts                    # resolve session or Basic user id
-    respond.ts                 # JSON envelope helpers (uses envelope.ts)
-    provider.ts                # /ocs-provider/ catalog
-    navigation.ts              # apps + settings entries, ETag, absolute URLs
-    autocomplete.ts            # user search + Link header pagination
-    hover-card.ts              # user lookup for hover card
-  config/
-    users.ts                   # parity user directory (env NC_PARITY_USERS JSON)
+  well-known/handlers.ts
+  ocs/                         # auth, navigation, autocomplete, hover card, …
+  avatar/
+    user.ts                    # user avatar + guestFallback
+    guest.ts                   # generated guest avatars (201)
+  preview/
+    catalog.ts                 # parity file catalog (NC_PARITY_PREVIEW_FILES)
+    handlers.ts                # preview + mimeicon redirect
+  reference/
+    preview.ts                 # reference cache lookup
+  fixtures/
+    binary.ts                  # deterministic PNG bytes (no real photos)
+  http/
+    auth.ts                    # requireLoggedInUser for preview
+    binary.ts                  # size normalization, cache headers
 app/
-  .well-known/[service]/route.ts
-  ocs-provider/route.ts
-  ocs/v2.php/core/autocomplete/get/route.ts
-  ocs/v2.php/core/navigation/apps/route.ts
-  ocs/v2.php/core/navigation/settings/route.ts
-  ocs/v2.php/hovercard/v1/[userId]/route.ts
+  avatar/[userId]/[size]/route.ts
+  avatar/[userId]/[size]/dark/route.ts
+  avatar/guest/[guestName]/[size]/route.ts
+  avatar/guest/[guestName]/[size]/dark/route.ts
+  core/preview/route.ts
+  core/preview.png/route.ts
+  core/mimeicon/route.ts
+  core/references/preview/[referenceId]/route.ts
 ```
 
 Config:
@@ -90,7 +130,8 @@ Config:
 | Env | Default | Purpose |
 | --- | --- | --- |
 | `NC_ADMIN_USER` / `NC_ADMIN_PASSWORD` | `admin` / `parity-test-password` | Basic auth |
-| `NC_PARITY_USERS` | `[{"id":"admin","displayName":"Admin","label":"Admin"},{"id":"alice","displayName":"Alice","label":"Alice A."}]` | Autocomplete + hover card |
+| `NC_PARITY_USERS` | admin + alice JSON | Autocomplete, hover card, avatar lookup |
+| `NC_PARITY_PREVIEW_FILES` | `[{"id":100,"path":"welcome.png","mime":"image/png","readable":true}]` | Preview happy path |
 | `NC_APP_*_ENABLED` | all `true` for parity | OCS provider optional services |
 
 ## Traps
@@ -98,9 +139,14 @@ Config:
 - All OCS JSON calls need `?format=json` and header `OCS-APIRequest: true` (see `bp-ocs-envelope`)
 - Navigation ETag hashes JSON with `logout.href` normalized to literal `logout`
 - Hover card 404 returns OCS envelope with HTTP 404 and `data: []`, not a JSON object
-- Autocomplete `limit` must be ≥ 1 (legacy validation); use as representative validation case
-- Well-known responses always include `X-NEXTCLOUD-WELL-KNOWN: 1`
-- `change-password` is **303** redirect, not JSON; parity harness uses `redirect: manual` on fetch
+- Avatar sizes normalize to **64** (≤64) or **512** (>64); deprecated sizes log in legacy only
+- Guest avatars return **201** for generated avatars, **200** for custom (parity fixtures use 201)
+- User avatar 404 is JSON `[]`, not a message object
+- Preview validation errors return JSON `[]` with 400/404 — not OCS envelope
+- Preview unauthenticated returns `{ message: string }` with 401
+- Mime icon always 303; falls back to `application/octet-stream` icon
+- Binary parity compares **status + content-type + size class**, not pixel bytes (documented delta)
+- `index.php` prefix required in parity tests; rewrites strip it internally
 
 ## Parity extras
 
@@ -116,5 +162,14 @@ Config:
 | Validation | autocomplete | `limit=0` → 400 OCS failure |
 | Happy | hover card | 200 for known `userId` |
 | Validation | hover card | 404 for unknown `userId` |
+| Happy | user avatar | 200 PNG for `admin`; binary size class |
+| Validation | user avatar | unknown user → 404 `[]` |
+| Happy | guest avatar | 201 PNG |
+| Happy | preview fileId / path | 200 PNG with session or Basic |
+| Auth failure | preview | 401 `{ message }` |
+| Validation | preview | missing `file` or `x=0` → 400 `[]` |
+| Happy | mimeicon | 303 to `/core/img/filetypes/{mime}.svg` |
+| Happy | reference preview | 200 PNG for `parity-reference` |
+| Validation | reference preview | unknown id → 404 empty body |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` fixtures (not waived).

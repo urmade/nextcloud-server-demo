@@ -1,6 +1,11 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getGuestAvatarResponse } from '@/src/server/avatar/guest';
+import { getUserAvatarResponse } from '@/src/server/avatar/user';
+import { requireLoggedInUser } from '@/src/server/http/auth';
+import { getMimeIconRedirect, getPreviewByFileIdResponse, getPreviewByPathResponse } from '@/src/server/preview/handlers';
+import { getReferencePreviewResponse } from '@/src/server/reference/preview';
 import { SECURITY_TXT_BODY } from '@/src/server/well-known/handlers';
 import { generateNavigationETag, getAppsNavigation, getSettingsNavigation } from '@/src/server/ocs/navigation';
 import { handleLegacyMockAuth, parseCookiesFromOptions } from './auth';
@@ -204,6 +209,104 @@ function handleAutocompleteMock(fullPath: string, options: ParityRequestOptions)
 	return jsonSnapshot(200, loadFixture('ocs-v2-autocomplete-alice.json'));
 }
 
+async function responseToSnapshot(response: Response): Promise<ParityResponseSnapshot> {
+	const rawBody = Buffer.from(await response.arrayBuffer()).toString('latin1');
+
+	return snapshotResponse(response, rawBody);
+}
+
+function handleAvatarMock(pathname: string, search: string): Promise<ParityResponseSnapshot> | null {
+	const guestDarkMatch = /^\/(?:index\.php\/)?avatar\/guest\/([^/]+)\/(\d+)\/dark$/.exec(pathname);
+
+	if (guestDarkMatch) {
+		return responseToSnapshot(getGuestAvatarResponse(decodeURIComponent(guestDarkMatch[1]), Number.parseInt(guestDarkMatch[2], 10), true));
+	}
+
+	const guestMatch = /^\/(?:index\.php\/)?avatar\/guest\/([^/]+)\/(\d+)$/.exec(pathname);
+
+	if (guestMatch) {
+		const params = new URLSearchParams(search);
+		const darkTheme = params.get('darkTheme') === 'true';
+
+		return responseToSnapshot(getGuestAvatarResponse(decodeURIComponent(guestMatch[1]), Number.parseInt(guestMatch[2], 10), darkTheme));
+	}
+
+	const userDarkMatch = /^\/(?:index\.php\/)?avatar\/([^/]+)\/(\d+)\/dark$/.exec(pathname);
+
+	if (userDarkMatch) {
+		const params = new URLSearchParams(search);
+		const guestFallback = params.get('guestFallback') === 'true';
+
+		return responseToSnapshot(getUserAvatarResponse(decodeURIComponent(userDarkMatch[1]), Number.parseInt(userDarkMatch[2], 10), true, guestFallback));
+	}
+
+	const userMatch = /^\/(?:index\.php\/)?avatar\/([^/]+)\/(\d+)$/.exec(pathname);
+
+	if (userMatch) {
+		const params = new URLSearchParams(search);
+		const guestFallback = params.get('guestFallback') === 'true';
+
+		return responseToSnapshot(getUserAvatarResponse(decodeURIComponent(userMatch[1]), Number.parseInt(userMatch[2], 10), false, guestFallback));
+	}
+
+	return null;
+}
+
+function handlePreviewMock(pathname: string, search: string, options: ParityRequestOptions): Promise<ParityResponseSnapshot> | null {
+	const origin = 'http://127.0.0.1:3100';
+	const params = new URLSearchParams(search);
+
+	if (pathname === '/index.php/core/mimeicon' || pathname === '/core/mimeicon') {
+		const mime = params.get('mime') ?? 'application/octet-stream';
+
+		return responseToSnapshot(getMimeIconRedirect(mime, origin));
+	}
+
+	const referenceMatch = /^\/(?:index\.php\/)?core\/references\/preview\/([^/]+)$/.exec(pathname);
+
+	if (referenceMatch) {
+		return responseToSnapshot(getReferencePreviewResponse(decodeURIComponent(referenceMatch[1])));
+	}
+
+	if (pathname === '/index.php/core/preview.png' || pathname === '/core/preview.png') {
+		const request = new Request(`${origin}${pathname}?${params.toString()}`, {
+			headers: options.headers,
+		});
+		const auth = requireLoggedInUser(request);
+
+		if (auth instanceof Response) {
+			return responseToSnapshot(auth);
+		}
+
+		const file = params.get('file') ?? '';
+		const x = Number.parseInt(params.get('x') ?? '32', 10);
+		const y = Number.parseInt(params.get('y') ?? '32', 10);
+		const mimeFallback = params.get('mimeFallback') === 'true';
+
+		return responseToSnapshot(getPreviewByPathResponse(file, x, y, origin, mimeFallback));
+	}
+
+	if (pathname === '/index.php/core/preview' || pathname === '/core/preview') {
+		const request = new Request(`${origin}${pathname}?${params.toString()}`, {
+			headers: options.headers,
+		});
+		const auth = requireLoggedInUser(request);
+
+		if (auth instanceof Response) {
+			return responseToSnapshot(auth);
+		}
+
+		const fileId = Number.parseInt(params.get('fileId') ?? '', 10);
+		const x = Number.parseInt(params.get('x') ?? '32', 10);
+		const y = Number.parseInt(params.get('y') ?? '32', 10);
+		const mimeFallback = params.get('mimeFallback') === 'true';
+
+		return responseToSnapshot(getPreviewByFileIdResponse(Number.isNaN(fileId) ? 0 : fileId, x, y, origin, mimeFallback));
+	}
+
+	return null;
+}
+
 function handleHoverCardMock(pathname: string, options: ParityRequestOptions): ParityResponseSnapshot | null {
 	const match = /^\/ocs\/v2\.php\/hovercard\/v1\/([^/]+)$/.exec(pathname);
 
@@ -224,9 +327,9 @@ function handleHoverCardMock(pathname: string, options: ParityRequestOptions): P
 	return jsonSnapshot(404, loadFixture('ocs-v2-hovercard-not-found.json'));
 }
 
-export function fetchLegacyMockSnapshot(fullPath: string, options: ParityRequestOptions = {}): ParityResponseSnapshot {
+export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityRequestOptions = {}): Promise<ParityResponseSnapshot> {
 	const method = (options.method ?? 'GET').toUpperCase();
-	const pathname = fullPath.split('?')[0];
+	const [pathname, search = ''] = fullPath.split('?');
 	const authResponse = handleLegacyMockAuth(pathname, options);
 
 	if (authResponse) {
@@ -283,6 +386,18 @@ export function fetchLegacyMockSnapshot(fullPath: string, options: ParityRequest
 		return hoverCard;
 	}
 
+	const avatar = handleAvatarMock(pathname, search);
+
+	if (avatar) {
+		return avatar;
+	}
+
+	const preview = handlePreviewMock(pathname, search, options);
+
+	if (preview) {
+		return preview;
+	}
+
 	if (pathname === '/status.php') {
 		return jsonSnapshot(200, loadFixture('status.json'), 'application/json', {
 			'access-control-allow-origin': '*',
@@ -318,6 +433,10 @@ const MOCKED_GET_PREFIXES = [
 	'/ocs/v2.php/core/navigation/',
 	'/ocs/v2.php/core/autocomplete/',
 	'/ocs/v2.php/hovercard/v1/',
+	'/avatar/',
+	'/index.php/avatar/',
+	'/core/',
+	'/index.php/core/',
 ];
 
 const MOCKED_GET_ROUTES = new Set([

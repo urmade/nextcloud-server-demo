@@ -38,7 +38,7 @@ async function fetchLegacySnapshot(path: string, options: ParityRequestOptions =
 	const env = getParityEnv();
 
 	if (env.legacyUsesMock && hasLegacyMockFixture(pathOnly(path), options.method ?? 'GET')) {
-		return fetchLegacyMockSnapshot(path, options);
+		return await fetchLegacyMockSnapshot(path, options);
 	}
 
 	return fetchHttpSnapshot(env.legacyBaseUrl, path, options);

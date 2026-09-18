@@ -88,7 +88,7 @@ describe('parity: core-auth', () => {
 
 		expect(result.mismatches, formatParityMismatches(result.mismatches)).toEqual([]);
 
-		const legacy = fetchLegacyMockSnapshot('/csrftoken', {
+		const legacy = await fetchLegacyMockSnapshot('/csrftoken', {
 			headers: { cookie: `nc_session_id=${sessionMatch?.[1]}` },
 		});
 
@@ -126,7 +126,7 @@ describe('parity: core-auth', () => {
 			requesttoken: csrfBody.token,
 		}).toString();
 
-		const legacy = fetchLegacyMockSnapshot('/login', {
+		const legacy = await fetchLegacyMockSnapshot('/login', {
 			method: 'POST',
 			headers: {
 				'content-type': 'application/x-www-form-urlencoded',
@@ -156,7 +156,7 @@ describe('parity: core-auth', () => {
 		const csrfResponse = await fetch(`${env.newBaseUrl}/csrftoken`, { redirect: 'manual' });
 		const cookies = mergeResponseCookies({}, csrfResponse);
 
-		const legacy = fetchLegacyMockSnapshot('/login', {
+		const legacy = await fetchLegacyMockSnapshot('/login', {
 			method: 'POST',
 			headers: {
 				'content-type': 'application/x-www-form-urlencoded',
@@ -188,7 +188,7 @@ describe('parity: core-auth', () => {
 		const cookies = mergeResponseCookies({}, csrfResponse);
 		const longUser = 'a'.repeat(256);
 
-		const legacy = fetchLegacyMockSnapshot('/login', {
+		const legacy = await fetchLegacyMockSnapshot('/login', {
 			method: 'POST',
 			headers: {
 				'content-type': 'application/x-www-form-urlencoded',
@@ -244,8 +244,8 @@ describe('parity: core-auth', () => {
 		expect(loginFetch.jar.nc_token).toBeTruthy();
 		expect(loginFetch.jar.nc_session_id).toBeTruthy();
 
-		const legacyCsrf = fetchLegacyMockSnapshot('/csrftoken', { headers: { cookie: cookieJarToHeader(jar) ?? '' } });
-		const legacyLogin = fetchLegacyMockSnapshot('/login', {
+		const legacyCsrf = await fetchLegacyMockSnapshot('/csrftoken', { headers: { cookie: cookieJarToHeader(jar) ?? '' } });
+		const legacyLogin = await fetchLegacyMockSnapshot('/login', {
 			method: 'POST',
 			headers: {
 				'content-type': 'application/x-www-form-urlencoded',
@@ -281,7 +281,7 @@ describe('parity: core-auth', () => {
 		jar = loginFetch.jar;
 
 		const logoutFetch = await fetchWithJar(env.newBaseUrl, '/logout', jar);
-		const legacyLogout = fetchLegacyMockSnapshot('/logout', {
+		const legacyLogout = await fetchLegacyMockSnapshot('/logout', {
 			headers: { cookie: cookieJarToHeader(jar) ?? '' },
 		});
 
@@ -301,7 +301,7 @@ describe('parity: core-auth', () => {
 		jar = csrfFetch.jar;
 		const csrfBody = JSON.parse(csrfFetch.rawBody) as { token: string };
 
-		const legacyCsrf = fetchLegacyMockSnapshot('/csrftoken', {
+		const legacyCsrf = await fetchLegacyMockSnapshot('/csrftoken', {
 			headers: { cookie: cookieJarToHeader(legacyJar) ?? '' },
 		});
 		legacyJar = mergeResponseCookies(legacyJar, new Response(null, {
@@ -320,7 +320,7 @@ describe('parity: core-auth', () => {
 		jar = loginFetch.jar;
 		expect(loginFetch.response.status).toBe(303);
 
-		const legacyLogin = fetchLegacyMockSnapshot('/login', {
+		const legacyLogin = await fetchLegacyMockSnapshot('/login', {
 			method: 'POST',
 			headers: {
 				'content-type': 'application/x-www-form-urlencoded',
@@ -337,7 +337,7 @@ describe('parity: core-auth', () => {
 		}));
 
 		const loginGet = await fetchWithJar(env.newBaseUrl, '/login', jar);
-		const legacyLoginGet = fetchLegacyMockSnapshot('/login', {
+		const legacyLoginGet = await fetchLegacyMockSnapshot('/login', {
 			headers: { cookie: cookieJarToHeader(legacyJar) ?? '' },
 		});
 

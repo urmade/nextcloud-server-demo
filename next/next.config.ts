@@ -29,6 +29,14 @@ const nextConfig: NextConfig = {
 				source: '/ocs-provider/',
 				destination: '/ocs-provider',
 			},
+			{
+				source: '/index.php/avatar/:path*',
+				destination: '/avatar/:path*',
+			},
+			{
+				source: '/index.php/core/:path*',
+				destination: '/core/:path*',
+			},
 		];
 	},
 };

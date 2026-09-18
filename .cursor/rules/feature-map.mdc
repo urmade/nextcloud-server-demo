@@ -14,7 +14,7 @@ alwaysApply: true
 One row per sliceable domain. `feature_id` equals endpoint-map `feature_ids[]` entries.
 First `feature_ids` value on an endpoint owns that row.
 Skill path is created when that slice starts (slice-workflow step 1), except `core-status` which already exists.
-Status is `inventoried` until a slice moves it. Features: 32. Endpoints: 548. `parity: tested`: 228.
+Status is `inventoried` until a slice moves it. Features: 32. Endpoints: 548. `parity: tested`: 232.
 
 Locked implementation: `files-sharing-public-dav` on `cursor/files-sharing-public-dav-e1af` from shareinfo harvest `527bd5c`. Two endpoints tested: dav.Public#tree and dav.Public#legacy-webdav.
 
@@ -452,9 +452,10 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
 - name: WebDAV / CalDAV / CardDAV
 - summary: Sabre tree: files, calendars, address books, uploads, tags, comments.
 - skill: `.cursor/skills/dav/SKILL.md`
-- status: inventoried
+- status: in-progress
 - depends_on:
   - `core-login`
+- slice_notes: `dav-out-of-office` tested (4 OCS endpoints) on `cursor/dav-out-of-office-e1af`
 - endpoint_ids: (56)
   - `core.WellKnown#handle.caldav`
   - `core.WellKnown#handle.carddav`

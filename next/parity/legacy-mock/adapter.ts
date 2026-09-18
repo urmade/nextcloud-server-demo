@@ -31,6 +31,7 @@ import { handleWebUpdaterMock, isWebUpdaterMockPath } from './web-updater';
 import { handleWipeMock } from './wipe';
 import { handleDavMock, isDavMockMethod } from './dav';
 import { handleDavDirectMock, isDavDirectMockPath } from './dav-direct';
+import { handleDavOutOfOfficeMock, isDavOutOfOfficeMockPath } from './dav-out-of-office';
 import { handleFilesApiMock, isFilesApiPath, isFilesApiWritePath } from './files';
 import { handleFilesDirectEditingMock, isFilesDirectEditingMockPath } from './files-direct-editing';
 import { handleFilesFilenamesMock, isFilesFilenamesMockPath } from './files-filenames';
@@ -428,6 +429,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return davDirect;
 	}
 
+	const davOutOfOffice = await handleDavOutOfOfficeMock(pathname, search, options);
+
+	if (davOutOfOffice) {
+		return davOutOfOffice;
+	}
+
 	const filesApi = await handleFilesApiMock(fullPath, options);
 
 	if (filesApi) {
@@ -789,6 +796,10 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (isDavDirectMockPath(pathname, normalizedMethod)) {
+		return true;
+	}
+
+	if (isDavOutOfOfficeMockPath(pathname)) {
 		return true;
 	}
 

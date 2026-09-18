@@ -6281,15 +6281,15 @@ endpoints:
     - status: 401
       shape: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: implemented
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/dav/api/v1/outOfOffice/{userId}
+  next_handler: src/server/dav/out-of-office.ts
+  parity_test: next/parity/tests/dav-out-of-office.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. DELETE clears session user absence; path userId ignored on write.
 - id: dav-out_of_office-get-out-of-office
   feature_ids:
   - dav
@@ -6326,15 +6326,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: implemented
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/dav/api/v1/outOfOffice/{userId}
+  next_handler: src/server/dav/out-of-office.ts
+  parity_test: next/parity/tests/dav-out-of-office.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. No user-exists check; 404 when absence missing.
 - id: dav-out_of_office-set-out-of-office
   feature_ids:
   - dav
@@ -6382,15 +6382,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: implemented
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/dav/api/v1/outOfOffice/{userId}
+  next_handler: src/server/dav/out-of-office.ts
+  parity_test: next/parity/tests/dav-out-of-office.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. POST writes session user; replacementUserId optional in PHP.
 - id: dav-out_of_office-get-current-out-of-office-data
   feature_ids:
   - dav
@@ -6427,15 +6427,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: implemented
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/dav/api/v1/outOfOffice/{userId}/now
+  next_handler: src/server/dav/out-of-office.ts
+  parity_test: next/parity/tests/dav-out-of-office.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. Requires user exists; id is string in current shape.
 - id: dav-calendar_export-export
   feature_ids:
   - dav

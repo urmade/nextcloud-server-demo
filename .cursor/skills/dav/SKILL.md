@@ -149,9 +149,20 @@ v1 webdav: user filesystem view; Basic + Bearer. v1 caldav/carddav: **Basic only
 
 `InvitationResponseController`: `PublicPage` + `NoCSRFRequired`. Token row + `expiration ≥ now`. accept/decline → guest templates `schedule-response-success` if iTIP `1.2` else error (+ optional organizer). `options` GET does **not** check DB. POST `partStat` ∈ `ACCEPTED|DECLINED|TENTATIVE`.
 
-### Out of office
+### Out of office — `dav-out-of-office` (`parity: tested`)
 
-Reads: any logged-in user for any `{userId}`; 404 if no user/absence. **Writes ignore path `{userId}`** and mutate the **session user**. POST body `firstDay`,`lastDay` (`YYYY-MM-DD`), `status` (≤100 chars), `message`, optional `replacementUserId`. 400 `{error:statusLength|firstDay}`; 401 if no session; 404 replacement missing. DELETE clears session user’s absence.
+Next.js: `src/server/dav/out-of-office.ts` + `out-of-office-store.ts`; OCS routes `app/ocs/v2.php/apps/dav/api/v1/outOfOffice/[userId]/…`.
+
+| Step | Method | Path | Notes |
+| --- | --- | --- | --- |
+| Current | GET | `…/outOfOffice/{userId}/now` | **200** `{id:string,startDate,endDate,shortMessage,…}` when user exists and absence is in effect; **404** `null` if user missing or not current |
+| Configured | GET | `…/outOfOffice/{userId}` | **200** `{id:int,firstDay,lastDay,status,message,replacementUser*}`; **404** `null` if no absence (no user-exists check) |
+| Set | POST | `…/outOfOffice/{userId}` | Body `{firstDay,lastDay,status,message,replacementUserId?}`; **writes session user** (path `{userId}` ignored); **400** `{error:statusLength\|firstDay}`; **404** unknown replacement |
+| Clear | DELETE | `…/outOfOffice/{userId}` | **200** `null`; clears **session** absence even when path is another uid |
+
+Reads: any logged-in user for any `{userId}`. **Writes ignore path `{userId}`** and mutate the **session user**. Anon → OCS **401/997** (`auth: mixed`). `getCurrent` checks user exists; `get` does not.
+
+Parity extras (`next/parity/tests/dav-out-of-office.parity.test.ts`): unauth 401/997; GET other user 200/404; POST other-uid path still writes self; `firstDay > lastDay` → 400 `{error:firstDay}`.
 
 ### Federated calendars OCS
 

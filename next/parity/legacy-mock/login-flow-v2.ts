@@ -1,4 +1,5 @@
 import {
+	handleLoginFlowV2ApptokenPost,
 	handleLoginFlowV2GrantPage,
 	handleLoginFlowV2GrantPost,
 	handleLoginFlowV2Init,
@@ -120,6 +121,13 @@ export async function handleLoginFlowV2Mock(
 		const body = typeof options.body === 'string' ? options.body : '';
 
 		return responseToSnapshot(handleLoginFlowV2GrantPost(request, resolveSession(request), body));
+	}
+
+	if (normalizedPath === '/login/v2/apptoken' && method === 'POST') {
+		const request = buildRequest(normalizedPath, search, options);
+		const body = typeof options.body === 'string' ? options.body : '';
+
+		return responseToSnapshot(handleLoginFlowV2ApptokenPost(request, resolveSession(request), body));
 	}
 
 	return null;

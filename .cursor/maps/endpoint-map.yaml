@@ -21660,21 +21660,25 @@ endpoints:
       stateToken: string
       user: string
       password: string
+      requesttoken: string
   response:
     success:
-      status: 303
-      shape: redirect after LoginFlowV2Service::flowDoneWithAppPassword
+      status: 200
+      content_type: text/html; charset=UTF-8
+      shape: login-flow-done-html
     errors:
+    - status: 412
+      shape: csrf-failed-json
     - status: 403
-      shape: guest HTML (missing/invalid state token, login token, or Invalid app password)
+      shape: guest HTML (missing/invalid state token, login token, Invalid app password, or Could not complete login)
   status: discovered
   parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /login/v2/apptoken
+  next_handler: app/login/v2/apptoken/route.ts
+  parity_test: next/parity/tests/core-login-v2-html.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: 'PublicPage. CSRF required. Clears session client.flow.v2.login.token and state token. Success redirect target comes from handleFlowDone; exact Location not asserted here. Distinct from mapped POST /login/v2 and POST /login/v2/poll.'
+  notes: 'PublicPage. CSRF required. Clears session client.flow.v2.login.token and state token before app password lookup. Success is 200 HTML loginFlowState=done, not 303. Distinct from v1 apptoken nc:// redirect.'
 - id: core.ClientFlowLoginV2#landing
   feature_ids:
   - core-login
@@ -21700,12 +21704,12 @@ endpoints:
       shape: login-token-forbidden-html
   status: discovered
   parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /login/v2/flow/{token}
+  next_handler: app/login/v2/flow/[token]/route.ts
+  parity_test: next/parity/tests/core-login-v2-html.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: 'PublicPage + NoCSRFRequired + UseSession. OpenAPI SCOPE_IGNORE. startLoginFlow(token) must succeed; stores token in session as client.flow.v2.login.token. Mapped sibling is GET /login/v2/flow (showAuthPickerPage) as core.ClientFlowLoginV2#flow. Exact redirect status not asserted beyond RedirectResponse.'
+  notes: 'PublicPage + NoCSRFRequired + UseSession. startLoginFlow(token) must succeed; stores token in session as client.flow.v2.login.token.'
 - id: core.ClientFlowLoginV2#grantPage
   feature_ids:
   - core-login
@@ -21729,14 +21733,16 @@ endpoints:
     errors:
     - status: 403
       shape: guest HTML (missing/invalid state token or login-token forbidden)
+    - status: 303
+      shape: login redirect when unauthenticated HTML Accept
   status: discovered
   parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /login/v2/grant
+  next_handler: app/login/v2/grant/route.ts
+  parity_test: next/parity/tests/core-login-v2-html.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: 'NoAdminRequired + NoCSRFRequired + UseSession + NoSameSiteCookieRequired. OpenAPI SCOPE_IGNORE. Distinct from already-mapped POST /login/v2/grant (core.ClientFlowLoginV2#grant / generateAppPassword). Requires session login-flow token from GET /login/v2/flow/{token}.'
+  notes: 'NoAdminRequired + NoCSRFRequired + UseSession. Unauthenticated HTML Accept → 303 login, not 403. Distinct from POST /login/v2/grant (generateAppPassword).'
 - id: core.Lost#resetform
   feature_ids:
   - core-login

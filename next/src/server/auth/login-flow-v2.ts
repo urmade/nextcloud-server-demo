@@ -8,8 +8,10 @@ import {
 	type ResolvedSession,
 } from '@/src/server/auth/session';
 import { updateSession } from '@/src/server/auth/session-store';
+import { lookupAppPasswordToken } from '@/src/server/ocs/app-password-store';
 import {
 	completeLoginFlow,
+	completeLoginFlowWithAppPassword,
 	createLoginFlowTokens,
 	getLoginFlowByLoginToken,
 	LoginFlowV2NotFoundError,
@@ -50,6 +52,41 @@ function redirectResponse(location: string, cookieHeaders: string[] = []): Respo
 
 function forbiddenHtml(message: string, cookieHeaders: string[] = []): Response {
 	return htmlResponse(`<!DOCTYPE html><html><body><p>${message}</p></body></html>`, 403, cookieHeaders);
+}
+
+function acceptsHtml(request: Request): boolean {
+	const accept = request.headers.get('accept') ?? '';
+
+	return accept.toLowerCase().includes('html');
+}
+
+function buildLoginRedirect(request: Request, cookieHeaders: string[] = []): Response {
+	const requestUrl = new URL(request.url);
+	const loginUrl = new URL('/login', requestUrl.origin);
+	loginUrl.searchParams.set('redirect_url', `${requestUrl.pathname}${requestUrl.search}`);
+
+	return redirectResponse(loginUrl.toString(), cookieHeaders);
+}
+
+function csrfFailedResponse(request: Request, cookieHeaders: string[] = []): Response {
+	const headers = new Headers({
+		'content-type': 'application/json; charset=utf-8',
+	});
+
+	appendSetCookieHeaders(headers, cookieHeaders);
+
+	return new Response(JSON.stringify({ message: 'CSRF check failed' }), {
+		status: 412,
+		headers,
+	});
+}
+
+function unauthenticatedResponse(request: Request, cookieHeaders: string[] = []): Response {
+	if (acceptsHtml(request)) {
+		return buildLoginRedirect(request, cookieHeaders);
+	}
+
+	return jsonResponse({ message: 'Current user is not logged in' }, 401, cookieHeaders);
 }
 
 function generateStateToken(): string {
@@ -315,7 +352,7 @@ export function handleLoginFlowV2GrantPage(
 	ensureSessionCookie(resolved, cookieHeaders);
 
 	if (!isLoggedIn(resolved.session)) {
-		return forbiddenHtml('Current user is not logged in', cookieHeaders);
+		return unauthenticatedResponse(request, cookieHeaders);
 	}
 
 	if (stateToken === null) {
@@ -412,6 +449,68 @@ export function handleLoginFlowV2GrantPost(
 	resolved.session.loginFlowV2Token = undefined;
 	resolved.session.loginFlowV2StateToken = undefined;
 	updateSession(resolved.session);
+
+	if (!completed) {
+		return forbiddenHtml('Could not complete login', cookieHeaders);
+	}
+
+	return htmlResponse(renderDonePage(), 200, cookieHeaders);
+}
+
+export function handleLoginFlowV2ApptokenPost(
+	request: Request,
+	resolved: ResolvedSession,
+	body: string,
+): Response {
+	const cookieHeaders = [...resolved.sameSiteCookieHeaders];
+	ensureSessionCookie(resolved, cookieHeaders);
+
+	const requestToken = parseRequestToken(request, body);
+
+	if (!isCsrfTokenValid(resolved.session.csrfToken, requestToken ?? '')) {
+		return csrfFailedResponse(request, cookieHeaders);
+	}
+
+	const stateToken = parseStateToken(request, body);
+
+	if (stateToken === null) {
+		return forbiddenHtml('State token missing', cookieHeaders);
+	}
+
+	if (!isValidStateToken(resolved.session.loginFlowV2StateToken, stateToken)) {
+		return forbiddenHtml('State token does not match', cookieHeaders);
+	}
+
+	try {
+		getLoginFlowByLoginToken(resolved.session.loginFlowV2Token ?? '');
+	} catch (error) {
+		if (error instanceof LoginFlowV2NotFoundError) {
+			return forbiddenHtml('Your login token is invalid or has expired', cookieHeaders);
+		}
+
+		throw error;
+	}
+
+	const loginToken = resolved.session.loginFlowV2Token ?? '';
+	resolved.session.loginFlowV2Token = undefined;
+	resolved.session.loginFlowV2StateToken = undefined;
+	updateSession(resolved.session);
+
+	const params = new URLSearchParams(body);
+	const user = params.get('user') ?? '';
+	const password = params.get('password') ?? '';
+	const stored = lookupAppPasswordToken(password);
+
+	if (!stored || stored.loginName !== user) {
+		return forbiddenHtml('Invalid app password', cookieHeaders);
+	}
+
+	const completed = completeLoginFlowWithAppPassword(
+		loginToken,
+		getServerPath(request),
+		stored.loginName,
+		password,
+	);
 
 	if (!completed) {
 		return forbiddenHtml('Could not complete login', cookieHeaders);

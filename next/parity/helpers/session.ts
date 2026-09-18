@@ -28,6 +28,25 @@ export function seedParityGuestSessionFromJar(
 	return session;
 }
 
+export function seedParityLoginFlowV2Session(
+	jar: Record<string, string>,
+	loginToken: string,
+	stateToken: string,
+): SessionData | null {
+	const sessionId = jar[SESSION_COOKIE];
+
+	if (!sessionId) {
+		return null;
+	}
+
+	const session = getOrCreateSession(sessionId);
+	session.loginFlowV2Token = loginToken;
+	session.loginFlowV2StateToken = stateToken;
+	updateSession(session);
+
+	return session;
+}
+
 export function seedParitySessionFromJar(jar: Record<string, string>, csrfToken: string): void {
 	const session = seedParityGuestSessionFromJar(jar, csrfToken);
 

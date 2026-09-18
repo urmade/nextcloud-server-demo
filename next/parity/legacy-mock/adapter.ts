@@ -701,6 +701,7 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 		|| pathname === '/index.php/login/v2/poll'
 		|| pathname === '/login/v2/flow'
 		|| pathname === '/login/v2/grant'
+		|| pathname === '/login/v2/apptoken'
 		|| /^\/login\/v2\/flow\/[^/]+$/.test(pathname)
 		|| isTwoFactorChallengePath(pathname)
 		|| isLostPasswordPath(pathname, normalizedMethod)) {

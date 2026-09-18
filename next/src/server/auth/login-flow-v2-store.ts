@@ -143,6 +143,25 @@ export function completeLoginFlow(
 	return true;
 }
 
+export function completeLoginFlowWithAppPassword(
+	loginToken: string,
+	server: string,
+	loginName: string,
+	appPassword: string,
+): boolean {
+	const entry = getLoginTokenMap().get(loginToken);
+
+	if (!entry) {
+		return false;
+	}
+
+	entry.server = server;
+	entry.loginName = loginName;
+	entry.appPassword = appPassword;
+
+	return true;
+}
+
 export function resetLoginFlowV2Store(): void {
 	getFlowMap().clear();
 	getLoginTokenMap().clear();

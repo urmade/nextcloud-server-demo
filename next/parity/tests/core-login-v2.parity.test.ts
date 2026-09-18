@@ -429,12 +429,18 @@ describe('parity: core-login-v2', () => {
 		expect(String(newFlow.body)).toContain('data-login-flow="auth"');
 	});
 
-	it('GET /login/v2/grant returns 403 when not logged in (auth failure)', async () => {
+	it('GET /login/v2/grant returns 303 login redirect when not logged in (auth failure)', async () => {
 		const result = await runParityCase({
 			name: 'login-v2-grant-get-unauth',
 			path: '/login/v2/grant?stateToken=missing',
+			options: {
+				headers: {
+					accept: 'text/html',
+				},
+			},
 			compare: {
-				contractHeaders: ['content-type'],
+				contractHeaders: ['location'],
+				ignoreHeaders: ['location'],
 			},
 		});
 

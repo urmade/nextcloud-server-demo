@@ -44,8 +44,7 @@ description: Core session login, logout, CSRF token, and client login flow v2 en
 ## Non-scope (same feature, later slices)
 
 - Settings WebAuthn registration (`/settings/api/personal/webauthn/*`)
-- `POST /login/v2/apptoken` (app-token redirect path)
-- LDAP, SAML, OIDC, alternative login providers
+- Client login flow v1 (`/login/flow*`)
 - Brute-force throttle timing (status codes only; no delay simulation)
 - `Clear-Site-Data` header (HTTPS non-Chrome only on legacy)
 
@@ -74,6 +73,9 @@ Map ids with `feature_ids: [core-login]` and `parity: tested`:
 - `core.Lost#email`
 - `core.Lost#resetform`
 - `core.Lost#setPassword.post`
+- `core.ClientFlowLoginV2#landing`
+- `core.ClientFlowLoginV2#grantPage`
+- `core.ClientFlowLoginV2#apptokenRedirect.post`
 
 ## Auth model
 
@@ -87,8 +89,9 @@ Map ids with `feature_ids: [core-login]` and `parity: tested`:
 | `POST /login/v2/poll` | `none` (public); JSON `{ token }` |
 | `GET /login/v2/flow/{token}` | `none` (public); sets `loginFlowV2Token` in session |
 | `GET /login/v2/flow` | `session` login-flow token in session (not user login) |
-| `GET /login/v2/grant` | `session` (logged-in user) + valid `stateToken` |
+| `GET /login/v2/grant` | `session` (logged-in user) + valid `stateToken`; unauth HTML → 303 login |
 | `POST /login/v2/grant` | `session` + CSRF + fresh password confirm + valid `stateToken` |
+| `POST /login/v2/apptoken` | `none` (public) + CSRF + valid `stateToken` + existing app password |
 | `GET /login/selectchallenge` | `session` with 2FA pending (`twoFactorPendingUid`); redirects if unauthenticated or 2FA complete |
 | `GET /login/challenge/{id}` | same as selectchallenge |
 | `POST /login/challenge/{id}` | same; form field `challenge` (NoCSRFRequired on legacy) |
@@ -132,6 +135,7 @@ app/
   login/v2/flow/route.ts
   login/v2/flow/[token]/route.ts
   login/v2/grant/route.ts
+  login/v2/apptoken/route.ts
   login/selectchallenge/route.ts
   login/challenge/[challengeProviderId]/route.ts
   login/webauthn/start/route.ts
@@ -211,7 +215,8 @@ Unauthenticated → 303 `/login`. Already 2FA-complete → 303 default page. Unk
 3. User opens `login` URL → `GET /login/v2/flow/{loginToken}` → 303 → `GET /login/v2/flow`.
 4. Auth picker sets `loginFlowV2StateToken` in session; user proceeds to grant page.
 5. Logged-in user `POST /login/v2/grant` with `stateToken` + CSRF → generates app password, stores on flow.
-6. Poll returns `{ server, loginName, appPassword }` once; flow entry deleted (404 on re-poll).
+6. Or user submits existing app password via `POST /login/v2/apptoken` with `stateToken`, `user`, `password`, CSRF → 200 HTML done.
+7. Poll returns `{ server, loginName, appPassword }` once; flow entry deleted (404 on re-poll).
 
 Pending flows are **in-memory only** (no DB). App passwords are stored in the shared app-password store on grant.
 
@@ -231,7 +236,7 @@ Legacy sets `nc_sameSiteCookielax` and `nc_sameSiteCookiestrict` (= `true`) on f
 - Stored per session; returned as **encrypted** value: `base64(obfuscated):base64(secret)` (XOR obfuscation, not crypto).
 - Accepted in POST body field `requesttoken`, query `requesttoken`, or header `requesttoken`.
 - `OCS-APIRequest: true` bypasses CSRF (not used on login form).
-- Required on `POST /login/v2/grant`.
+- Required on `POST /login/v2/grant` and `POST /login/v2/apptoken`.
 
 ## Login POST outcomes
 
@@ -295,8 +300,12 @@ Failed login sets session flash `loginMessages: [[errorCode], []]`.
 | Happy poll | `POST /login/v2/poll` | 200 `{ server, loginName, appPassword }`; second poll 404 |
 | Flow without session token | `GET /login/v2/flow` | 403 HTML |
 | Landing valid token | `GET /login/v2/flow/{token}` | 303 to `/login/v2/flow` |
-| Grant unauthenticated | `GET /login/v2/grant` | 403 HTML |
-| Grant missing state | `POST /login/v2/grant` | 403 HTML `State token missing` |
+| Landing invalid token | `GET /login/v2/flow/{token}` | 403 HTML invalid or expired |
+| Grant unauthenticated | `GET /login/v2/grant` | 303 to `/login` (HTML Accept) |
+| Grant missing state | `GET /login/v2/grant` | 403 HTML `State token missing` |
+| Apptoken no CSRF | `POST /login/v2/apptoken` | 412 `{ message }` |
+| Apptoken bad password | `POST /login/v2/apptoken` | 403 HTML `Invalid app password` |
+| Apptoken happy | `POST /login/v2/apptoken` | 200 HTML `#core-loginflow` done + poll credentials |
 | Unauthenticated | `GET /login/selectchallenge` | 303 to `/login` |
 | Happy select | `GET /login/selectchallenge` | 200 HTML `#twofactor-select` after 2FA-pending login |
 | Happy show | `GET /login/challenge/parity-totp` | 200 HTML `#twofactor-challenge` + `name="challenge"` |

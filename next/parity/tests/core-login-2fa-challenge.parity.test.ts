@@ -12,7 +12,7 @@ import { loginParitySession, OCS_JSON_HEADERS } from '../helpers/session';
 const LOCATION_COMPARE = {
 	contractHeaders: ['content-type', 'location'],
 	ignoreHeaders: ['location'],
-} as const;
+};
 
 function normalizeLocation(location: string | null): string | null {
 	if (!location) {

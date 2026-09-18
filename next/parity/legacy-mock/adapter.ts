@@ -30,6 +30,7 @@ import { handleFilesApiMock, isFilesApiPath, isFilesApiWritePath } from './files
 import { handleFilesDirectEditingMock, isFilesDirectEditingMockPath } from './files-direct-editing';
 import { handleFilesFilenamesMock, isFilesFilenamesMockPath } from './files-filenames';
 import { handleFilesRemainingOcsMock, isFilesRemainingOcsMockPath } from './files-remaining-ocs';
+import { handleFilesSharingOcsMock, isFilesSharingOcsMockPath } from './files-sharing-ocs';
 import { handleFilesTemplatesMock, isFilesTemplatesMockPath } from './files-templates';
 import { handleFilesViewMock, isFilesViewMockPath } from './files-view';
 import { snapshotResponse } from '../compare';
@@ -433,6 +434,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return filesRemainingOcs;
 	}
 
+	const filesSharingOcs = await handleFilesSharingOcsMock(pathname, search, options);
+
+	if (filesSharingOcs) {
+		return filesSharingOcs;
+	}
+
 	const filesView = await handleFilesViewMock(fullPath, options);
 
 	if (filesView) {
@@ -710,6 +717,10 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (isFilesRemainingOcsMockPath(pathname, normalizedMethod)) {
+		return true;
+	}
+
+	if (isFilesSharingOcsMockPath(pathname, normalizedMethod)) {
 		return true;
 	}
 

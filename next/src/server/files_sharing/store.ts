@@ -1,0 +1,200 @@
+import {
+	DEFAULT_SHARE_PERMISSIONS,
+	PERMISSION_CREATE,
+	PERMISSION_DELETE,
+	PERMISSION_READ,
+	PERMISSION_UPDATE,
+	SHARE_STATUS_ACCEPTED,
+	SHARE_STATUS_PENDING,
+	SHARE_TYPE_GROUP,
+	SHARE_TYPE_LINK,
+	SHARE_TYPE_USER,
+	TOKEN_MAX_LENGTH,
+} from './constants';
+import type { ShareRecord } from './types';
+
+let nextShareId = 1;
+const shares: ShareRecord[] = [];
+
+function randomToken(): string {
+	const chars = 'abcdefghijklmnopqrstuvwxyz0123456789-';
+	let token = '';
+
+	for (let index = 0; index < 15; index += 1) {
+		token += chars[Math.floor(Math.random() * chars.length)];
+	}
+
+	return token;
+}
+
+export function resetShareStore(): void {
+	nextShareId = 1;
+	shares.length = 0;
+}
+
+export function getShareById(id: number): ShareRecord | undefined {
+	return shares.find((share) => share.id === id);
+}
+
+export function listShares(): ShareRecord[] {
+	return [...shares];
+}
+
+export function createShareRecord(input: {
+	shareType: number;
+	sharedBy: string;
+	shareOwner: string;
+	sharedWith: string | null;
+	permissions: number;
+	nodeId: number;
+	path: string;
+	target: string;
+	token?: string | null;
+	password?: string | null;
+	note?: string;
+	label?: string;
+	status?: number;
+	mailSend?: boolean;
+	sendPasswordByTalk?: boolean;
+}): ShareRecord {
+	const share: ShareRecord = {
+		id: nextShareId++,
+		shareType: input.shareType,
+		sharedBy: input.sharedBy,
+		shareOwner: input.shareOwner,
+		sharedWith: input.sharedWith,
+		permissions: input.permissions,
+		nodeId: input.nodeId,
+		path: input.path,
+		target: input.target,
+		token: input.token ?? (input.shareType === SHARE_TYPE_LINK ? randomToken() : null),
+		password: input.password ?? null,
+		note: input.note ?? '',
+		label: input.label ?? '',
+		status: input.status ?? (
+			input.shareType === SHARE_TYPE_USER && input.sharedWith && input.sharedWith !== input.sharedBy
+				? SHARE_STATUS_PENDING
+				: SHARE_STATUS_ACCEPTED
+		),
+		shareTime: Math.floor(Date.now() / 1000),
+		expiration: null,
+		hideDownload: false,
+		mailSend: input.mailSend ?? false,
+		sendPasswordByTalk: input.sendPasswordByTalk ?? false,
+		deletedFromSelf: [],
+	};
+
+	shares.push(share);
+
+	return share;
+}
+
+export function updateShareRecord(id: number, patch: Partial<ShareRecord>): ShareRecord | undefined {
+	const share = getShareById(id);
+
+	if (!share) {
+		return undefined;
+	}
+
+	Object.assign(share, patch);
+
+	return share;
+}
+
+export function deleteShareRecord(id: number): boolean {
+	const index = shares.findIndex((share) => share.id === id);
+
+	if (index < 0) {
+		return false;
+	}
+
+	shares.splice(index, 1);
+
+	return true;
+}
+
+export function deleteShareFromSelf(id: number, userId: string): boolean {
+	const share = getShareById(id);
+
+	if (!share) {
+		return false;
+	}
+
+	if (!share.deletedFromSelf.includes(userId)) {
+		share.deletedFromSelf.push(userId);
+	}
+
+	return true;
+}
+
+export function generateShareToken(): string {
+	for (let attempt = 0; attempt < 20; attempt += 1) {
+		const token = randomToken();
+
+		if (token.length <= TOKEN_MAX_LENGTH && !shares.some((share) => share.token === token)) {
+			return token;
+		}
+	}
+
+	throw new Error('Failed to generate a unique token');
+}
+
+export function computeDefaultPermissions(shareType: number, nodeKind: 'file' | 'directory'): number {
+	let permissions = DEFAULT_SHARE_PERMISSIONS;
+
+	if (nodeKind === 'file') {
+		permissions &= ~(PERMISSION_DELETE | PERMISSION_CREATE);
+	}
+
+	if (shareType !== SHARE_TYPE_LINK) {
+		permissions |= PERMISSION_READ;
+	}
+
+	return permissions;
+}
+
+export function computeLinkPermissions(
+	permissions: number | null | undefined,
+	publicUpload: boolean,
+): number {
+	if (publicUpload) {
+		return PERMISSION_READ | PERMISSION_CREATE | PERMISSION_UPDATE | PERMISSION_DELETE;
+	}
+
+	if (permissions === null || permissions === undefined) {
+		return PERMISSION_READ;
+	}
+
+	return permissions | PERMISSION_READ;
+}
+
+export function listPendingSharesForUser(userId: string): ShareRecord[] {
+	return shares.filter((share) => (
+		(share.shareType === SHARE_TYPE_USER || share.shareType === SHARE_TYPE_GROUP)
+		&& share.sharedWith === userId
+		&& (share.status === SHARE_STATUS_PENDING || share.status === 2)
+	));
+}
+
+export function acceptShareRecord(id: number, userId: string): boolean {
+	const share = getShareById(id);
+
+	if (!share || share.sharedWith !== userId) {
+		return false;
+	}
+
+	share.status = SHARE_STATUS_ACCEPTED;
+
+	return true;
+}
+
+export function getSharesCreatedBy(userId: string): ShareRecord[] {
+	return shares.filter((share) => share.sharedBy === userId);
+}
+
+export function getSharesSharedWith(userId: string): ShareRecord[] {
+	return shares.filter((share) => (
+		share.sharedWith === userId
+		&& !share.deletedFromSelf.includes(userId)
+	));
+}

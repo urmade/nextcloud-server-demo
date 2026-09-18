@@ -12074,26 +12074,34 @@ endpoints:
     headers:
       Authorization: Basic|Bearer
       Content-Type: application/xml|octet-stream
+      X-Requested-With: XMLHttpRequest
     body: DAV XML or file bytes
   response:
     success:
-      status: 207
-      content_type: application/xml
+      status: per-method
+      content_type: application/xml|octet-stream
       shape: multistatus-or-bytes
     errors:
     - status: 401
       shape: sabre-exception
     - status: 404
       shape: sabre-exception
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+    - status: 412
+      shape: sabre-exception
+  status: parity
+  parity: tested
+  next_path: /public.php/dav/{path}
+  next_handler: src/server/dav/public-handler.ts
+  parity_test: next/parity/tests/files-sharing-public-dav.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   dav_ns: DAV:, urn:ietf:params:xml:ns:caldav, urn:ietf:params:xml:ns:carddav, http://owncloud.org/ns, http://nextcloud.org/ns
-  notes: 'Public-share Sabre tree. Methods: OPTIONS GET HEAD PUT POST DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK REPORT SEARCH'
+  notes: >-
+    Public-share Sabre v2 tree. Token path /dav/files/{token}/…. Password session
+    public_link_authenticated (share id list); owner cookie does not authenticate.
+    Map success 207 was wrong: PROPFIND 207, GET file 200, OPTIONS 200, PUT 201.
+    Non-GET requires X-Requested-With XMLHttpRequest or outgoing S2S; else 401.
+    Password no creds 401; strict cookie fail 412 + Location showShare.
 - id: dav.Public#legacy-webdav
   feature_ids:
   - files_sharing
@@ -12109,26 +12117,31 @@ endpoints:
     headers:
       Authorization: Basic|Bearer
       Content-Type: application/xml|octet-stream
+      X-Requested-With: XMLHttpRequest
     body: DAV XML or file bytes
   response:
     success:
-      status: 207
-      content_type: application/xml
+      status: per-method
+      content_type: application/xml|octet-stream
       shape: multistatus-or-bytes
     errors:
     - status: 401
       shape: sabre-exception
     - status: 404
       shape: sabre-exception
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /public.php/webdav/{path}
+  next_handler: src/server/dav/public-handler.ts
+  parity_test: next/parity/tests/files-sharing-public-dav.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   dav_ns: DAV:, urn:ietf:params:xml:ns:caldav, urn:ietf:params:xml:ns:carddav, http://owncloud.org/ns, http://nextcloud.org/ns
-  notes: 'Legacy public WebDAV. Methods: OPTIONS GET HEAD PUT POST DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK REPORT SEARCH'
+  notes: >-
+    Legacy public WebDAV. Token is Basic username, not path. All methods (incl.
+    GET) gated by AJAX or outgoing S2S; else 401. Session scalar check unlikely
+    to match frontend array; prefer Basic. Map success 207 was wrong: assert per
+    method like v2 tree.
 - id: files_sharing.Share#showShare
   feature_ids:
   - files_sharing

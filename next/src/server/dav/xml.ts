@@ -72,3 +72,11 @@ export function buildBadRequestXml(message: string): string {
 export function buildMethodNotAllowedXml(message: string): string {
 	return buildSabreErrorXml('Sabre\\DAV\\Exception\\MethodNotAllowed', message);
 }
+
+export function buildNotAuthenticatedXml(message: string): string {
+	return buildSabreErrorXml('Sabre\\DAV\\Exception\\NotAuthenticated', message);
+}
+
+export function buildPreconditionFailedXml(message: string): string {
+	return buildSabreErrorXml('Sabre\\DAV\\Exception\\PreconditionFailed', message);
+}

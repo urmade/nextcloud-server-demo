@@ -16,7 +16,7 @@ Authenticated Sabre DAV server plus DAV-adjacent HTTP/OCS. Files homes, calendar
 
 **Phase C sub-slices:** (1) **well-known caldav/carddav** — landed (`dav-well-known`); (2) **files PROPFIND cluster** — landed (`dav-files-propfind`, 109 tested); (3) **`dav.Collection#uploads`** — landed (`dav-uploads`, 110 tested); (4) `dav-direct-get-url` + `dav.Direct#get` (next cluster). CalDAV/CardDAV collections and remaining tree prefixes are later sub-slices under this same `feature_id`.
 
-Public share DAV (`/public.php/dav`, `/public.php/webdav`) is **`files_sharing`**, not this feature.
+Public share DAV (`/public.php/dav`, `/public.php/webdav`) is **`files_sharing`** feature rows `dav.Public#tree` / `dav.Public#legacy-webdav` — implemented in `src/server/dav/public-handler.ts` (parity slice `files-sharing-public-dav`). Reuse `xml.ts`, `bp-dav-xml-normalize`; token/session rules live in `files_sharing` skill.
 
 ## Key types / entities
 
@@ -202,9 +202,23 @@ Do not leak another user’s file home via `files/{otherUid}` — empty collecti
 - Maintenance/upgrade on `remote.php` → 503 (XML if Content-Type `text/xml`).
 - Map 207 is not universal; assert per-method.
 
-## Do-not list
+#### Public files DAV walkthrough — `dav.Public#tree` + `dav.Public#legacy-webdav` (`parity: tested`)
 
-- Do not implement `/public.php/dav` or `/public.php/webdav` (`files_sharing`: `dav.Public#tree`, `dav.Public#legacy-webdav`).
+Next.js: `src/server/dav/public-handler.ts` + `public-auth.ts` + `public-files.ts` + `public-remote.ts`; middleware routes `/public.php/dav/*` and `/public.php/webdav/*`.
+
+| Step | Method | Path | Notes |
+| --- | --- | --- | --- |
+| List share root | PROPFIND | `/public.php/dav/files/{token}/` | depth 0 → **207** multistatus (`bp-dav-xml-normalize`) |
+| Download file | GET | `/public.php/dav/files/{token}/{file}` | **200** bytes + MIME (`bp-binary-parity` size class) |
+| Options | OPTIONS | same prefix | **200**; legacy requires AJAX or outgoing S2S like other methods |
+| Upload | PUT | `/public.php/dav/files/{token}/{file}` | **201** create; v2 non-GET needs `X-Requested-With: XMLHttpRequest` or outgoing S2S |
+| Legacy home | PROPFIND/GET | `/public.php/webdav/{path}` | Basic username = token; **all** methods gated by AJAX or outgoing S2S |
+
+Auth: `auth: public-share` is correct. Owner login cookie does **not** count. Password DAV session is `public_link_authenticated` (share **id** list from `authSucceeded`). Map default success **207** is a lie — assert per method.
+
+Parity extras (`next/parity/tests/files-sharing-public-dav.parity.test.ts`): open link PROPFIND 207; GET file 200; unknown token 401/404 Sabre XML; password no creds 401; v2 PUT without AJAX and S2S off 401; legacy GET without AJAX and S2S off 401; owner cookie still 401.
+
+## Do-not list
 - Do not implement HTTP comments/systemtags apps (`comments`, `systemtags` features) — only DAV collections here.
 - Do not implement core HTTP avatars/previews (`core` avatars slice) — `dav.Collection#avatars` is the DAV collection only.
 - Do not implement `ExampleContentController` (default contact/event) — not in the feature map.
@@ -220,6 +234,10 @@ Do not leak another user’s file home via `files/{otherUid}` — empty collecti
 ```
 src/server/dav/
   remote.ts              # service router (dav|webdav|files|caldav|carddav|direct)
+  public-handler.ts      # /public.php/dav + /public.php/webdav (files_sharing slice)
+  public-auth.ts
+  public-files.ts
+  public-remote.ts
   auth.ts                # Basic / Bearer / public-calendar / token
   xml.ts                 # PROPFIND/PROPPATCH infoset + oc/nc ns
   tree/files.ts          # files/{uid}

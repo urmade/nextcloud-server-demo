@@ -35,6 +35,7 @@ import { handleFilesSharingExternalSharesMock, isFilesSharingExternalSharesMockP
 import { handleFilesSharingOcsMock, isFilesSharingOcsMockPath } from './files-sharing-ocs';
 import { handleFilesSharingPublicLinkMock, isFilesSharingPublicLinkMockPath } from './files-sharing-public-link';
 import { handleFilesSharingPublicPreviewMock, isFilesSharingPublicPreviewMockPath } from './files-sharing-public-preview';
+import { handleFilesSharingPublicDavMock, isPublicDavMockMethod, isPublicDavMockPath } from './files-sharing-public-dav';
 import { handleFilesSharingShareInfoMock, isFilesSharingShareInfoMockPath } from './files-sharing-shareinfo';
 import { handleFilesTemplatesMock, isFilesTemplatesMockPath } from './files-templates';
 import { handleFilesViewMock, isFilesViewMockPath } from './files-view';
@@ -395,6 +396,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 
 	if (lostPassword) {
 		return lostPassword;
+	}
+
+	const publicDav = await handleFilesSharingPublicDavMock(pathname, options);
+
+	if (publicDav) {
+		return publicDav;
 	}
 
 	const dav = await handleDavMock(pathname, options);
@@ -776,6 +783,10 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (isFilesSharingShareInfoMockPath(pathname, normalizedMethod)) {
+		return true;
+	}
+
+	if (isPublicDavMockPath(pathname) && isPublicDavMockMethod(normalizedMethod)) {
 		return true;
 	}
 

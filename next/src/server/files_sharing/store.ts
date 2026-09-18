@@ -17,12 +17,34 @@ import type { ShareRecord } from './types';
 
 const DELETED_SHARE_TYPES = new Set([SHARE_TYPE_GROUP]);
 
-let nextShareId = 1;
-const shares: ShareRecord[] = [];
+const globalForShares = globalThis as typeof globalThis & {
+	__ncShareStore?: ShareRecord[];
+	__ncShareNextId?: number;
+};
+
+function getShares(): ShareRecord[] {
+	if (!globalForShares.__ncShareStore) {
+		globalForShares.__ncShareStore = [];
+	}
+
+	return globalForShares.__ncShareStore;
+}
+
+function getNextShareId(): number {
+	if (!globalForShares.__ncShareNextId) {
+		globalForShares.__ncShareNextId = 1;
+	}
+
+	return globalForShares.__ncShareNextId;
+}
+
+function setNextShareId(value: number): void {
+	globalForShares.__ncShareNextId = value;
+}
 
 function randomToken(): string {
 	if (process.env.NC_PARITY_DETERMINISTIC_SHARE_TOKENS === 'true') {
-		return `parity-link-${nextShareId}`;
+		return `parity-link-${getNextShareId()}`;
 	}
 
 	const chars = 'abcdefghijklmnopqrstuvwxyz0123456789-';
@@ -36,12 +58,12 @@ function randomToken(): string {
 }
 
 export function resetShareStore(): void {
-	nextShareId = 1;
-	shares.length = 0;
+	setNextShareId(1);
+	getShares().length = 0;
 }
 
 export function getShareById(id: number): ShareRecord | undefined {
-	return shares.find((share) => share.id === id);
+	return getShares().find((share) => share.id === id);
 }
 
 export function getShareByFullId(id: string): ShareRecord | undefined {
@@ -55,11 +77,11 @@ export function getShareByFullId(id: string): ShareRecord | undefined {
 }
 
 export function getShareByToken(token: string): ShareRecord | undefined {
-	return shares.find((share) => share.token === token && share.shareType === SHARE_TYPE_LINK);
+	return getShares().find((share) => share.token === token && share.shareType === SHARE_TYPE_LINK);
 }
 
 export function listShares(): ShareRecord[] {
-	return [...shares];
+	return [...getShares()];
 }
 
 export function createShareRecord(input: {
@@ -80,8 +102,10 @@ export function createShareRecord(input: {
 	sendPasswordByTalk?: boolean;
 	hideDownload?: boolean;
 }): ShareRecord {
+	const shareId = getNextShareId();
+	setNextShareId(shareId + 1);
 	const share: ShareRecord = {
-		id: nextShareId++,
+		id: shareId,
 		shareType: input.shareType,
 		sharedBy: input.sharedBy,
 		shareOwner: input.shareOwner,
@@ -108,7 +132,7 @@ export function createShareRecord(input: {
 		deletedFromSelf: [],
 	};
 
-	shares.push(share);
+	getShares().push(share);
 
 	return share;
 }
@@ -126,13 +150,13 @@ export function updateShareRecord(id: number, patch: Partial<ShareRecord>): Shar
 }
 
 export function deleteShareRecord(id: number): boolean {
-	const index = shares.findIndex((share) => share.id === id);
+	const index = getShares().findIndex((share) => share.id === id);
 
 	if (index < 0) {
 		return false;
 	}
 
-	shares.splice(index, 1);
+	getShares().splice(index, 1);
 
 	return true;
 }
@@ -155,7 +179,7 @@ export function generateShareToken(): string {
 	for (let attempt = 0; attempt < 20; attempt += 1) {
 		const token = randomToken();
 
-		if (token.length <= TOKEN_MAX_LENGTH && !shares.some((share) => share.token === token)) {
+		if (token.length <= TOKEN_MAX_LENGTH && !getShares().some((share) => share.token === token)) {
 			return token;
 		}
 	}
@@ -193,7 +217,7 @@ export function computeLinkPermissions(
 }
 
 export function listPendingSharesForUser(userId: string): ShareRecord[] {
-	return shares.filter((share) => (
+	return getShares().filter((share) => (
 		(share.shareType === SHARE_TYPE_USER || share.shareType === SHARE_TYPE_GROUP)
 		&& share.sharedWith === userId
 		&& (share.status === SHARE_STATUS_PENDING || share.status === 2)
@@ -225,18 +249,18 @@ export function acceptShareRecord(id: number, userId: string): boolean {
 }
 
 export function getSharesCreatedBy(userId: string): ShareRecord[] {
-	return shares.filter((share) => share.sharedBy === userId);
+	return getShares().filter((share) => share.sharedBy === userId);
 }
 
 export function getSharesSharedWith(userId: string): ShareRecord[] {
-	return shares.filter((share) => (
+	return getShares().filter((share) => (
 		share.sharedWith === userId
 		&& !share.deletedFromSelf.includes(userId)
 	));
 }
 
 export function listDeletedSharesForUser(userId: string): ShareRecord[] {
-	return shares.filter((share) => {
+	return getShares().filter((share) => {
 		if (!DELETED_SHARE_TYPES.has(share.shareType) || !share.deletedFromSelf.includes(userId)) {
 			return false;
 		}

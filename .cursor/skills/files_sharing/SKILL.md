@@ -195,6 +195,15 @@ Frontpage JSON over the same `External\Manager` as remote OCS. Soft-dep: use rem
   - no preview: `mimeFallback` + File → **303** mime icon; else **404**
 - Success: `FileDisplayResponse` 200 binary (`bp-binary-parity`). Query: `file` default `''`, `x=32`, `y=32`, `a` **untyped** (truthy = no-crop), `mimeFallback=false`.
 
+## Public DAV (slice 9)
+
+`/public.php/dav` and `/public.php/webdav`. Password DAV session is `public_link_authenticated` (share **id** list, set in `authSucceeded`). Owner cookie does **not** authenticate. See **dav** skill for method/status/XML contracts.
+
+| id | Path |
+| --- | --- |
+| `dav.Public#tree` | `/public.php/dav/files/{token}/…` |
+| `dav.Public#legacy-webdav` | `/public.php/webdav/…` (Basic username = token) |
+
 ## ShareInfo (slice 8)
 
 POST `/apps/files_sharing/shareinfo`. `ShareInfoController` extends `ApiController` — **not** `PublicShareController`; `PublicShareMiddleware` does not run. Password goes in the **body**, not `public_link_authenticated_frontend`.
@@ -235,6 +244,8 @@ src/server/files_sharing/
   public-preview.ts
   public-session.ts
   share-info.ts
+parity/legacy-mock/files-sharing-public-dav.ts
+parity/tests/files-sharing-public-dav.parity.test.ts
 app/ocs/v2.php/apps/files_sharing/api/v1/
   shares/route.ts
   shares/inherited/route.ts
@@ -342,6 +353,13 @@ parity/tests/files-sharing-shareinfo.parity.test.ts
 | `POST /shareinfo` unknown token | 404 `{data:[],status:error}` |
 | `POST /shareinfo` missing `t` | 400 raw empty body |
 | `POST /index.php/.../shareinfo` | same handler as app route |
+| `PROPFIND /public.php/dav/files/{token}/` open link | 207 multistatus |
+| `GET /public.php/dav/files/{token}/welcome.txt` | 200 binary |
+| `PROPFIND` unknown token | 401 or 404 Sabre XML |
+| `PROPFIND` password share, no creds | 401 |
+| `PUT` v2 without AJAX, S2S off | 401 |
+| `GET` legacy without AJAX, S2S off | 401 |
+| Owner cookie on password share DAV | still 401 |
 
 Reset files + sharing stores (and file-node id counters) in accept parity `beforeEach` via `resetParityFilesStores()` + `resetParityShareStores()`. Seed a pending user share with admin `POST /shares` (`shareType: 0`, `shareWith: alice`), then exercise accept as `alice`.
 

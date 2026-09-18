@@ -14,7 +14,9 @@ alwaysApply: true
 One row per sliceable domain. `feature_id` equals endpoint-map `feature_ids[]` entries.
 First `feature_ids` value on an endpoint owns that row.
 Skill path is created when that slice starts (slice-workflow step 1), except `core-status` which already exists.
-Status is `inventoried` until a slice moves it. Features: 32. Endpoints: 548.
+Status is `inventoried` until a slice moves it. Features: 32. Endpoints: 548. `parity: tested`: 140.
+
+Locked implementation: `files-direct-editing-ocs` on `cursor/files-direct-editing-ocs-e1af` from HTML shells SHA `f9849610`. Four OCS direct-editing endpoints tested.
 
 Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then **core-login** (session/login/CSRF).
 
@@ -330,7 +332,7 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
 - name: Files app
 - summary: Files UI + JSON API, templates, direct editing.
 - skill: `.cursor/skills/files/SKILL.md`
-- status: inventoried
+- status: in-progress
 - depends_on:
   - `dav`
 - endpoint_ids: (39)

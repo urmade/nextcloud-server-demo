@@ -143,11 +143,13 @@ Both return **200 `{message:'ok', data:ViewConfigEntry}`** for the updated view.
 
 `ApiController::getFolderTree` via `#[ApiRoute]` — **returns raw `JSONResponse` array**, not `OCSController` envelope (OpenAPI has no OCS wrapper). Query `path` default `/`, `depth` default 1, `withParents` default false. Path must be a Folder under the user folder. Throwable → log + `[]` 200. 401/400/404 `{message}`.
 
-### Direct editing
+### Direct editing (implemented: OCS cluster)
 
-OCS `info` → `{editors, creators}` + ETag (empty maps if disabled). `templates` → `{templates:{id→{id,title,preview,extension,mimetype}}}`. `open(path, editorId?, fileId?)` / `create(path, editorId, creatorId, templateId?)` → `{url}` absolute `files.DirectEditingView.edit?token=`. Disabled (encryption without master key) → 500 `{message:'Direct editing is not enabled'}`. Open/create failure → 403.
+OCS `info` → `{editors, creators}` + `ETag` header (empty maps if disabled). `templates` → `{templates:{id→{id,title,preview,extension,mimetype}}}`; unknown editor/creator → 500 `{message}`. `open(path, editorId?, fileId?)` / `create(path, editorId, creatorId, templateId?)` → `{url}` absolute `/index.php/apps/files/directEditing/{token}`. Disabled (encryption without master key) → 500 `{message:'Direct editing is not enabled'}`. Open/create failure → 403 `{message}`.
 
-Frontpage `GET /directEditing/{token}`: **`PublicPage`**, `NoCSRFRequired`, `UseSession`. Map `auth: session` is wrong — token is the credential. Unknown/spent token → `NotFoundResponse`.
+Parity seeds one editor (`text`) + creator (`textdocument`) for `text/plain`/`text/markdown`. `create` writes via DAV home `assembleFileIntoHome`; `open` resolves user-folder relative paths. Token mint is process-local; parity compares OCS meta + normalizes `ocs.data.url`.
+
+Frontpage `GET /directEditing/{token}`: **`PublicPage`**, `NoCSRFRequired`, `UseSession`. Map `auth: session` is wrong — token is the credential. Unknown/spent token → `NotFoundResponse`. First GET marks token accessed (one-shot).
 
 ### Templates OCS (distinct from direct-editing templates)
 
@@ -230,12 +232,17 @@ src/server/files/
   filenames-auth.ts
   filenames.ts
   direct-editing-store.ts
+  direct-editing.ts        # OCS info/templates/open/create
   view.ts                  # HTML shell + showFile redirect + DirectEditingView
   api.ts                   # requireFilesApiUser + JSON handlers
 app/apps/files/route.ts
 app/apps/files/[view]/route.ts
 app/apps/files/[view]/[fileid]/route.ts
 app/apps/files/directEditing/[token]/route.ts
+app/ocs/v2.php/apps/files/api/v1/directEditing/route.ts
+app/ocs/v2.php/apps/files/api/v1/directEditing/create/route.ts
+app/ocs/v2.php/apps/files/api/v1/directEditing/open/route.ts
+app/ocs/v2.php/apps/files/api/v1/directEditing/templates/[editorId]/[creatorId]/route.ts
 app/f/route.ts
 app/f/[fileid]/route.ts
 app/apps/files/api/v1/config/[key]/route.ts
@@ -252,6 +259,7 @@ app/ocs/v2.php/apps/files/api/v1/filenames/windows-compatibility/route.ts
 src/server/files/tags.ts
 parity/legacy-mock/files.ts
 parity/legacy-mock/files-view.ts
+parity/legacy-mock/files-direct-editing.ts
 parity/legacy-mock/files-filenames.ts
 parity/helpers/files.ts
 app/api/parity/reset-files-store/route.ts
@@ -260,6 +268,7 @@ parity/tests/files-json-writes.parity.test.ts
 parity/tests/files-json-crop-tags.parity.test.ts
 parity/tests/files-json-filenames.parity.test.ts
 parity/tests/files-html-shell.parity.test.ts
+parity/tests/files-direct-editing-ocs.parity.test.ts
 ```
 
 List/download still go through DAV modules. `computeStorageStats` reads DAV home tree size.

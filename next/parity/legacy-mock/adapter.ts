@@ -27,6 +27,7 @@ import { handleWipeMock } from './wipe';
 import { handleDavMock, isDavMockMethod } from './dav';
 import { handleDavDirectMock, isDavDirectMockPath } from './dav-direct';
 import { handleFilesApiMock, isFilesApiPath, isFilesApiWritePath } from './files';
+import { handleFilesDirectEditingMock, isFilesDirectEditingMockPath } from './files-direct-editing';
 import { handleFilesFilenamesMock, isFilesFilenamesMockPath } from './files-filenames';
 import { handleFilesViewMock, isFilesViewMockPath } from './files-view';
 import { snapshotResponse } from '../compare';
@@ -412,6 +413,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return filesFilenames;
 	}
 
+	const filesDirectEditing = await handleFilesDirectEditingMock(pathname, search, options);
+
+	if (filesDirectEditing) {
+		return filesDirectEditing;
+	}
+
 	const filesView = await handleFilesViewMock(fullPath, options);
 
 	if (filesView) {
@@ -677,6 +684,10 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (isFilesFilenamesMockPath(pathname)) {
+		return true;
+	}
+
+	if (isFilesDirectEditingMockPath(pathname, normalizedMethod)) {
 		return true;
 	}
 

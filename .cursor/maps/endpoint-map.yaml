@@ -9221,15 +9221,15 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files/api/v1/directEditing
+  next_handler: src/server/files/direct-editing.ts
+  parity_test: next/parity/tests/files-direct-editing-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: NoAdminRequired OCS. Returns {editors,creators} + ETag header. Empty maps when disabled. v2 route canonical.
 - id: files-direct_editing-create
   feature_ids:
   - files
@@ -9280,15 +9280,15 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files/api/v1/directEditing/create
+  next_handler: src/server/files/direct-editing.ts
+  parity_test: next/parity/tests/files-direct-editing-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Creates file via creator then mints token. Success {url} absolute edit route. Failures 403 {message}. v2 route canonical.
 - id: files-direct_editing-open
   feature_ids:
   - files
@@ -9338,15 +9338,15 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files/api/v1/directEditing/open
+  next_handler: src/server/files/direct-editing.ts
+  parity_test: next/parity/tests/files-direct-editing-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Opens existing file; optional fileId when path is folder. Success {url} absolute edit route. Failures 403 {message}. v2 route canonical.
 - id: files-direct_editing-templates
   feature_ids:
   - files
@@ -9386,15 +9386,15 @@ endpoints:
           data:
             message: string
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/apps/files/api/v1/directEditing/templates/{editorId}/{creatorId}
+  next_handler: src/server/files/direct-editing.ts
+  parity_test: next/parity/tests/files-direct-editing-ocs.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Returns {templates} map with default empty template. Unknown editor/creator → 500 {message}. v2 route canonical.
 - id: files-api-get-folder-tree
   feature_ids:
   - files

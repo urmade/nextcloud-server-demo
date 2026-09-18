@@ -4,7 +4,7 @@
 # core-status rows for /status.php and /cloud/capabilities may be overlaid with live slice state.
 version: 1
 phase: 0
-endpoint_count: 509
+endpoint_count: 548
 endpoints:
 - id: appstore-api-list-apps
   feature_ids:
@@ -20601,3 +20601,1294 @@ endpoints:
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+- id: appstore.Discover#getAppDiscoverJSON
+  feature_ids:
+  - appstore
+  protocol: ocs
+  method: GET
+  legacy_path: /ocs/v2.php/apps/appstore/api/v1/discover
+  legacy_source: apps/appstore/lib/Controller/DiscoverController.php DiscoverController#getAppDiscoverJSON ApiRoute GET /api/v1/discover
+  auth: mixed
+  request:
+    params: {}
+    query: {}
+    headers:
+      OCS-APIRequest: boolean
+    body: null
+  response:
+    success:
+      status: 200
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: list of AppDiscoverFetcher entries (element fields not asserted here)
+      content_type: application/json
+    errors:
+    - status: 401
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: any
+      content_type: application/json
+  status: discovered
+  parity: pending
+  ocs_version: both
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'OpenAPI SCOPE_IGNORE. No PublicPage/NoAdminRequired — AppFramework login+admin defaults. Data is AppDiscoverFetcher::get(true). Unauthenticated envelope not separately asserted. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.'
+- id: appstore.Discover#getAppDiscoverMedia
+  feature_ids:
+  - appstore
+  protocol: ocs
+  method: GET
+  legacy_path: /ocs/v2.php/apps/appstore/api/v1/discover/media
+  legacy_source: apps/appstore/lib/Controller/DiscoverController.php DiscoverController#getAppDiscoverMedia ApiRoute GET /api/v1/discover/media
+  auth: mixed
+  request:
+    params: {}
+    query:
+      fileName: string
+    headers:
+      OCS-APIRequest: boolean
+    body: null
+  response:
+    success:
+      status: 200
+      shape: proxied media bytes (FileDisplayResponse; Content-Type from upstream or cached filename)
+      content_type: '*/*'
+    errors:
+    - status: 400
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: any
+      content_type: application/json
+    - status: 404
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: any
+      content_type: application/json
+  status: discovered
+  parity: pending
+  ocs_version: both
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'OpenAPI SCOPE_IGNORE. Success is FileDisplayResponse, not OCS JSON. PHP comments 400 untrusted media source (nextcloud.com or github.com/nextcloud[_gmbh] paths) and 404 when fetch fails. User rate limit settings-discover-media 24/hour on cache miss. Cache-Control 7 days. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.'
+- id: cloud_federation_api.Token#accessToken.post
+  feature_ids:
+  - cloud_federation_api
+  protocol: http
+  method: POST
+  legacy_path: /apps/cloud_federation_api/api/v1/access-token
+  legacy_source: apps/cloud_federation_api/lib/Controller/TokenController.php Token#accessToken FrontpageRoute POST /api/v1/access-token
+  auth: mixed
+  request:
+    params: {}
+    query: {}
+    headers: {}
+    body:
+      grant_type: string
+      code: string
+  response:
+    success:
+      status: 200
+      shape:
+        access_token: string
+        token_type: Bearer
+        expires_in: int
+      content_type: application/json
+    errors:
+    - status: 400
+      shape:
+        error: string
+      content_type: application/json
+    - status: 401
+      shape:
+        error: string
+      content_type: application/json
+    - status: 500
+      shape:
+        error: string
+      content_type: application/json
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'PublicPage + NoCSRFRequired. Optional HTTP signatures; unsigned rejected when core OCM sign-enforced. grant_type must be authorization_code; code is refresh token. PHP error strings include unsupported_grant_type, refresh_token is required, invalid_grant, invalid_request, server_error. Side effect: issues JWT access token, may lock filesystem scope on the refresh token, inserts OcmTokenMap. Request content-type not asserted (AppFramework param binding).'
+- id: core.Avatar#deleteAvatar.delete
+  feature_ids:
+  - core
+  protocol: http
+  method: DELETE
+  legacy_path: /avatar
+  legacy_source: core/Controller/AvatarController.php Avatar#deleteAvatar FrontpageRoute DELETE /avatar/
+  auth: session
+  request:
+    params: {}
+    query: {}
+    headers: {}
+    body: null
+  response:
+    success:
+      status: 200
+      shape: empty JSON object
+      content_type: application/json
+    errors:
+    - status: 400
+      shape:
+        data:
+          message: string
+      content_type: application/json
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'NoAdminRequired. PHP registers /avatar/ (trailing slash); public path canonicalized to /avatar. CSRF required (no NoCSRFRequired). Side effect: AvatarManager remove for the session user.'
+- id: core.Avatar#postAvatar.post
+  feature_ids:
+  - core
+  protocol: http
+  method: POST
+  legacy_path: /avatar
+  legacy_source: core/Controller/AvatarController.php Avatar#postAvatar FrontpageRoute POST /avatar/
+  auth: session
+  request:
+    params: {}
+    query: {}
+    headers: {}
+    body:
+      path: optional string
+      files: optional multipart upload
+  response:
+    success:
+      status: 200
+      shape: 'either {status: success} or {data: notsquare, image: data-url} or {data: {message: string}}'
+      content_type: application/json
+    errors:
+    - status: 400
+      shape:
+        data:
+          message: string
+      content_type: application/json
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'NoAdminRequired. PHP registers /avatar/. Accepts user-folder path or multipart files[0]; jpeg/png; 20MiB cap. Square image sets avatar; non-square returns data URL with data=notsquare. Some validation failures return HTTP 200 with data.message (unknown filetype, invalid image). CSRF required. Side effect: AvatarManager set when square.'
+- id: core.ContactsMenu#index.post
+  feature_ids:
+  - core
+  protocol: http
+  method: POST
+  legacy_path: /contactsmenu/contacts
+  legacy_source: core/Controller/ContactsMenuController.php ContactsMenu#index FrontpageRoute POST /contactsmenu/contacts
+  auth: session
+  request:
+    params: {}
+    query: {}
+    headers: {}
+    body:
+      filter: optional string
+      teamId: optional string
+  response:
+    success:
+      status: 200
+      shape:
+        contacts: array of JsonSerializable IEntry
+        contactsAppEnabled: boolean
+      content_type: application/json
+    errors: []
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'NoAdminRequired. Manager#getEntries returns contacts + contactsAppEnabled; optional teamId filters contacts by ITeamManager member UIDs. IEntry JSON fields not asserted. CSRF required. Error statuses not asserted (throws Exception).'
+- id: core.ContactsMenu#findOne.post
+  feature_ids:
+  - core
+  protocol: http
+  method: POST
+  legacy_path: /contactsmenu/findOne
+  legacy_source: core/Controller/ContactsMenuController.php ContactsMenu#findOne FrontpageRoute POST /contactsmenu/findOne
+  auth: session
+  request:
+    params: {}
+    query: {}
+    headers: {}
+    body:
+      shareType: integer
+      shareWith: string
+  response:
+    success:
+      status: 200
+      shape: JsonSerializable IEntry
+      content_type: application/json
+    errors:
+    - status: 404
+      shape: empty JSON array
+      content_type: application/json
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'NoAdminRequired. CSRF required. IEntry JSON fields not asserted.'
+- id: core.ContactsMenu#getTeams
+  feature_ids:
+  - core
+  protocol: http
+  method: GET
+  legacy_path: /contactsmenu/teams
+  legacy_source: core/Controller/ContactsMenuController.php ContactsMenu#getTeams FrontpageRoute GET /contactsmenu/teams
+  auth: session
+  request:
+    params: {}
+    query: {}
+    headers: {}
+    body: null
+  response:
+    success:
+      status: 200
+      shape: array from ITeamManager::getTeamsForUser (element fields not asserted)
+      content_type: application/json
+    errors: []
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'NoAdminRequired. Team object shape not asserted from ITeamManager. Error statuses not asserted.'
+- id: core.User#getDisplayNames.post
+  feature_ids:
+  - core
+  protocol: http
+  method: POST
+  legacy_path: /displaynames
+  legacy_source: core/Controller/UserController.php User#getDisplayNames FrontpageRoute POST /displaynames
+  auth: session
+  request:
+    params: {}
+    query: {}
+    headers: {}
+    body:
+      users: array of string
+  response:
+    success:
+      status: 200
+      shape:
+        users:
+          '{uid}': displayName-or-uid
+        status: success
+      content_type: application/json
+    errors: []
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'NoAdminRequired. Unknown uids echoed as the requested id. CSRF required. Error statuses not asserted.'
+- id: core.OpenMetrics#export
+  feature_ids:
+  - core
+  protocol: http
+  method: GET
+  legacy_path: /metrics
+  legacy_source: core/Controller/OpenMetricsController.php OpenMetrics#export FrontpageRoute GET /metrics
+  auth: none
+  request:
+    params: {}
+    query: {}
+    headers: {}
+    body: null
+  response:
+    success:
+      status: 200
+      shape: 'OpenMetrics text (TYPE/UNIT/HELP + nextcloud_* samples + nextcloud_exporter_run_seconds + # EOF)'
+      content_type: 'application/openmetrics-text; version=1.0.0; charset=utf-8'
+    errors:
+    - status: 403
+      shape: empty AppFramework Response
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'PublicPage + NoCSRFRequired. Not session auth. 403 when remote address is outside system openmetrics_allowed_clients (default 127.0.0.0/16 and ::1/128). Metric family set is exporter-dependent; not enumerated here.'
+- id: core.OCS#getConfig
+  feature_ids:
+  - core
+  protocol: ocs
+  method: GET
+  legacy_path: /ocs/v2.php/config
+  legacy_source: core/Controller/OCSController.php OCS#getConfig ApiRoute GET /config root ''
+  auth: mixed
+  request:
+    params: {}
+    query: {}
+    headers:
+      OCS-APIRequest: boolean
+    body: null
+  response:
+    success:
+      status: 200
+      shape:
+        ocs:
+          meta: OCSMeta
+          data:
+            version: '1.7'
+            website: Nextcloud
+            host: string
+            contact: ''
+            ssl: 'false'
+      content_type: application/json
+    errors: []
+  status: discovered
+  parity: pending
+  ocs_version: both
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'PublicPage. OpenAPI SCOPE_IGNORE. ssl is the literal string false. Error statuses not asserted. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.'
+- id: core.Update#update
+  feature_ids:
+  - core
+  protocol: ocs
+  method: GET
+  legacy_path: /ocs/v2.php/core/update
+  legacy_source: core/Controller/UpdateController.php Update#update ApiRoute GET /update root /core
+  auth: mixed
+  request:
+    params: {}
+    query: {}
+    headers:
+      OCS-APIRequest: boolean
+    body: null
+  response:
+    success:
+      status: 200
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: null
+      content_type: application/json
+    errors: []
+  status: discovered
+  parity: pending
+  ocs_version: both
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'PublicPage. OpenAPI SCOPE_IGNORE. HTTP DataResponse body is always null. Client-visible progress is an EventSource stream (success/notice/failure/done); EventSource performs its own CSRF check. Side effects: may run Updater::upgrade, toggle maintenance, disable incompatible apps; sets incognito mode; upgrade.disable-web skips browser upgrade. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.'
+- id: core.OCS#getIdentityProof
+  feature_ids:
+  - core
+  protocol: ocs
+  method: GET
+  legacy_path: /ocs/v2.php/identityproof/key/{cloudId}
+  legacy_source: core/Controller/OCSController.php OCS#getIdentityProof ApiRoute GET /key/{cloudId} root /identityproof
+  auth: mixed
+  request:
+    params:
+      cloudId: string
+    query: {}
+    headers:
+      OCS-APIRequest: boolean
+    body: null
+  response:
+    success:
+      status: 200
+      shape:
+        ocs:
+          meta: OCSMeta
+          data:
+            public: string
+      content_type: application/json
+    errors:
+    - status: 404
+      shape:
+        ocs:
+          meta: OCSMeta
+          data:
+            - Account not found
+      content_type: application/json
+  status: discovered
+  parity: pending
+  ocs_version: both
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'PublicPage. OpenAPI SCOPE_IGNORE. cloudId is a local uid looked up via IUserManager. Exact OCS wrapping of the 404 list payload not separately asserted. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.'
+- id: core.OCS#personCheck.post
+  feature_ids:
+  - core
+  protocol: ocs
+  method: POST
+  legacy_path: /ocs/v2.php/person/check
+  legacy_source: core/Controller/OCSController.php OCS#personCheck ApiRoute POST /check root /person
+  auth: mixed
+  request:
+    params: {}
+    query: {}
+    headers:
+      OCS-APIRequest: boolean
+    body:
+      login: string
+      password: string
+  response:
+    success:
+      status: 200
+      shape:
+        ocs:
+          meta: OCSMeta
+          data:
+            person:
+              personid: string
+      content_type: application/json
+    errors:
+    - status: 101
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: []
+      content_type: application/json
+    - status: 102
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: []
+      content_type: application/json
+  status: discovered
+  parity: pending
+  ocs_version: both
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'PublicPage + BruteForceProtection(login). OpenAPI SCOPE_IGNORE. Empty login/password returns DataResponse HTTP 101; failed checkPassword returns HTTP 102 and throttles. Whether AppFramework remaps 101/102 into OCS meta.statuscode is not asserted. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.'
+- id: core.ClientFlowLogin#showAuthPickerPage
+  feature_ids:
+  - core-login
+  protocol: http
+  method: GET
+  legacy_path: /login/flow
+  legacy_source: core/Controller/ClientFlowLoginController.php ClientFlowLogin#showAuthPickerPage FrontpageRoute GET /login/flow
+  auth: none
+  request:
+    params: {}
+    query:
+      clientIdentifier: optional string
+      user: optional string
+      direct: optional int
+      providedRedirectUri: optional string
+    headers:
+      OCS-APIREQUEST: optional string
+    body: null
+  response:
+    success:
+      status: 200
+      content_type: text/html; charset=UTF-8
+      shape: loginflow guest HTML (loginFlowState=auth)
+    errors:
+    - status: 200
+      shape: guest error HTML Access Forbidden / Invalid request when OCS-APIREQUEST is not true and clientIdentifier is empty
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'PublicPage + NoCSRFRequired + UseSession. OpenAPI SCOPE_IGNORE. Stores client.flow.state.token in session. Invalid-request error is still HTTP 200 guest error template. Distinct from POST /login/flow.'
+- id: core.ClientFlowLogin#generateAppPassword.post
+  feature_ids:
+  - core-login
+  protocol: http
+  method: POST
+  legacy_path: /login/flow
+  legacy_source: core/Controller/ClientFlowLoginController.php ClientFlowLogin#generateAppPassword FrontpageRoute POST /login/flow
+  auth: session
+  request:
+    params: {}
+    query: {}
+    headers: {}
+    body:
+      stateToken: string
+      clientIdentifier: optional string
+      providedRedirectUri: optional string
+  response:
+    success:
+      status: 303
+      shape: redirect to OAuth redirectUri with state+code, or nc://login/server:...&user:...&password:...
+    errors:
+    - status: 403
+      shape: guest HTML state-token mismatch or empty Response
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'NoAdminRequired + UseSession + PasswordConfirmationRequired(strict false). CSRF required. Side effect: generates permanent app password; OAuth clients store AccessToken; non-OAuth nc:// redirect invalidates session token; AppPasswordCreatedEvent. oauth2.enable_oc_clients may accept providedRedirectUri for http://localhost:* clients.'
+- id: core.ClientFlowLogin#apptokenRedirect.post
+  feature_ids:
+  - core-login
+  protocol: http
+  method: POST
+  legacy_path: /login/flow/apptoken
+  legacy_source: core/Controller/ClientFlowLoginController.php ClientFlowLogin#apptokenRedirect FrontpageRoute POST /login/flow/apptoken
+  auth: none
+  request:
+    params: {}
+    query: {}
+    headers: {}
+    body:
+      stateToken: string
+      user: string
+      password: string
+  response:
+    success:
+      status: 303
+      shape: redirect nc://login/server:...&user:...&password:...
+    errors:
+    - status: 403
+      shape: guest HTML (state-token mismatch or Invalid app password)
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'PublicPage. CSRF required (no NoCSRFRequired). password is an existing app token whose loginName must match user.'
+- id: core.ClientFlowLogin#grantPage
+  feature_ids:
+  - core-login
+  protocol: http
+  method: GET
+  legacy_path: /login/flow/grant
+  legacy_source: core/Controller/ClientFlowLoginController.php ClientFlowLogin#grantPage FrontpageRoute GET /login/flow/grant
+  auth: session
+  request:
+    params: {}
+    query:
+      stateToken: optional string
+      clientIdentifier: optional string
+      direct: optional int
+      providedRedirectUri: optional string
+    headers: {}
+    body: null
+  response:
+    success:
+      status: 200
+      content_type: text/html; charset=UTF-8
+      shape: loginflow guest HTML (loginFlowState=grant)
+    errors:
+    - status: 403
+      shape: guest HTML state-token mismatch
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'NoAdminRequired + NoCSRFRequired + UseSession + NoSameSiteCookieRequired. Distinct from POST /login/flow.'
+- id: core.TwoFactorChallenge#setupProviders
+  feature_ids:
+  - core-login
+  protocol: http
+  method: GET
+  legacy_path: /login/setupchallenge
+  legacy_source: core/Controller/TwoFactorChallengeController.php TwoFactorChallenge#setupProviders FrontpageRoute GET login/setupchallenge
+  auth: session
+  request:
+    params: {}
+    query:
+      redirect_url: optional string
+    headers: {}
+    body: null
+  response:
+    success:
+      status: 200
+      content_type: text/html; charset=UTF-8
+      shape: twofactorsetupselection guest HTML
+    errors: []
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'NoAdminRequired + NoCSRFRequired. OpenAPI SCOPE_IGNORE. PHP url lacks leading slash; RouteParser ltrim yields /login/setupchallenge. providers from TwoFactorManager::getLoginSetupProviders. Unauthenticated/error envelopes not asserted.'
+- id: core.TwoFactorChallenge#setupProvider
+  feature_ids:
+  - core-login
+  protocol: http
+  method: GET
+  legacy_path: /login/setupchallenge/{providerId}
+  legacy_source: core/Controller/TwoFactorChallengeController.php TwoFactorChallenge#setupProvider FrontpageRoute GET login/setupchallenge/{providerId}
+  auth: session
+  request:
+    params:
+      providerId: string
+    query:
+      redirect_url: optional string
+    headers: {}
+    body: null
+  response:
+    success:
+      status: 200
+      content_type: text/html; charset=UTF-8
+      shape: twofactorsetupchallenge guest HTML
+    errors:
+    - status: 303
+      shape: redirect to core.TwoFactorChallenge.selectChallenge when providerId is unknown
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'NoAdminRequired + NoCSRFRequired. Provider body HTML comes from IActivatableAtLogin::getLoginSetup. Exact redirect status (302 vs 303) not asserted beyond RedirectResponse.'
+- id: core.TwoFactorChallenge#confirmProviderSetup.post
+  feature_ids:
+  - core-login
+  protocol: http
+  method: POST
+  legacy_path: /login/setupchallenge/{providerId}
+  legacy_source: core/Controller/TwoFactorChallengeController.php TwoFactorChallenge#confirmProviderSetup FrontpageRoute POST login/setupchallenge/{providerId}
+  auth: session
+  request:
+    params:
+      providerId: string
+    query:
+      redirect_url: optional string
+    headers: {}
+    body: null
+  response:
+    success:
+      status: 303
+      shape: redirect to core.TwoFactorChallenge.showChallenge with challengeProviderId + redirect_url
+    errors: []
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'NoAdminRequired + NoCSRFRequired. PHP only redirects; invalid providerId is an acknowledged unhandled edge case in the controller. Exact redirect status not asserted beyond RedirectResponse.'
+- id: core.ClientFlowLoginV2#apptokenRedirect.post
+  feature_ids:
+  - core-login
+  protocol: http
+  method: POST
+  legacy_path: /login/v2/apptoken
+  legacy_source: core/Controller/ClientFlowLoginV2Controller.php ClientFlowLoginV2#apptokenRedirect FrontpageRoute POST /login/v2/apptoken
+  auth: none
+  request:
+    params: {}
+    query: {}
+    headers: {}
+    body:
+      stateToken: string
+      user: string
+      password: string
+  response:
+    success:
+      status: 303
+      shape: redirect after LoginFlowV2Service::flowDoneWithAppPassword
+    errors:
+    - status: 403
+      shape: guest HTML (missing/invalid state token, login token, or Invalid app password)
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'PublicPage. CSRF required. Clears session client.flow.v2.login.token and state token. Success redirect target comes from handleFlowDone; exact Location not asserted here. Distinct from mapped POST /login/v2 and POST /login/v2/poll.'
+- id: core.ClientFlowLoginV2#landing
+  feature_ids:
+  - core-login
+  protocol: http
+  method: GET
+  legacy_path: /login/v2/flow/{token}
+  legacy_source: core/Controller/ClientFlowLoginV2Controller.php ClientFlowLoginV2#landing FrontpageRoute GET /login/v2/flow/{token}
+  auth: none
+  request:
+    params:
+      token: string
+    query:
+      user: optional string
+      direct: optional int
+    headers: {}
+    body: null
+  response:
+    success:
+      status: 303
+      shape: redirect to core.ClientFlowLoginV2.showAuthPickerPage (GET /login/v2/flow)
+    errors:
+    - status: 403
+      shape: login-token-forbidden-html
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'PublicPage + NoCSRFRequired + UseSession. OpenAPI SCOPE_IGNORE. startLoginFlow(token) must succeed; stores token in session as client.flow.v2.login.token. Mapped sibling is GET /login/v2/flow (showAuthPickerPage) as core.ClientFlowLoginV2#flow. Exact redirect status not asserted beyond RedirectResponse.'
+- id: core.ClientFlowLoginV2#grantPage
+  feature_ids:
+  - core-login
+  protocol: http
+  method: GET
+  legacy_path: /login/v2/grant
+  legacy_source: core/Controller/ClientFlowLoginV2Controller.php ClientFlowLoginV2#grantPage FrontpageRoute GET /login/v2/grant
+  auth: session
+  request:
+    params: {}
+    query:
+      stateToken: optional string
+      direct: optional int
+    headers: {}
+    body: null
+  response:
+    success:
+      status: 200
+      content_type: text/html; charset=UTF-8
+      shape: loginflow guest HTML (loginFlowState=grant)
+    errors:
+    - status: 403
+      shape: guest HTML (missing/invalid state token or login-token forbidden)
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'NoAdminRequired + NoCSRFRequired + UseSession + NoSameSiteCookieRequired. OpenAPI SCOPE_IGNORE. Distinct from already-mapped POST /login/v2/grant (core.ClientFlowLoginV2#grant / generateAppPassword). Requires session login-flow token from GET /login/v2/flow/{token}.'
+- id: core.Lost#resetform
+  feature_ids:
+  - core-login
+  protocol: http
+  method: GET
+  legacy_path: /lostpassword/reset/form/{token}/{userId}
+  legacy_source: core/Controller/LostController.php Lost#resetform FrontpageRoute GET /lostpassword/reset/form/{token}/{userId}
+  auth: none
+  request:
+    params:
+      token: string
+      userId: string
+    query: {}
+    headers: {}
+    body: null
+  response:
+    success:
+      status: 200
+      content_type: text/html; charset=UTF-8
+      shape: core/login guest HTML with resetPasswordUser + resetPasswordTarget initial state
+    errors:
+    - status: 200
+      shape: core/error guest HTML (invalid/expired token or lost_password_link=disabled)
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'PublicPage + NoCSRFRequired + BruteForceProtection(passwordResetEmail) + AnonRateLimit 10/300s. OpenAPI SCOPE_IGNORE. Token errors still HTTP 200 and throttle. Sibling POST /lostpassword/email is already mapped as core.Lost#email.'
+- id: core.Lost#setPassword.post
+  feature_ids:
+  - core-login
+  protocol: http
+  method: POST
+  legacy_path: /lostpassword/set/{token}/{userId}
+  legacy_source: core/Controller/LostController.php Lost#setPassword FrontpageRoute POST /lostpassword/set/{token}/{userId}
+  auth: none
+  request:
+    params:
+      token: string
+      userId: string
+    query: {}
+    headers: {}
+    body:
+      password: string
+      proceed: boolean
+  response:
+    success:
+      status: 200
+      shape:
+        status: success
+        user: string
+      content_type: application/json
+    errors:
+    - status: 200
+      shape:
+        status: error
+        msg: string
+        encryption: optional boolean
+      content_type: application/json
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'PublicPage + BruteForceProtection + AnonRateLimit 10/300s. CSRF required. If encryption is enabled and proceed is false and a module needs a detailed access list, returns {status:error, encryption:true}. Failures throttle. Side effects: BeforePasswordResetEvent / PasswordResetEvent, user setPassword, clear 2FA pending, delete core/lostpassword user value, unset magic cookie.'
+- id: dav.ExampleContent#setEnableDefaultContact.put
+  feature_ids:
+  - dav
+  protocol: http
+  method: PUT
+  legacy_path: /apps/dav/api/defaultcontact/config
+  legacy_source: apps/dav/lib/Controller/ExampleContentController.php ExampleContent#setEnableDefaultContact FrontpageRoute PUT /api/defaultcontact/config
+  auth: session
+  request:
+    params: {}
+    query: {}
+    headers: {}
+    body:
+      allow: boolean
+  response:
+    success:
+      status: 200
+      shape: empty JSON array
+      content_type: application/json
+    errors:
+    - status: 500
+      shape: empty JSON array
+      content_type: application/json
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'No PublicPage/NoAdminRequired — AppFramework login+admin defaults. CSRF required. allow=true creates default contact card if missing. Side effect: enableDefaultContact app config. Unauthenticated envelope not asserted.'
+- id: dav.ExampleContent#getDefaultContact
+  feature_ids:
+  - dav
+  protocol: http
+  method: GET
+  legacy_path: /apps/dav/api/defaultcontact/contact
+  legacy_source: apps/dav/lib/Controller/ExampleContentController.php ExampleContent#getDefaultContact FrontpageRoute GET /api/defaultcontact/contact
+  auth: session
+  request:
+    params: {}
+    query: {}
+    headers: {}
+    body: null
+  response:
+    success:
+      status: 200
+      shape: vCard bytes (filename example_contact.vcf)
+      content_type: text/vcard
+    errors: []
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'NoCSRFRequired. Falls back to bundled exampleContact.vcf when no stored card. Error statuses not asserted.'
+- id: dav.ExampleContent#setDefaultContact.put
+  feature_ids:
+  - dav
+  protocol: http
+  method: PUT
+  legacy_path: /apps/dav/api/defaultcontact/contact
+  legacy_source: apps/dav/lib/Controller/ExampleContentController.php ExampleContent#setDefaultContact FrontpageRoute PUT /api/defaultcontact/contact
+  auth: session
+  request:
+    params: {}
+    query: {}
+    headers: {}
+    body:
+      contactData: optional string
+  response:
+    success:
+      status: 200
+      shape: empty JSON array
+      content_type: application/json
+    errors:
+    - status: 403
+      shape: empty JSON array
+      content_type: application/json
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: '403 when default contact is disabled. CSRF required. contactData is vCard text; null uses service default. Side effect: stores default contact card.'
+- id: dav.ExampleContent#setCreateExampleEvent.post
+  feature_ids:
+  - dav
+  protocol: http
+  method: POST
+  legacy_path: /apps/dav/api/exampleEvent/enable
+  legacy_source: apps/dav/lib/Controller/ExampleContentController.php ExampleContent#setCreateExampleEvent FrontpageRoute POST /api/exampleEvent/enable
+  auth: session
+  request:
+    params: {}
+    query: {}
+    headers: {}
+    body:
+      enable: boolean
+  response:
+    success:
+      status: 200
+      shape: empty JSON array
+      content_type: application/json
+    errors: []
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'CSRF required. Side effect: ExampleEventService::setCreateExampleEvent. Error statuses not asserted.'
+- id: dav.ExampleContent#deleteExampleEvent.delete
+  feature_ids:
+  - dav
+  protocol: http
+  method: DELETE
+  legacy_path: /apps/dav/api/exampleEvent/event
+  legacy_source: apps/dav/lib/Controller/ExampleContentController.php ExampleContent#deleteExampleEvent FrontpageRoute DELETE /api/exampleEvent/event
+  auth: session
+  request:
+    params: {}
+    query: {}
+    headers: {}
+    body: null
+  response:
+    success:
+      status: 200
+      shape: empty JSON array
+      content_type: application/json
+    errors: []
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'CSRF required. Side effect: deletes custom example event. Error statuses not asserted.'
+- id: dav.ExampleContent#downloadExampleEvent
+  feature_ids:
+  - dav
+  protocol: http
+  method: GET
+  legacy_path: /apps/dav/api/exampleEvent/event
+  legacy_source: apps/dav/lib/Controller/ExampleContentController.php ExampleContent#downloadExampleEvent FrontpageRoute GET /api/exampleEvent/event
+  auth: session
+  request:
+    params: {}
+    query: {}
+    headers: {}
+    body: null
+  response:
+    success:
+      status: 200
+      shape: iCalendar bytes (filename example_event.ics)
+      content_type: text/calendar
+    errors: []
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'NoCSRFRequired. Error statuses not asserted.'
+- id: dav.ExampleContent#uploadExampleEvent.post
+  feature_ids:
+  - dav
+  protocol: http
+  method: POST
+  legacy_path: /apps/dav/api/exampleEvent/event
+  legacy_source: apps/dav/lib/Controller/ExampleContentController.php ExampleContent#uploadExampleEvent FrontpageRoute POST /api/exampleEvent/event
+  auth: session
+  request:
+    params: {}
+    query: {}
+    headers: {}
+    body:
+      ics: string
+  response:
+    success:
+      status: 200
+      shape: empty JSON array
+      content_type: application/json
+    errors:
+    - status: 403
+      shape: empty JSON array
+      content_type: application/json
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'CSRF required. 403 when shouldCreateExampleEvent is false. Side effect: saveCustomExampleEvent.'
+- id: dav.Collection#principals-remote-users
+  feature_ids:
+  - dav
+  protocol: dav
+  method: '*'
+  legacy_path: /remote.php/dav/principals/remote-users/{id}
+  legacy_source: apps/dav/lib/RootCollection.php remoteUserPrincipals + apps/dav/lib/DAV/RemoteUserPrincipalBackend.php PRINCIPAL_PREFIX principals/remote-users
+  auth: mixed
+  request:
+    params:
+      id: string
+    query: {}
+    headers:
+      Depth: 0|1|infinity
+    body: DAV XML
+  response:
+    success:
+      status: 207
+      content_type: application/xml
+      shape: Remote-user principals (displayname + nextcloud cloud-id)
+    errors:
+    - status: 401
+      shape: sabre-exception
+    - status: 404
+      shape: sabre-exception
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  dav_ns: DAV:, urn:ietf:params:xml:ns:caldav, urn:ietf:params:xml:ns:carddav, http://owncloud.org/ns, http://nextcloud.org/ns
+  notes: 'Collection prefix under RootCollection principals/. {id} is base64-encoded federated cloud id (RemoteUserPrincipalBackend::principalUriToPrincipal). updatePrincipal/search/setGroupMemberSet throw. Overlaps dav.Root#tree catch-all. Methods: OPTIONS GET HEAD PUT POST DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK REPORT SEARCH'
+- id: files.Filenames#stopSanitization.delete
+  feature_ids:
+  - files
+  protocol: ocs
+  method: DELETE
+  legacy_path: /ocs/v2.php/apps/files/api/v1/filenames/sanitization
+  legacy_source: apps/files/lib/Controller/FilenamesController.php Filenames#stopSanitization Route TYPE_API DELETE /api/v1/filenames/sanitization
+  auth: mixed
+  request:
+    params: {}
+    query: {}
+    headers:
+      OCS-APIRequest: boolean
+    body: null
+  response:
+    success:
+      status: 200
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: []
+      content_type: application/json
+    errors:
+    - status: 400
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: any
+      content_type: application/json
+  status: discovered
+  parity: pending
+  ocs_version: both
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'OpenAPI SCOPE_IGNORE. No PublicPage/NoAdminRequired — login+admin defaults. OCSBadRequestException if no sanitization job is running. Side effect: removes SanitizeFilenames jobs. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.'
+- id: files.Filenames#getStatus
+  feature_ids:
+  - files
+  protocol: ocs
+  method: GET
+  legacy_path: /ocs/v2.php/apps/files/api/v1/filenames/sanitization
+  legacy_source: apps/files/lib/Controller/FilenamesController.php Filenames#getStatus Route TYPE_API GET /api/v1/filenames/sanitization
+  auth: mixed
+  request:
+    params: {}
+    query: {}
+    headers:
+      OCS-APIRequest: boolean
+    body: null
+  response:
+    success:
+      status: 200
+      shape:
+        ocs:
+          meta: OCSMeta
+          data:
+            status: int
+            processed: int
+            total: int
+            errors:
+              '{uid}': string
+      content_type: application/json
+    errors: []
+  status: discovered
+  parity: pending
+  ocs_version: both
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'OpenAPI SCOPE_IGNORE. SettingsService::getSanitizationStatus. Numeric status enum values not named here. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.'
+- id: files.Filenames#sanitizeFilenames.post
+  feature_ids:
+  - files
+  protocol: ocs
+  method: POST
+  legacy_path: /ocs/v2.php/apps/files/api/v1/filenames/sanitization
+  legacy_source: apps/files/lib/Controller/FilenamesController.php Filenames#sanitizeFilenames Route TYPE_API POST /api/v1/filenames/sanitization
+  auth: mixed
+  request:
+    params: {}
+    query: {}
+    headers:
+      OCS-APIRequest: boolean
+    body:
+      limit: optional int
+      charReplacement: optional string
+  response:
+    success:
+      status: 200
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: []
+      content_type: application/json
+    errors:
+    - status: 400
+      shape:
+        ocs:
+          meta: OCSMeta
+          data: any
+      content_type: application/json
+  status: discovered
+  parity: pending
+  ocs_version: both
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'OpenAPI SCOPE_IGNORE. Default limit 10. 400 when limit < 1, charReplacement empty or longer than 1 char, or a sanitization job is already running. Side effect: schedules Files\BackgroundJob\SanitizeFilenames. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.'
+- id: files.Filenames#toggleWindowFilenameSupport.post
+  feature_ids:
+  - files
+  protocol: ocs
+  method: POST
+  legacy_path: /ocs/v2.php/apps/files/api/v1/filenames/windows-compatibility
+  legacy_source: apps/files/lib/Controller/FilenamesController.php Filenames#toggleWindowFilenameSupport Route TYPE_API POST /api/v1/filenames/windows-compatibility
+  auth: mixed
+  request:
+    params: {}
+    query: {}
+    headers:
+      OCS-APIRequest: boolean
+    body:
+      enabled: boolean
+  response:
+    success:
+      status: 200
+      shape:
+        ocs:
+          meta: OCSMeta
+          data:
+            enabled: boolean
+      content_type: application/json
+    errors: []
+  status: discovered
+  parity: pending
+  ocs_version: both
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'OpenAPI SCOPE_IGNORE. Side effect: SettingsService::setFilesWindowsSupport mutates forbidden_filename_* system values and clears sanitization status/index. Error statuses not asserted. Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.'
+- id: workflowengine.RequestTime#getTimezones
+  feature_ids:
+  - workflowengine
+  protocol: http
+  method: GET
+  legacy_path: /apps/workflowengine/timezones
+  legacy_source: apps/workflowengine/lib/Controller/RequestTimeController.php RequestTime#getTimezones FrontpageRoute GET /timezones
+  auth: session
+  request:
+    params: {}
+    query:
+      search: optional string
+    headers: {}
+    body: null
+  response:
+    success:
+      status: 200
+      shape:
+        '{timezoneId}': timezoneId
+      content_type: application/json
+    errors: []
+  status: discovered
+  parity: pending
+  next_path: null
+  next_handler: null
+  parity_test: null
+  waiver_reason: null
+  waiver_owner: null
+  notes: 'NoAdminRequired. DateTimeZone::listIdentifiers filtered by case-insensitive search, sliced to 10, mapped id→id. CSRF required unless AppFramework GET exemption applies — not asserted. Error statuses not asserted.'

@@ -94,7 +94,7 @@ One entry per `protocol + method + legacy_path`. Do not collapse versions (`/ocs
 
 `/index.php` + bare path twins: keep one canonical `legacy_path` (bare public path) and alias or drop the twin. Capabilities v1 vs v2 may stay split.
 
-2026-09-18 scan: 509 rows / 484 unique keys vs 511 PHP product keys; **39** missing product routes (see store `internal/endpoint-map-gap-audit.md`). MERGE those as new ids in a map-only change after the locked impl slice is off the YAML. HTML/asset shells are adjacent, not silent skips and not product ids.
+548 rows (509 existing + 39 MERGE 2026-09-18 from store `internal/endpoint-map-gap-merge.yaml`). Those 39 PHP product routes are in the map as `status: discovered`, `parity: pending`; remaining work for those ids is parity, not discovery. HTML/asset shells are adjacent, not silent skips and not product ids.
 
 ## Mapping rules
 

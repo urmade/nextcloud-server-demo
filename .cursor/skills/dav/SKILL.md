@@ -203,6 +203,8 @@ Parity extras (`next/parity/tests/dav-cal-ocs.parity.test.ts`): unknown accept 4
 
 `#[AuthorizedAdminSetting(CalDAVSettings)]`. enable: `generateBirthdayCalendar=yes` + jobs. disable: `no`, drop jobs, delete birthday calendars. 200 `[]`.
 
+Parity (`next/parity/tests/dav-birthday.parity.test.ts`): unauth JSON **401** `{message}`; HTML **303** login; non-admin **403**; no CSRF **412**; enable/disable admin **200** `[]`. Reset via `resetParityBirthdayStores()` → `/api/parity/reset-dav-birthday-store`.
+
 ### Calendar/contacts import-export
 
 `#[ApiRoute]` under `/calendar` and `/contacts`. Export: stream ical/jcal/xcal; UserRateLimit 1/60s; own calendar or **admin** + `user` query. Import: NDJSON `application/x-ndjson`; rate 10/3600; calendar/addressbook must be writable. Contacts default format `'ical'` as written.

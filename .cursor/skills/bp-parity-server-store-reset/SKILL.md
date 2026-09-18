@@ -46,6 +46,7 @@ Existing resets:
 | DAV out-of-office absences | `/api/parity/reset-dav-out-of-office-store` | `resetParityOutOfOfficeStores()` in `dav-out-of-office.parity.test.ts` |
 | DAV cal-ocs upcoming + federated calendars | `/api/parity/reset-dav-cal-ocs-store` | `resetParityCalOcsStores()` in `dav-cal-ocs.parity.test.ts` |
 | DAV invitation HTML tokens | `/api/parity/reset-dav-invitation-html-store` | `resetParityInvitationHtmlStores()` in `dav-invitation-html.parity.test.ts` |
+| DAV birthday calendar setting | `/api/parity/reset-dav-birthday-store` | `resetParityBirthdayStores()` in `dav-birthday.parity.test.ts` |
 
 `set-files-sharing-config` parity route toggles `incomingServer2ServerShareEnabled` (ExternalShares) and `outgoingServer2ServerShareEnabled` (ShareInfo) on both sides. `set-sharing-v1-config` toggles `sharing.unified_api_enable` on both sides — seed via `seedShareOnBothSides` after enable, or delete/get cases diverge across mock vs HTTP.
 

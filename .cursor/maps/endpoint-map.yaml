@@ -5874,10 +5874,10 @@ endpoints:
     - status: 404
       shape: not-found
   status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  parity: tested
+  next_path: /apps/dav/disableBirthdayCalendar
+  next_handler: src/server/dav/birthday-calendar.ts
+  parity_test: next/parity/tests/dav-birthday.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: dav.birthday_calendar#enable.post
@@ -5903,10 +5903,10 @@ endpoints:
     - status: 404
       shape: not-found
   status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  parity: tested
+  next_path: /apps/dav/enableBirthdayCalendar
+  next_handler: src/server/dav/birthday-calendar.ts
+  parity_test: next/parity/tests/dav-birthday.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: dav.invitation_response#accept

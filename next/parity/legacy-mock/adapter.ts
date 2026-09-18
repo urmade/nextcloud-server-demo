@@ -34,6 +34,7 @@ import { handleDavDirectMock, isDavDirectMockPath } from './dav-direct';
 import { handleDavOutOfOfficeMock, isDavOutOfOfficeMockPath } from './dav-out-of-office';
 import { handleDavCalOcsMock, isDavCalOcsMockPath } from './dav-cal-ocs';
 import { handleDavInvitationHtmlMock, isDavInvitationHtmlMockPath } from './dav-invitation-html';
+import { handleDavBirthdayMock, isDavBirthdayMockPath } from './dav-birthday';
 import { handleFilesApiMock, isFilesApiPath, isFilesApiWritePath } from './files';
 import { handleFilesDirectEditingMock, isFilesDirectEditingMockPath } from './files-direct-editing';
 import { handleFilesFilenamesMock, isFilesFilenamesMockPath } from './files-filenames';
@@ -449,6 +450,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return davInvitationHtml;
 	}
 
+	const davBirthday = await handleDavBirthdayMock(pathname, search, options);
+
+	if (davBirthday) {
+		return davBirthday;
+	}
+
 	const filesApi = await handleFilesApiMock(fullPath, options);
 
 	if (filesApi) {
@@ -822,6 +829,10 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (isDavInvitationHtmlMockPath(pathname, normalizedMethod)) {
+		return true;
+	}
+
+	if (isDavBirthdayMockPath(pathname, normalizedMethod)) {
 		return true;
 	}
 

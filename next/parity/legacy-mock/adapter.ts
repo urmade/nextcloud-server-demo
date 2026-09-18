@@ -20,6 +20,7 @@ import { handleCollaborationResourcesMock } from './collaboration-resources';
 import { handleTeamsMock } from './teams';
 import { handleTwoFactorMock } from './two-factor';
 import { handleTwoFactorChallengeMock, isTwoFactorChallengePath } from './two-factor-challenge';
+import { handleWebAuthnMock, isWebAuthnPath } from './webauthn';
 import { handleUnifiedSearchMock } from './unified-search';
 import { handleWipeMock } from './wipe';
 import { snapshotResponse } from '../compare';
@@ -355,6 +356,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return twoFactorChallenge;
 	}
 
+	const webauthn = await handleWebAuthnMock(pathname, options);
+
+	if (webauthn) {
+		return webauthn;
+	}
+
 	const loginFlowV2 = await handleLoginFlowV2Mock(pathname, search, options);
 
 	if (loginFlowV2) {
@@ -547,7 +554,7 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 		return true;
 	}
 
-	if (normalizedMethod === 'POST' && (pathname === '/login' || isTwoFactorChallengePath(pathname))) {
+	if (normalizedMethod === 'POST' && (pathname === '/login' || isTwoFactorChallengePath(pathname) || isWebAuthnPath(pathname))) {
 		return true;
 	}
 
@@ -571,6 +578,7 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 		|| pathname.startsWith('/ocs/v2.php/text2image/')
 		|| pathname.startsWith('/ocs/v2.php/translation/')
 		|| pathname.startsWith('/ocs/v2.php/twofactor/')
+		|| pathname.startsWith('/ocs/v2.php/webauthn/')
 		|| pathname.startsWith('/ocs/v2.php/collaboration/resources/')
 		|| pathname.startsWith('/ocs/v2.php/teams/')) {
 		return true;

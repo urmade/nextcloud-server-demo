@@ -25,12 +25,14 @@ description: Core session login, logout, CSRF token, and client login flow v2 en
 - `GET /login/selectchallenge` — pick 2FA provider (HTML, 2FA pending session)
 - `GET /login/challenge/{challengeProviderId}` — show provider challenge (HTML)
 - `POST /login/challenge/{challengeProviderId}` — submit challenge code (form `challenge`)
+- `POST /login/webauthn/start` — begin WebAuthn login (JSON `{ loginName }`)
+- `POST /login/webauthn/finish` — complete WebAuthn login (JSON `{ data }`)
 
 `/index.php/login/v2` and `/index.php/login/v2/poll` are twins rewritten to `/login/v2*`.
 
 ## Non-scope (same feature, later slices)
 
-- WebAuthn (`/login/webauthn/*`), `POST /login/confirm`
+- Settings WebAuthn registration (`/settings/api/personal/webauthn/*`), `POST /login/confirm`
 - Lost password, heartbeat
 - `POST /login/v2/apptoken` (app-token redirect path)
 - LDAP, SAML, OIDC, alternative login providers
@@ -54,6 +56,8 @@ Map ids with `feature_ids: [core-login]` and `parity: tested`:
 - `core.TwoFactorChallenge#select`
 - `core.TwoFactorChallenge#showChallenge`
 - `core.TwoFactorChallenge#solve`
+- `core.WebAuthn#start`
+- `core.WebAuthn#finish`
 
 ## Auth model
 
@@ -72,6 +76,8 @@ Map ids with `feature_ids: [core-login]` and `parity: tested`:
 | `GET /login/selectchallenge` | `session` with 2FA pending (`twoFactorPendingUid`); redirects if unauthenticated or 2FA complete |
 | `GET /login/challenge/{id}` | same as selectchallenge |
 | `POST /login/challenge/{id}` | same; form field `challenge` (NoCSRFRequired on legacy) |
+| `POST /login/webauthn/start` | `none` (public); JSON `{ loginName }`; stores challenge in session |
+| `POST /login/webauthn/finish` | `none` (public); JSON `{ data }` where `data` is stringified assertion; requires prior start session |
 
 Credentials: env `NC_ADMIN_USER` / `NC_ADMIN_PASSWORD` (defaults `admin` / `parity-test-password`).
 
@@ -89,6 +95,8 @@ src/server/auth/
   login-flow-v2-store.ts   # in-memory pending flows
   login-flow-v2.ts         # init/poll/flow/grant handlers
   two-factor-challenge.ts  # select/show/solve + pending-session state
+  webauthn-store.ts        # in-memory fixture credentials
+  webauthn.ts              # start/finish handlers
 app/
   csrftoken/route.ts
   login/route.ts
@@ -100,7 +108,21 @@ app/
   login/v2/grant/route.ts
   login/selectchallenge/route.ts
   login/challenge/[challengeProviderId]/route.ts
+  login/webauthn/start/route.ts
+  login/webauthn/finish/route.ts
 ```
+
+## Login-time WebAuthn
+
+Fixture authenticator only — no real FIDO2 ceremony. Toggle: `NC_PARITY_WEBAUTHN_PROVIDER` (default on).
+
+1. Seed credential: `POST /ocs/v2.php/webauthn/parity/register?format=json` with admin session + `{ user: "admin" }` (parity helper, not mapped).
+2. `POST /login/webauthn/start` with `{ loginName }` → 200 `PublicKeyCredentialRequestOptionsJSON`; session stores `webauthn_login`, `webauthn_login_uid`, `webauthn_login_name`.
+3. Client signs with browser authenticator; parity uses stable `FIXTURE_ASSERTION_DATA`.
+4. `POST /login/webauthn/finish` with `{ data: "<assertion-json>" }` → 200 `{ defaultRedirectUrl }` + login cookies on success.
+5. Missing session keys → 400 `[]`. Invalid assertion → 400 `[]` in parity mock.
+
+User-verified fixture credentials skip 2FA (`TwoFactorCommand` behavior). Empty `allowCredentials` when user has no registered devices.
 
 ## Login-time 2FA challenge
 
@@ -175,6 +197,9 @@ Failed login sets session flash `loginMessages: [[errorCode], []]`.
 - 2FA challenge pages use `#twofactor-select` / `#twofactor-challenge` markers; not full TOTP/WebAuthn UI.
 - `POST /login/challenge/*` uses form field `challenge`, not `requesttoken` (legacy `NoCSRFRequired`).
 - Map `auth: session` on 2FA routes means 2FA-pending session, not fully authenticated; failures are 303 redirects, not 401 JSON.
+- WebAuthn start/finish are **JSON POST**, not form-encoded; phase-0 map 303/login-failed is wrong — PHP returns JSONResponse.
+- WebAuthn finish missing session returns **400** `[]`, not 401 JSON.
+- `defaultRedirectUrl` is absolute URL from `linkToDefaultPageUrl()`; compare pathname in parity.
 
 ## Parity extras
 
@@ -204,5 +229,10 @@ Failed login sets session flash `loginMessages: [[errorCode], []]`.
 | Wrong code | `POST /login/challenge/parity-totp` | 303 back; next GET shows `.two-factor-error` |
 | Happy solve | `POST /login/challenge/parity-totp` | 303 to `/index.php/apps/dashboard/` |
 | Already 2FA-complete | `GET /login/challenge/parity-totp` | 303 to default page |
+| Happy start | `POST /login/webauthn/start` | 200 JSON with `challenge`, `allowCredentials`, `userVerification` |
+| No credentials | `POST /login/webauthn/start` | 200 JSON with `allowCredentials: []` |
+| Missing session | `POST /login/webauthn/finish` | 400, `[]` |
+| Invalid assertion | `POST /login/webauthn/finish` | 400, `[]` |
+| Happy finish | `POST /login/webauthn/finish` | 200 `{ defaultRedirectUrl }` + login cookies |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` (not waived).

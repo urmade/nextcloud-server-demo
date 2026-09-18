@@ -5164,23 +5164,28 @@ endpoints:
     params: {}
     query: {}
     headers: {}
-    body: null
+    body:
+      content_type: application/json
+      shape:
+        data: string
   response:
     success:
-      status: 303
-      shape: WebAuthn finish
+      status: 200
+      shape:
+        defaultRedirectUrl: string
+      content_type: application/json
     errors:
-    - status: 401
-      shape: login-failed
-    - status: 429
-      shape: bruteforce-throttle
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+    - status: 400
+      shape: []
+      content_type: application/json
+  status: parity
+  parity: tested
+  next_path: /login/webauthn/finish
+  next_handler: app/login/webauthn/finish/route.ts
+  parity_test: next/parity/tests/core-login-webauthn.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: PublicPage + UseSession. Missing webauthn_login session keys returns 400 [].
 - id: core.WebAuthn#start
   feature_ids:
   - core-login
@@ -5193,23 +5198,24 @@ endpoints:
     params: {}
     query: {}
     headers: {}
-    body: null
+    body:
+      content_type: application/json
+      shape:
+        loginName: string
   response:
     success:
-      status: 303
-      shape: WebAuthn start
-    errors:
-    - status: 401
-      shape: login-failed
-    - status: 429
-      shape: bruteforce-throttle
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      status: 200
+      shape: PublicKeyCredentialRequestOptionsJSON
+      content_type: application/json
+    errors: []
+  status: parity
+  parity: tested
+  next_path: /login/webauthn/start
+  next_handler: app/login/webauthn/start/route.ts
+  parity_test: next/parity/tests/core-login-webauthn.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Stores challenge in session (webauthn_login*). Empty allowCredentials when user has no devices.
 - id: core.Login#logout
   feature_ids:
   - core-login

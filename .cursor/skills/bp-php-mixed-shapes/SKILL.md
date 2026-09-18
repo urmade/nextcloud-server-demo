@@ -58,6 +58,15 @@ Cross-cutting. Applies when PHP types a success body as `mixed`, `array`, or pro
 - Poll body is JSON `{ token }`, not form-encoded. Success `{ server, loginName, appPassword }`; consumed flows return **404** with empty array body.
 - `GET /login/v2/flow` and grant pages are HTML **403** on missing session/state tokens — not 401 JSON.
 
+## Login-time WebAuthn (core-login-webauthn)
+
+- Phase-0 map listed **303** / **401 login-failed** — `WebAuthnController` returns **200 JSON** (`PublicPage` + `UseSession`), not redirects.
+- `POST /login/webauthn/start` body `{ loginName }` → `PublicKeyCredentialRequestOptionsJSON`; challenge/rpId unstable in parity.
+- `POST /login/webauthn/finish` body `{ data: string }` where `data` is JSON-stringified `AuthenticationResponseJSON`.
+- Missing `webauthn_login` session keys → **400** with empty array body `[]`.
+- Success finish → `{ defaultRedirectUrl: string }`; sets login session cookies. Fixture assertion only (`NC_PARITY_WEBAUTHN_PROVIDER`, default on).
+- Seed fixture credential via HTTP `POST /ocs/v2.php/webauthn/parity/register` (admin session, body `{ user }`) — not a mapped endpoint.
+
 ## Two-factor admin API (core slice 10)
 
 - Success `ocs.data` is `{ [providerId: string]: boolean }` from registry — compare representative provider keys only.

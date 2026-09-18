@@ -16,6 +16,9 @@ export interface SessionData {
 	twoFactorRememberLogin?: boolean;
 	twoFactorAuthError?: boolean;
 	twoFactorAuthErrorMessage?: string;
+	webauthnLogin?: string;
+	webauthnLoginUid?: string;
+	webauthnLoginName?: string;
 }
 
 const globalForSessions = globalThis as typeof globalThis & {
@@ -94,6 +97,9 @@ export function clearSessionData(session: SessionData): void {
 	session.twoFactorRememberLogin = undefined;
 	session.twoFactorAuthError = undefined;
 	session.twoFactorAuthErrorMessage = undefined;
+	session.webauthnLogin = undefined;
+	session.webauthnLoginUid = undefined;
+	session.webauthnLoginName = undefined;
 	updateSession(session);
 }
 

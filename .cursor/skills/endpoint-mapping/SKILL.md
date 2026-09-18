@@ -104,6 +104,7 @@ One entry per `protocol + method + legacy_path`. Do not collapse versions (`/ocs
 - New route found mid-slice: add to the map before check-in.
 - `feature_ids` name Nextcloud apps/domains that own the contract, not Next.js folder guesses.
 - `request` / `response` describe the public client contract only. If OpenAPI and live behavior disagree, record live public behavior and note the conflict in `notes`.
+- **Phase-0 status/shape is a hypothesis.** OpenAPI and the scanner invent 303/`login-failed`/401 for many frontpage routes. Ground in the PHP return type (`JSONResponse` vs `RedirectResponse` vs HTML) before implementing. Correct the row in the owning slice. See `bp-observe-php-contract`.
 - PHP attributes win over scanner `auth`. `@PublicPage` / `@NoCSRFRequired` token routes (`/apps/oauth2/api/v1/token`, `/authorize`, public preview, direct-edit token page) are **not** `session` even if the map says so. Patch `auth` in the owning slice; do not 401 unauthenticated callers that PHP serves.
 - Do not invent product behavior absent from these sources.
 

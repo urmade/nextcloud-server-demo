@@ -22,6 +22,7 @@ description: Core session login, logout, CSRF token, and client login flow v2 en
 - `GET /login/v2/flow` — auth picker HTML (requires session login-flow token)
 - `GET /login/v2/grant` — grant page HTML (session + `stateToken` query)
 - `POST /login/v2/grant` — confirm grant, generate app password for client
+- `POST /login/v2/apptoken` — complete flow with existing app password (200 HTML done)
 - `GET /login/selectchallenge` — pick 2FA provider (HTML, 2FA pending session)
 - `GET /login/challenge/{challengeProviderId}` — show provider challenge (HTML)
 - `POST /login/challenge/{challengeProviderId}` — submit challenge code (form `challenge`)

@@ -1,3 +1,4 @@
+import { seedParityLoginFlowV2Store } from '@/src/server/auth/login-flow-v2-store';
 import { SESSION_COOKIE, USERNAME_COOKIE } from '@/src/server/auth/cookies';
 import { decryptCsrfToken } from '@/src/server/auth/csrf';
 import { getOrCreateSession, type SessionData, updateSession } from '@/src/server/auth/session-store';
@@ -32,12 +33,16 @@ export function seedParityLoginFlowV2Session(
 	jar: Record<string, string>,
 	loginToken: string,
 	stateToken: string,
+	pollToken: string,
+	clientName = 'parity-test-client',
 ): SessionData | null {
 	const sessionId = jar[SESSION_COOKIE];
 
 	if (!sessionId) {
 		return null;
 	}
+
+	seedParityLoginFlowV2Store(pollToken, loginToken, clientName, true);
 
 	const session = getOrCreateSession(sessionId);
 	session.loginFlowV2Token = loginToken;

@@ -162,6 +162,23 @@ export function completeLoginFlowWithAppPassword(
 	return true;
 }
 
+export function seedParityLoginFlowV2Store(
+	pollToken: string,
+	loginToken: string,
+	clientName: string,
+	started = true,
+): void {
+	const entry: LoginFlowV2Entry = {
+		pollTokenHash: hashPollToken(pollToken),
+		loginToken,
+		clientName,
+		started,
+	};
+
+	getFlowMap().set(entry.pollTokenHash, entry);
+	getLoginTokenMap().set(loginToken, entry);
+}
+
 export function resetLoginFlowV2Store(): void {
 	getFlowMap().clear();
 	getLoginTokenMap().clear();

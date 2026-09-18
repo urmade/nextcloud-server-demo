@@ -21671,8 +21671,8 @@ endpoints:
       shape: csrf-failed-json
     - status: 403
       shape: guest HTML (missing/invalid state token, login token, Invalid app password, or Could not complete login)
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   next_path: /login/v2/apptoken
   next_handler: app/login/v2/apptoken/route.ts
   parity_test: next/parity/tests/core-login-v2-html.parity.test.ts
@@ -21702,8 +21702,8 @@ endpoints:
     errors:
     - status: 403
       shape: login-token-forbidden-html
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   next_path: /login/v2/flow/{token}
   next_handler: app/login/v2/flow/[token]/route.ts
   parity_test: next/parity/tests/core-login-v2-html.parity.test.ts
@@ -21735,8 +21735,8 @@ endpoints:
       shape: guest HTML (missing/invalid state token or login-token forbidden)
     - status: 303
       shape: login redirect when unauthenticated HTML Accept
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   next_path: /login/v2/grant
   next_handler: app/login/v2/grant/route.ts
   parity_test: next/parity/tests/core-login-v2-html.parity.test.ts

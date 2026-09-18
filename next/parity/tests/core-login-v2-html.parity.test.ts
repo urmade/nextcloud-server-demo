@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { compareParityResponses } from '../compare';
 import { getParityEnv } from '../env';
 import { fetchLegacyMockSnapshot } from '../legacy-mock/adapter';
 import { formatParityMismatches, runParityCase } from '../harness';
@@ -134,12 +133,18 @@ async function seedApptokenParitySession(
 	jar: Record<string, string>,
 	loginUrl: string,
 	stateToken: string,
+	pollToken: string,
 ): Promise<{ jar: Record<string, string>; token: string }> {
 	const env = getParityEnv();
 	const csrf = await fetchParityCsrfToken(jar, env.newBaseUrl);
 
 	seedParityGuestSessionFromJar(csrf.jar, csrf.token);
-	seedParityLoginFlowV2Session(csrf.jar, extractLoginToken(loginUrl), stateToken);
+	seedParityLoginFlowV2Session(
+		csrf.jar,
+		extractLoginToken(loginUrl),
+		stateToken,
+		pollToken,
+	);
 
 	return csrf;
 }
@@ -156,32 +161,6 @@ async function createAppPassword(jar: Record<string, string>): Promise<string> {
 	const body = await response.json() as { ocs: { data: { apppassword: string } } };
 
 	return body.ocs.data.apppassword;
-}
-
-async function fetchNewApptokenSnapshot(
-	baseUrl: string,
-	jar: Record<string, string>,
-	body: URLSearchParams,
-) {
-	const response = await fetch(`${baseUrl}/login/v2/apptoken`, {
-		method: 'POST',
-		redirect: 'manual',
-		headers: {
-			'content-type': 'application/x-www-form-urlencoded',
-			cookie: cookieJarToHeader(jar) ?? '',
-		},
-		body: body.toString(),
-	});
-	const rawBody = await response.text();
-
-	return {
-		status: response.status,
-		headers: {
-			'content-type': response.headers.get('content-type') ?? '',
-		},
-		body: rawBody,
-		rawBody,
-	};
 }
 
 describe('parity: core-login-v2-html', () => {
@@ -281,9 +260,9 @@ describe('parity: core-login-v2-html', () => {
 
 	it('POST /login/v2/apptoken without CSRF returns 412 (core.ClientFlowLoginV2#apptokenRedirect.post)', async () => {
 		const env = getParityEnv();
-		const { loginUrl } = await initLoginFlow(env.newBaseUrl);
+		const { loginUrl, pollToken } = await initLoginFlow(env.newBaseUrl);
 		const { jar, stateToken } = await openAuthPicker(env.newBaseUrl, loginUrl, {});
-		await seedApptokenParitySession(jar, loginUrl, stateToken);
+		await seedApptokenParitySession(jar, loginUrl, stateToken, pollToken);
 
 		const result = await runParityCase({
 			name: 'login-v2-apptoken-no-csrf',
@@ -325,42 +304,32 @@ describe('parity: core-login-v2-html', () => {
 
 	it('POST /login/v2/apptoken invalid app password returns 403 HTML (core.ClientFlowLoginV2#apptokenRedirect.post)', async () => {
 		const env = getParityEnv();
-		const { loginUrl } = await initLoginFlow(env.newBaseUrl);
+		const { loginUrl, pollToken } = await initLoginFlow(env.newBaseUrl);
 		const { jar, stateToken } = await openAuthPicker(env.newBaseUrl, loginUrl, {});
-		const csrf = await seedApptokenParitySession(jar, loginUrl, stateToken);
+		const csrf = await seedApptokenParitySession(jar, loginUrl, stateToken, pollToken);
 
-		const body = new URLSearchParams({
-			stateToken,
-			user: 'admin',
-			password: 'invalid-app-password',
-			requesttoken: csrf.token,
-		});
-
-		const legacy = await fetchLegacyMockSnapshot('/login/v2/apptoken', {
-			method: 'POST',
-			headers: {
-				'content-type': 'application/x-www-form-urlencoded',
-				cookie: cookieJarToHeader(csrf.jar) ?? '',
+		const result = await runParityCase({
+			name: 'login-v2-apptoken-bad-password',
+			path: '/login/v2/apptoken',
+			options: {
+				method: 'POST',
+				headers: {
+					'content-type': 'application/x-www-form-urlencoded',
+					cookie: cookieJarToHeader(csrf.jar) ?? '',
+				},
+				body: new URLSearchParams({
+					stateToken,
+					user: 'admin',
+					password: 'invalid-app-password',
+					requesttoken: csrf.token,
+				}).toString(),
 			},
-			body: body.toString(),
-		});
-		const freshFlow = await initLoginFlow(env.newBaseUrl);
-		const freshPicker = await openAuthPicker(env.newBaseUrl, freshFlow.loginUrl, freshFlow.jar);
-		const freshCsrf = await seedApptokenParitySession(freshPicker.jar, freshFlow.loginUrl, freshPicker.stateToken);
-		const newResponse = await fetchNewApptokenSnapshot(env.newBaseUrl, freshCsrf.jar, new URLSearchParams({
-			stateToken: freshPicker.stateToken,
-			user: 'admin',
-			password: 'invalid-app-password',
-			requesttoken: freshCsrf.token,
-		}));
-
-		const mismatches = compareParityResponses(legacy, newResponse, {
-			contractHeaders: ['content-type'],
+			compare: {
+				contractHeaders: ['content-type'],
+			},
 		});
 
-		expect(mismatches, formatParityMismatches(mismatches)).toEqual([]);
-		expect(newResponse.status).toBe(403);
-		expect(String(newResponse.body)).toContain('Invalid app password');
+		expect(result.mismatches, formatParityMismatches(result.mismatches)).toEqual([]);
 	});
 
 	it('POST /login/v2/apptoken happy path returns 200 done HTML and poll credentials (core.ClientFlowLoginV2#apptokenRedirect.post)', async () => {
@@ -369,48 +338,39 @@ describe('parity: core-login-v2-html', () => {
 		const appPassword = await createAppPassword(loginJar);
 		storeAppPasswordToken('admin', 'admin', appPassword, 'parity-test');
 
-		const legacyFlow = await initLoginFlow(env.newBaseUrl);
-		const legacyPicker = await openAuthPicker(env.newBaseUrl, legacyFlow.loginUrl, legacyFlow.jar);
-		const legacyCsrf = await seedApptokenParitySession(legacyPicker.jar, legacyFlow.loginUrl, legacyPicker.stateToken);
+		const { loginUrl, pollToken, jar: initJar } = await initLoginFlow(env.newBaseUrl);
+		const { jar, stateToken } = await openAuthPicker(env.newBaseUrl, loginUrl, initJar);
+		const csrf = await seedApptokenParitySession(jar, loginUrl, stateToken, pollToken);
 
-		const legacy = await fetchLegacyMockSnapshot('/login/v2/apptoken', {
-			method: 'POST',
-			headers: {
-				'content-type': 'application/x-www-form-urlencoded',
-				cookie: cookieJarToHeader(legacyCsrf.jar) ?? '',
+		const result = await runParityCase({
+			name: 'login-v2-apptoken-happy',
+			path: '/login/v2/apptoken',
+			options: {
+				method: 'POST',
+				headers: {
+					'content-type': 'application/x-www-form-urlencoded',
+					cookie: cookieJarToHeader(csrf.jar) ?? '',
+				},
+				body: new URLSearchParams({
+					stateToken,
+					user: 'admin',
+					password: appPassword,
+					requesttoken: csrf.token,
+				}).toString(),
 			},
-			body: new URLSearchParams({
-				stateToken: legacyPicker.stateToken,
-				user: 'admin',
-				password: appPassword,
-				requesttoken: legacyCsrf.token,
-			}).toString(),
+			compare: {
+				contractHeaders: ['content-type'],
+			},
 		});
 
-		const newFlow = await initLoginFlow(env.newBaseUrl);
-		const newPicker = await openAuthPicker(env.newBaseUrl, newFlow.loginUrl, newFlow.jar);
-		const newCsrf = await seedApptokenParitySession(newPicker.jar, newFlow.loginUrl, newPicker.stateToken);
-		const newResponse = await fetchNewApptokenSnapshot(env.newBaseUrl, newCsrf.jar, new URLSearchParams({
-			stateToken: newPicker.stateToken,
-			user: 'admin',
-			password: appPassword,
-			requesttoken: newCsrf.token,
-		}));
-
-		const mismatches = compareParityResponses(legacy, newResponse, {
-			contractHeaders: ['content-type'],
-		});
-
-		expect(mismatches, formatParityMismatches(mismatches)).toEqual([]);
-		expect(newResponse.status).toBe(200);
-		expect(String(newResponse.body)).toContain('data-login-flow="done"');
+		expect(result.mismatches, formatParityMismatches(result.mismatches)).toEqual([]);
 
 		const pollResponse = await fetch(`${env.newBaseUrl}/login/v2/poll`, {
 			method: 'POST',
 			headers: {
 				'content-type': 'application/json',
 			},
-			body: JSON.stringify({ token: newFlow.pollToken }),
+			body: JSON.stringify({ token: pollToken }),
 			redirect: 'manual',
 		});
 		const pollBody = await pollResponse.json() as { server: string; loginName: string; appPassword: string };

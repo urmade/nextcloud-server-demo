@@ -14,7 +14,7 @@ alwaysApply: true
 One row per sliceable domain. `feature_id` equals endpoint-map `feature_ids[]` entries.
 First `feature_ids` value on an endpoint owns that row.
 Skill path is created when that slice starts (slice-workflow step 1), except `core-status` which already exists.
-Status is `inventoried` until a slice moves it. Features: 32. Endpoints: 548. `parity: tested`: 207.
+Status is `inventoried` until a slice moves it. Features: 32. Endpoints: 548. `parity: tested`: 210.
 
 Locked implementation: `files-sharing-public-dav` on `cursor/files-sharing-public-dav-e1af` from shareinfo harvest `527bd5c`. Two endpoints tested: dav.Public#tree and dav.Public#legacy-webdav.
 

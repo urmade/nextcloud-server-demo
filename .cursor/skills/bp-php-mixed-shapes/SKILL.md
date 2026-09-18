@@ -52,7 +52,14 @@ Cross-cutting. Applies when PHP types a success body as `mixed`, `array`, or pro
 - Provider toggle: `NC_PARITY_TRANSLATION_PROVIDER` (default on). Compare representative catalog paths, not full provider union.
 - Translate success `{ text, from }` — `from` may be `null` in OpenAPI but is set on success when provided or detected.
 
-## Client login flow v2 (core-login-v2)
+## Client login flow v2 HTML (core-login-v2-html)
+
+- `GET /login/v2/flow/{token}` (`#landing`) invalid token → **403 HTML**; valid → **303** `/login/v2/flow`.
+- `GET /login/v2/grant` (`#grantPage`) missing `stateToken` when logged in → **403 HTML**; unauth HTML Accept → **303** login (not 403).
+- `POST /login/v2/apptoken` (`#apptokenRedirect.post`) CSRF fail → **412 JSON**; bad app password → **403 HTML**; success → **200 HTML** `loginFlowState=done` (phase-0 map **303** was wrong). Clears v2 session keys before password lookup. Distinct from v1 apptoken **303** `nc://` redirect.
+- Legacy-mock parity seeds in-process session + flow store (`seedParityLoginFlowV2Session`, `seedParityLoginFlowV2Store`) — HTTP setup alone is not enough for mock apptoken cases.
+
+## Client login flow v2 (init/poll/grant POST)
 
 - Phase-0 map rows for `core.ClientFlowLoginV2#init` / `#poll` listed **303** and **401** — PHP returns **200 JSON** (init) and **404 `[]`** (poll not ready/unknown). Trust `ClientFlowLoginV2Controller` + OpenAPI `/index.php/login/v2*`.
 - Poll body is JSON `{ token }`, not form-encoded. Success `{ server, loginName, appPassword }`; consumed flows return **404** with empty array body.

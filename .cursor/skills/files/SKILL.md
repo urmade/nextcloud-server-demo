@@ -1,0 +1,235 @@
+---
+name: files
+description: Files app UI, JSON config API, templates, direct editing, conversion, transfer ownership. Use when implementing /apps/files or files OCS. File bytes live on DAV.
+---
+
+<!--
+ - SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+ - SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
+# files
+
+## Purpose
+
+Files **app** surface: HTML shell, user/view config JSON, thumbnails, templates, direct-editing tokens, open-local-editor tokens, conversion, transfer-ownership. **Does not** serve file bytes — that is `dav` (`/remote.php/dav/files/{uid}`). Depends on `dav`.
+
+## Key types / entities
+
+| Entity | Notes |
+| --- | --- |
+| UserConfig | app `files` per-key: `crop_image_previews`, `default_view` (`files`\|`personal`), `folder_tree`, `grid_view`, `show_dialog_deletion`, `show_dialog_file_extension`, `show_files_extensions`, `show_hidden`, `show_mime_column`, `sort_favorites_first`, `sort_folders_first` |
+| ViewConfig | JSON blob `files` / `files_views_configs`; per-view `sorting_mode`, `sorting_direction` (`asc`\|`desc`), `expanded` |
+| Legacy prefs | `show_hidden`, `crop_image_previews`, **`show_grid`** (string `'1'`/`'0'`). `showGridView` writes `show_grid`, **not** UserConfig `grid_view` |
+| Direct-edit token | table `direct_edit`; 64 human-readable chars; cleanup **12h**; GET editor page is public + single-use access mark |
+| Open-local token | 128 alnum; `pathHash=sha1(path)`; **TTL 600s**; validate is one-shot delete |
+| Transfer row | `user_transfer_owner.id` (not file id); accept/reject only `targetUser`; accept enqueues job |
+| FolderTree node | `{id, basename, children, displayName?}` directories only (`httpd/unix-directory`) |
+| Conversion | `{path, fileId}` HTTP **201**; dest extension must match provider; default dest = same parent + provider extension; max size `max_file_conversion_filesize` default 100 MiB |
+
+Capabilities `files` (other slice `core-status` providers): `bigfilechunking`, `chunked_upload.{max_size,max_parallel_count}`, `forbidden_filenames*`, `file_conversions[{from,to,extension,displayName}]`. Do not re-implement capabilities here; keep conversion MIME list consistent.
+
+`formatFileInfo` (recent files): `id,parentId,mtime`(ms),`name,permissions,mimetype,size,type,etag` + `hasPreview,path` + optional tags/share fields.
+
+## Endpoints owned
+
+35 map ids. Frontpage JSON is **not** OCS. OCS uses `bp-ocs-envelope`.
+
+### UI
+
+| id | Method | Path |
+| --- | --- | --- |
+| `files.view#index` | GET | `/apps/files/` |
+| `files.view#indexView` | GET | `/apps/files/{view}` |
+| `files.view#indexViewFileid` | GET | `/apps/files/{view}/{fileid}` |
+| `files.View#showFile` | GET | `/f/{fileid}` |
+| `files.DirectEditingView#edit` | GET | `/apps/files/directEditing/{token}` |
+
+### App JSON (`ApiController`, session)
+
+| id | Method | Path |
+| --- | --- | --- |
+| `files.Api#getThumbnail` | GET | `/apps/files/api/v1/thumbnail/{x}/{y}/{file}` |
+| `files-api-get-thumbnail` | GET | `/index.php/apps/files/api/v1/thumbnail/{x}/{y}/{file}` — **same handler** |
+| `files.Api#updateFileTags.post` | POST | `/apps/files/api/v1/files/{path}` |
+| `files.Api#getRecentFiles` | GET | `/apps/files/api/v1/recent/` |
+| `files.Api#getStorageStats` | GET | `/apps/files/api/v1/stats` |
+| `files.Api#setViewConfig.put` | PUT | `/apps/files/api/v1/views/{view}/{key}` |
+| `files.Api#setViewConfig.put.2` | PUT | `/apps/files/api/v1/views` |
+| `files.Api#getViewConfigs` | GET | `/apps/files/api/v1/views` |
+| `files.Api#setConfig.put` | PUT | `/apps/files/api/v1/config/{key}` |
+| `files.Api#getConfigs` | GET | `/apps/files/api/v1/configs` |
+| `files.Api#showHiddenFiles.post` | POST | `/apps/files/api/v1/showhidden` |
+| `files.Api#cropImagePreviews.post` | POST | `/apps/files/api/v1/cropimagepreviews` |
+| `files.Api#showGridView.post` | POST | `/apps/files/api/v1/showgridview` |
+| `files.Api#getGridView` | GET | `/apps/files/api/v1/showgridview` |
+| `files.Api#serviceWorker` | GET | `/apps/files/preview-service-worker.js` |
+
+### OCS
+
+| id | Method | Path |
+| --- | --- | --- |
+| `files-api-get-folder-tree` | GET | `/ocs/v2.php/apps/files/api/v1/folder-tree` |
+| `files-conversion_api-convert` | POST | `/ocs/v2.php/apps/files/api/v1/convert` |
+| `files-direct_editing-info` | GET | `…/directEditing` |
+| `files-direct_editing-templates` | GET | `…/directEditing/templates/{editorId}/{creatorId}` |
+| `files-direct_editing-open` | POST | `…/directEditing/open` |
+| `files-direct_editing-create` | POST | `…/directEditing/create` |
+| `files-template-list` | GET | `…/templates` |
+| `files-template-list-template-fields` | GET | `…/templates/fields/{fileId}` |
+| `files-template-create` | POST | `…/templates/create` |
+| `files-template-path` | POST | `…/templates/path` |
+| `files-open_local_editor-create` | POST | `…/openlocaleditor` |
+| `files-open_local_editor-validate` | POST | `…/openlocaleditor/{token}` |
+| `files-transfer_ownership-transfer` | POST | `…/transferownership` |
+| `files-transfer_ownership-accept` | POST | `…/transferownership/{id}` |
+| `files-transfer_ownership-reject` | DELETE | `…/transferownership/{id}` |
+
+`FilenamesController` (windows-compat / sanitization) is **not** in this feature map — leave it.
+
+## Endpoint walkthrough
+
+### UI shell
+
+`ViewController::index` (`NoAdminRequired`, `NoCSRFRequired`): Template `files/index`. Query `dir`, `view`, `fileid`. `indexView` / `indexViewFileid` delegate to `index`. `showFile` (`GET /f/{fileid}`): redirect into files view with `dir`/`fileid`/`openfile`/`opendetails`; missing file still redirects keeping `fileid`.
+
+Initial state includes storageStats, UserConfig, ViewConfig, templates, sorting (`files_sorting_configs`), 2FA flag. Pixel-perfect Vue is **not** required unless a later UI slice says so; HTML must remain a logged-in files app page.
+
+### Config JSON
+
+`setConfig` → UserConfig allow-list; 400 unknown key. Success `{message:'ok', data:{key,value}}`.
+
+`setViewConfig`: two URLs, one method. Path or body supplies `view`,`key`,`value`. Success `{message:'ok', data: <that view's config>}`. 400 invalid key/value.
+
+`showHiddenFiles` / `cropImagePreviews` / `showGridView`: POST bool → empty `Response`; legacy `IConfig::setUserValue`. `getGridView` → `{gridview: bool}` from `show_grid`.
+
+`getStorageStats?dir=/`: `{message:'ok', data:{free,used,quota,total,relative,owner,ownerDisplayName,mountType,mountPoint}}`. Cache-Control 5 min.
+
+`getRecentFiles`: `{files:[…formatFileInfo]}` from `getRecent(100)`.
+
+`updateFileTags`: POST path + `tags` **absolute** list → `{tags}`. 404/503 `{message}`.
+
+### Thumbnail
+
+`GET …/thumbnail/{x}/{y}/{file}` with `file => '.+'` (URL-encoded relative path). `NoCSRFRequired` + strict cookies. Shared storage: `canSeeContent()` or 404. 400 bad size; 404 `{message:'File not found.'}`. Deprecated vs core preview; still implement — mapped.
+
+`serviceWorker`: `PublicPage`; JS stream; `Service-Worker-Allowed: /`; CSP worker/script/connect `'self'`.
+
+### Folder tree — `files-api-get-folder-tree`
+
+`ApiController::getFolderTree` via `#[ApiRoute]` — **returns raw `JSONResponse` array**, not `OCSController` envelope (OpenAPI has no OCS wrapper). Query `path` default `/`, `depth` default 1, `withParents` default false. Path must be a Folder under the user folder. Throwable → log + `[]` 200. 401/400/404 `{message}`.
+
+### Direct editing
+
+OCS `info` → `{editors, creators}` + ETag (empty maps if disabled). `templates` → `{templates:{id→{id,title,preview,extension,mimetype}}}`. `open(path, editorId?, fileId?)` / `create(path, editorId, creatorId, templateId?)` → `{url}` absolute `files.DirectEditingView.edit?token=`. Disabled (encryption without master key) → 500 `{message:'Direct editing is not enabled'}`. Open/create failure → 403.
+
+Frontpage `GET /directEditing/{token}`: **`PublicPage`**, `NoCSRFRequired`, `UseSession`. Map `auth: session` is wrong — token is the credential. Unknown/spent token → `NotFoundResponse`.
+
+### Templates OCS (distinct from direct-editing templates)
+
+`list` creators+templates. `listTemplateFields` by `fileId`. `create`: `filePath`, optional `templatePath`, `templateType` default `'user'`, `templateFields` → `FilesTemplateFile`; `GenericFileException` → OCS 403. `path`: **initialize** template dir (`templatePath`, `copySystemTemplates`) → `{template_path, templates}`.
+
+### Open local editor
+
+`create(path)`: UserRateLimit 10/120s → `{userId,pathHash,expirationTime,token}`. `validate(token, path)`: bruteforce `openLocalEditor`; mismatch/expired/missing → 404 + throttle. 500 if 50 token collisions.
+
+### Conversion
+
+`POST` `{fileId, targetMimeType, destination?}`. Rate 25/120s. 201 `{path,fileId}`. 404 unreadable; 403 parent not creatable; 400 size/extension; 500 convert fail. Existing dest → `getNonExistingName` rename. Null dest is **not** a temp file (OpenAPI text is wrong; PHP writes beside source).
+
+### Transfer ownership
+
+`transfer(recipient, path)`: owner UID + `IHomeStorage` else 403; bad user/path 400. `accept`/`reject` `{id}` = transfer row; only targetUser else 403; missing 404. Accept schedules job; reject deletes row.
+
+## Auth / tenant rules
+
+| Surface | Auth |
+| --- | --- |
+| View HTML | logged-in session (`NoAdminRequired`) |
+| Api JSON (except SW) | logged-in; CSRF on mutating unless `NoCSRFRequired` (thumbnail GET only) |
+| serviceWorker | public |
+| DirectEditingView | public token |
+| OCS | mixed on map → anonymous **401 / 997**; valid session or Basic/Bearer |
+| All file paths | **caller’s** user folder; no cross-user |
+
+CSRF: cookie POSTs need `requesttoken` unless `OCS-APIRequest: true`.
+
+## Failure modes
+
+- Unknown UserConfig key → 400 `{message}` not 500.
+- `show_grid` vs `grid_view` mismatch if UI reads UserConfig but API wrote legacy key — preserve both as PHP does.
+- Thumbnail `file` not decoded → 404.
+- Folder-tree on a file path → 400/404, not a file listing.
+- Direct editing when encryption on → 500 message above.
+- Open-local reuse of token → 404 (one-shot).
+- Transfer `{id}` treated as fileid → 404.
+- Conversion dest `.png` vs provider `.jpg` → 400.
+- Unauthenticated OCS → envelope failure, not empty 200.
+
+## Do-not list
+
+- Do not implement WebDAV PUT/GET bytes (`dav`).
+- Do not implement share OCS / `/s/{token}` (`files_sharing`).
+- Do not implement versions/trash/external/reminders features.
+- Do not implement `FilenamesController` (not mapped).
+- Do not implement core preview (`core-preview-*`) — thumbnail here is the deprecated files route only.
+- Do not wrap folder-tree in OCS meta if PHP returns a bare array (match OpenAPI / controller).
+- Do not invent extra UserConfig keys.
+- Do not start `workflowengine` (depends on files later).
+- Do not pixel-match the Vue files app unless asked; keep routes + JSON contracts.
+- Dual thumbnail ids are one handler (`files.Api#getThumbnail` + `files-api-get-thumbnail`).
+
+## Conceptual Next.js shape
+
+```
+src/server/files/
+  user-config.ts
+  view-config.ts
+  stats.ts
+  folder-tree.ts
+  thumbnail.ts
+  templates.ts
+  direct-editing.ts
+  open-local.ts
+  conversion.ts
+  transfer.ts
+  view-page.ts
+app/apps/files/[[...path]]/route.ts
+app/f/[fileid]/route.ts
+app/ocs/v2.php/apps/files/api/v1/...
+```
+
+List/download still go through DAV modules.
+
+## Parity notes
+
+| Case | Endpoint | Expect |
+| --- | --- | --- |
+| Happy | getConfigs / getViewConfigs | 200 `{message:'ok', data}` |
+| Validation | setConfig unknown key | 400 |
+| Dual PUT | setViewConfig both URLs | same body shape |
+| Grid split | showGridView then getGridView | `gridview` follows `show_grid` |
+| Happy | getStorageStats | keys free/used/quota/total |
+| Thumbnail | getThumbnail | 200 image or 404 JSON |
+| Auth | OCS templates | 401/997 anonymous |
+| Happy | folder-tree `path=/` | array of dirs |
+| Conversion | convert | 201 `{path,fileId}` or 400 extension |
+| Direct edit | open | `{url}` contains `/directEditing/` |
+| Token page | DirectEditingView | public GET 200 or 404 |
+| Open-local | validate twice | second 404 |
+| Transfer | reject as non-target | 403 |
+
+HTML index: 200 `text/html` for logged-in; unauthenticated → login redirect (AppFramework), not 200. Service worker: 200 JS without session.
+
+Waive chunked **DAV** upload in `dav`, not here.
+
+## Repo links
+
+- `apps/files/appinfo/routes.php`, `info.xml`
+- `apps/files/lib/Controller/ApiController.php`
+- `ViewController.php`, `DirectEditingController.php`, `DirectEditingViewController.php`
+- `TemplateController.php`, `OpenLocalEditorController.php`
+- `ConversionApiController.php`, `TransferOwnershipController.php`
+- `apps/files/lib/Capabilities.php`, `ResponseDefinitions.php`
+- `lib/private/Files/Conversion/ConversionManager.php`
+- Cross: `dav` files tree; `core` preview; `files_sharing`; `bp-ocs-envelope`

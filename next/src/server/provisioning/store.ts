@@ -1,6 +1,8 @@
 import { findParityUser, getParityUsers } from '@/src/server/config/users';
 import { getParityGroups } from '@/src/server/config/groups';
 import { getConfiguredAdminUserId } from '@/src/server/ocs/admin-auth';
+import { resetKnownUsersStore } from '@/src/server/provisioning/known-users';
+import { resetParityProvisioningConfig } from '@/src/server/provisioning/config';
 
 export type AccountScope = 'v2-private' | 'v2-local' | 'v2-federated' | 'v2-published';
 
@@ -138,6 +140,12 @@ function seedDefaultUsers(): Map<string, ProvisioningUserRecord> {
 		);
 	}
 
+	const adminRecord = users.get(adminId);
+
+	if (adminRecord) {
+		adminRecord.properties.phone.value = '+4971125242890';
+	}
+
 	return users;
 }
 
@@ -243,7 +251,23 @@ export function getEditableFieldsForUser(userId: string): string[] {
 	});
 }
 
+export function searchUsersByPhone(phoneNumbers: string[]): Record<string, string> {
+	const matches: Record<string, string> = {};
+
+	for (const [userId, user] of getUsersMap()) {
+		const phone = user.properties.phone?.value ?? '';
+
+		if (phone && phoneNumbers.includes(phone)) {
+			matches[phone] = userId;
+		}
+	}
+
+	return matches;
+}
+
 export function resetProvisioningStore(): void {
 	globalForProvisioning.__ncProvisioningUsers = seedDefaultUsers();
 	globalForProvisioning.__ncProvisioningSubadmins = new Map();
+	resetKnownUsersStore();
+	resetParityProvisioningConfig();
 }

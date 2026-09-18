@@ -1224,7 +1224,7 @@ endpoints:
   waiver_owner: null
 - id: provisioning_api-users-search-by-phone-numbers
   feature_ids:
-  - core
+  - provisioning_api
   protocol: ocs
   method: POST
   legacy_path: /ocs/v2.php/cloud/users/search/by-phone
@@ -1261,12 +1261,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/cloud/users/search/by-phone
+  next_handler: app/ocs/v2.php/cloud/users/search/by-phone/route.ts
+  parity_test: next/parity/tests/provisioning-phone-search.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.

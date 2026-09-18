@@ -37,6 +37,7 @@ import { handleDavCalOcsMock, isDavCalOcsMockPath } from './dav-cal-ocs';
 import { handleDavInvitationHtmlMock, isDavInvitationHtmlMockPath } from './dav-invitation-html';
 import { handleDavBirthdayMock, isDavBirthdayMockPath } from './dav-birthday';
 import { handleDavExampleContentMock, isDavExampleContentMockPath } from './dav-example-content';
+import { handleProvisioningPhoneSearchMock, isProvisioningPhoneSearchMockPath } from './provisioning-phone-search';
 import { handleProvisioningSelfReadMock, isProvisioningSelfReadMockPath } from './provisioning-self-read';
 import { handleFilesApiMock, isFilesApiPath, isFilesApiWritePath } from './files';
 import { handleFilesDirectEditingMock, isFilesDirectEditingMockPath } from './files-direct-editing';
@@ -683,6 +684,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return provisioningSelfRead;
 	}
 
+	const provisioningPhoneSearch = await handleProvisioningPhoneSearchMock(pathname, search, options);
+
+	if (provisioningPhoneSearch) {
+		return provisioningPhoneSearch;
+	}
+
 	const publicLeftovers = await handlePublicLeftoversMock(pathname, search, options);
 
 	if (publicLeftovers) {
@@ -866,6 +873,10 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (isProvisioningSelfReadMockPath(pathname, normalizedMethod)) {
+		return true;
+	}
+
+	if (isProvisioningPhoneSearchMockPath(pathname, normalizedMethod)) {
 		return true;
 	}
 

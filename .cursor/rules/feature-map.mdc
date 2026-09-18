@@ -67,7 +67,7 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
 
 - feature_id: `core`
 - name: Core platform APIs
-- summary: Core HTTP/OCS after login — platform probes + avatars/previews done (slice 2). Later sub-slices: app passwords, unified search, reference API, AI/tasks, translation, 2FA, wipe, collaboration, teams.
+- summary: Core HTTP/OCS after login — platform probes + avatars/previews done (slice 2). OCS queue including teams done (slice 13). Remaining: core-misc + HTML surfaces.
 - skill: `.cursor/skills/core/SKILL.md`
 - status: in-progress
 - depends_on:

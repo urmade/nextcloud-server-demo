@@ -92,6 +92,10 @@ v1 success adds `totalitems` and `itemsperpage` (empty strings) to `meta`.
 
 **Trap:** Collaboration `removeResource` deleting the last resource auto-deletes the collection; `respondCollection` then fails access → HTTP **404** + `data: []`.
 
+**Trap:** Teams unknown `providerId` → HTTP **500** OCS 996 with message `No provider found for id {providerId}` (PHP `RuntimeException` from `ITeamManager::getProvider`).
+
+**Trap:** Teams unknown team or user not a member → HTTP **200** with empty `resources[]` — not 404 (PHP `getSharedWith` returns `[]`).
+
 ## Implementation
 
 - Shared helpers: `src/server/ocs/envelope.ts` (`buildOcsSuccessEnvelope`, `buildOcsFailureEnvelope`, `getOcsHttpStatus`); `src/server/ocs/respond.ts` (`ocsBadRequestStringResponse` for string `data` on 400).

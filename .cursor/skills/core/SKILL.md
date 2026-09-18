@@ -179,11 +179,19 @@ OCS Collaboration collections API (`/ocs/v2.php/collaboration/resources/…`). M
 
 Same collection path serves four methods — routes must dispatch by HTTP method. Parity registers fixture resource type `parity-room` (`room-1`, `room-2` accessible; `room-secret` inaccessible). Real Nextcloud loads app resource providers dynamically; this slice models the OCS contract only.
 
+### Slice 13 — teams API (done)
+
+OCS Teams resource listing (`/ocs/v2.php/teams/…`). Mixed auth. In-memory fixture teams only — no Circles app HTTP.
+
+- `GET /ocs/v2.php/teams/resources/{providerId}/{resourceId}` — list teams sharing a resource (+ nested `resources[]` per team)
+- `GET /ocs/v2.php/teams/{teamId}/resources` — list all resources shared with one team
+
+Parity registers fixture provider `parity-deck` with board `board-1` shared to teams `parity-team-alpha` / `parity-team-beta` (admin member). Unknown provider → **500** OCS 996 (`No provider found for id …`). Unknown team or non-member → **200** with empty `resources[]` (not 404). Real Nextcloud uses Circles + app `ITeamResourceProvider` registrations; this slice models the OCS contract only.
+
 ## Non-scope (later core sub-slices)
 
 | Sub-slice | Endpoint ids (prefix / theme) |
 | --- | --- |
-| **core-teams** | `core-teams_api-*` |
 | **core-misc** | `provisioning_api-users-search-by-phone-numbers` (owned by map under `core`) |
 
 Well-known **ocm/caldav/carddav** belong to `cloud_federation_api` / `dav`, not this feature.
@@ -303,6 +311,11 @@ Slice 12:
 - `core-collaboration_resources-create-collection-on-resource`
 - `core-collaboration_resources-get-collections-by-resource`
 
+Slice 13:
+
+- `core-teams_api-list-teams`
+- `core-teams_api-resolve-one`
+
 ## Auth model
 
 | Route | Auth |
@@ -323,6 +336,7 @@ Slice 12:
 | Two-factor admin API | `mixed` — session or Basic; **admin only** — non-admin → **403** `Logged in account must be an admin` |
 | Device wipe HTTP | `@PublicPage` — token in JSON body; no session required; invalid/unknown/non-pending token → **404** `[]` |
 | Collaboration resources | `mixed` — session or Basic; unauthenticated → **401** OCS 997 |
+| Teams API | `mixed` — session or Basic; unauthenticated → **401** OCS 997 |
 
 Unauthenticated OCS calls → v2 HTTP **401**, `ocs.meta.statuscode` **997**, empty `data` (except `@PublicPage` routes above).
 
@@ -371,9 +385,9 @@ src/server/
     store.ts                   # in-memory wipe-pending flags on app-password tokens
     api.ts                     # wipe/check + wipe/success handlers
   collaboration-resources/
-    catalog.ts                 # parity-room fixture resources + provider toggle
-    store.ts                   # in-memory collections, known resources, access cache
-    api.ts                     # collaboration/resources/* handlers
+    catalog.ts                 # parity-deck fixture provider + team membership
+    store.ts                   # listTeamsForResource + resolveTeamResources
+    api.ts                     # teams/* handlers
   fixtures/
     binary.ts                  # deterministic PNG bytes (no real photos)
   http/
@@ -440,6 +454,8 @@ app/
   ocs/v2.php/collaboration/resources/collections/search/[filter]/route.ts
   ocs/v2.php/collaboration/resources/collections/[collectionId]/route.ts
   ocs/v2.php/collaboration/resources/[resourceType]/[resourceId]/route.ts
+  ocs/v2.php/teams/resources/[providerId]/[resourceId]/route.ts
+  ocs/v2.php/teams/[teamId]/resources/route.ts
 ```
 
 Config:
@@ -457,6 +473,7 @@ Config:
 | `NC_PARITY_TRANSLATION_PROVIDER` | `true` | Toggle translation catalog + translate provider |
 | `NC_PARITY_TWO_FACTOR_PROVIDER` | `true` | Toggle fixture provider `parity-totp` |
 | `NC_PARITY_COLLABORATION_PROVIDER` | `true` | Toggle fixture resource type `parity-room` |
+| `NC_PARITY_TEAMS_PROVIDER` | `true` | Toggle fixture team provider `parity-deck` |
 
 ## Traps
 
@@ -532,6 +549,12 @@ Config:
 - `removeResource` requires resource in known-resources registry (must have been added to a collection before)
 - Collection `resources[]` entries are provider rich objects (`type`, `id`, `name`, `link`) — OpenAPI `Resource` wrapper shape is not what PHP returns
 - Generated collection `id` is unstable — use `unstableIdPaths` in parity; seed mock store via `seedParityCollaborationCollection` for stateful cases
+- Teams unknown `providerId` → HTTP **500** OCS 996 with message `No provider found for id {providerId}` (PHP `RuntimeException`)
+- Teams unknown team or user not a member → HTTP **200** with empty `resources[]` — not 404
+- Teams `listTeams` nests per-team `resources[]` filtered to the requested `resourceId`; `resolveOne` returns all team resources (no resource filter)
+- Teams `link` is absolute contacts direct-circle URL; parity uses `/index.php/apps/contacts/direct/circle/{teamId}`
+- Teams resource `provider.icon` is inline SVG from fixture provider registration — not fetched over HTTP
+- `NC_PARITY_TEAMS_PROVIDER=false` disables team support → empty `teams[]` / `resources[]` (PHP `hasTeamSupport()` false), but unknown provider still throws when support enabled
 
 ## Parity extras
 
@@ -622,5 +645,10 @@ Config:
 | Validation | collaboration create | empty `name` → 400 `data: []` |
 | Validation | collaboration add/get-by-resource | inaccessible `parity-room` → 404 `data: []` |
 | Happy | collaboration create/list/search/rename/add/remove/get-by-resource | 200 collection payload; unstable `id` |
+| Auth failure | teams API | 401 OCS 997 |
+| Happy | teams list-teams | 200 `teams[]` with nested `resources[]` for `parity-deck/board-1` |
+| Validation | teams list-teams | unknown provider → 500 OCS 996; empty resource → `teams: []` |
+| Happy | teams resolve-one | 200 `resources[]` for member team |
+| Validation | teams resolve-one | non-member team → 200 empty `resources[]` |
 
 Without `LEGACY_BASE_URL`, parity uses `parity/legacy-mock/` fixtures (not waived).

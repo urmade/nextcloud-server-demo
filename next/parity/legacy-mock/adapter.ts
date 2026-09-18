@@ -16,6 +16,7 @@ import { handleTextProcessingMock } from './text-processing';
 import { handleTextToImageMock } from './text-to-image';
 import { handleTranslationMock } from './translation';
 import { handleCollaborationResourcesMock } from './collaboration-resources';
+import { handleTeamsMock } from './teams';
 import { handleTwoFactorMock } from './two-factor';
 import { handleUnifiedSearchMock } from './unified-search';
 import { handleWipeMock } from './wipe';
@@ -450,6 +451,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return collaborationResources;
 	}
 
+	const teams = await handleTeamsMock(pathname, search, options);
+
+	if (teams) {
+		return teams;
+	}
+
 	const wipe = await handleWipeMock(pathname, options);
 
 	if (wipe) {
@@ -539,7 +546,8 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 		|| pathname.startsWith('/ocs/v2.php/text2image/')
 		|| pathname.startsWith('/ocs/v2.php/translation/')
 		|| pathname.startsWith('/ocs/v2.php/twofactor/')
-		|| pathname.startsWith('/ocs/v2.php/collaboration/resources/')) {
+		|| pathname.startsWith('/ocs/v2.php/collaboration/resources/')
+		|| pathname.startsWith('/ocs/v2.php/teams/')) {
 		return true;
 	}
 

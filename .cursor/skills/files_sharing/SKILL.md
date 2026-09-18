@@ -151,6 +151,28 @@ A successful `authenticate` POST regenerates the session id and must persist bot
 - `accept` POST: CSRF required → **412**. Does not re-check recipient; `acceptShare` failure → **404 HTML**. Success → **303** to `files.viewcontroller.showFile` `fileid` (`/index.php/f/{fileid}`), not map 200.
 - Share id is full id (`ocinternal:{numericId}`).
 
+## External shares JSON (slice 6)
+
+Frontpage JSON over the same `External\Manager` as remote OCS. Soft-dep: use remote OCS for the same pending rows; different envelope and S2S gate.
+
+| id | Method | Path |
+| --- | --- | --- |
+| `files_sharing.ExternalShares#index` | GET | `/apps/files_sharing/api/externalShares` |
+| `files_sharing.ExternalShares#create.post` | POST | same (body `{id}`) |
+| `files_sharing.ExternalShares#destroy.delete` | DELETE | `/apps/files_sharing/api/externalShares/{id}` |
+| `files_sharing.ExternalShares#show` | GET | `/apps/files_sharing/api/externalShares/{id}` |
+| `files_sharing.ExternalShares#update.put` | PUT | same |
+
+### Auth / status
+
+- `#[NoAdminRequired]`, **no** `NoCSRFRequired`. Map `auth: session` is correct. Map success **200 html-or-json** and **401/404** are wrong.
+- CSRF on GET+POST+DELETE unless `requesttoken` or non-empty `OCS-APIRequest` header (request-level bypass, not OCS-only). Fail → **412** `{message}`. Unauth JSON → **401** `{message}`.
+- `@NoOutgoingFederatedSharingRequired` only: incoming S2S **must** be on; outgoing may be off. Else **405** JSON string `"Federated sharing not allowed"`.
+- Index: `JSONResponse(getOpenShares())` — `ExternalShare::jsonSerialize` (`parent` is string `'-1'`, not remote-OCS null). **200** JSON array.
+- Create: if found → `acceptShare`; **always** **200** `[]` even if missing. Missing `id` → **400** empty body.
+- Destroy: if found → `declineShare`; **always** **200** `[]`. Map **404** on create/destroy is wrong.
+- `show` / `update`: routes exist but no controller methods → **500**, not 200 share JSON.
+
 ## Implementation layout
 
 ```
@@ -165,6 +187,7 @@ src/server/files_sharing/
   deleted-share-api.ts
   external-share-store.ts
   remote-share-api.ts
+  external-shares-api.ts
   accept.ts
   public-link.ts
   public-session.ts
@@ -185,6 +208,8 @@ app/ocs/v2.php/apps/files_sharing/api/v1/
   remote_shares/pending/[id]/route.ts
   remote_shares/[id]/route.ts
 app/apps/files_sharing/accept/[shareId]/route.ts
+app/apps/files_sharing/api/externalShares/route.ts
+app/apps/files_sharing/api/externalShares/[id]/route.ts
 app/s/[token]/
   route.ts
   authenticate/[redirect]/route.ts
@@ -194,11 +219,13 @@ app/index.php/s/[token]/preview/route.ts
 parity/legacy-mock/files-sharing-ocs.ts
 parity/legacy-mock/files-sharing-public-link.ts
 parity/legacy-mock/files-sharing-accept.ts
+parity/legacy-mock/files-sharing-external-shares.ts
 parity/tests/files-sharing-share-ocs.parity.test.ts
 parity/tests/files-sharing-public-link.parity.test.ts
 parity/tests/files-sharing-deleted-ocs.parity.test.ts
 parity/tests/files-sharing-remote-ocs.parity.test.ts
 parity/tests/files-sharing-accept.parity.test.ts
+parity/tests/files-sharing-external-shares.parity.test.ts
 ```
 
 ## Parity notes
@@ -243,6 +270,14 @@ parity/tests/files-sharing-accept.parity.test.ts
 | `GET /accept/ocinternal:1` pending user share as alice | 200 HTML guest |
 | `POST /accept/{id}` no CSRF | 412 |
 | `POST /accept/ocinternal:1` success | 303 to `/index.php/f/{fileid}` |
+| `GET /externalShares` unauth JSON | 401 `{message}` |
+| `GET /externalShares` no CSRF | 412 `{message}` |
+| `GET /externalShares` incoming S2S off | 405 `"Federated sharing not allowed"` |
+| `GET /externalShares` pending share | 200 array, `parent: '-1'` string |
+| `POST /externalShares` unknown id | 200 `[]` |
+| `DELETE /externalShares/{id}` unknown id | 200 `[]` |
+| `GET /externalShares/{id}` missing method | 500 |
+| `PUT /externalShares/{id}` missing method | 500 |
 
 Reset files + sharing stores (and file-node id counters) in accept parity `beforeEach` via `resetParityFilesStores()` + `resetParityShareStores()`. Seed a pending user share with admin `POST /shares` (`shareType: 0`, `shareWith: alice`), then exercise accept as `alice`.
 

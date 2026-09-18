@@ -13,6 +13,7 @@ import type { DavFileNode } from '@/src/server/dav/types';
 import type {
 	ExternalShareRecord,
 	FormattedDeletedShare,
+	FormattedExternalShare,
 	FormattedRemoteShare,
 	FormattedShare,
 	ShareRecord,
@@ -167,6 +168,28 @@ function tryResolveRemoteMountNode(userId: string, mountpoint: string): DavFileN
 	}
 
 	return findNodeByRelativePath(mountPath);
+}
+
+export function formatExternalShare(share: ExternalShareRecord): FormattedExternalShare {
+	return {
+		id: share.id,
+		parent: share.parent,
+		share_type: share.shareType,
+		remote: share.remote,
+		remote_id: share.remoteId,
+		refresh_token: share.refreshToken,
+		name: share.name,
+		owner: share.owner,
+		user: share.user,
+		mountpoint: share.mountpoint,
+		accepted: share.accepted,
+		file_id: null,
+		mimetype: null,
+		permissions: null,
+		mtime: null,
+		type: null,
+		item_size: null,
+	};
 }
 
 export function formatRemoteShare(share: ExternalShareRecord, userId: string): FormattedRemoteShare {

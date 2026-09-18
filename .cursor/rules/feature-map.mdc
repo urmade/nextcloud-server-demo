@@ -14,9 +14,9 @@ alwaysApply: true
 One row per sliceable domain. `feature_id` equals endpoint-map `feature_ids[]` entries.
 First `feature_ids` value on an endpoint owns that row.
 Skill path is created when that slice starts (slice-workflow step 1), except `core-status` which already exists.
-Status is `inventoried` until a slice moves it. Features: 32. Endpoints: 548. `parity: tested`: 179.
+Status is `inventoried` until a slice moves it. Features: 32. Endpoints: 548. `parity: tested`: 184.
 
-Locked implementation: `files-sharing-accept` on `cursor/files-sharing-accept-e1af` from remote-ocs harvest `9810e95`. Two endpoints tested: Accept#showAccept, Accept#accept.post.
+Locked implementation: `files-sharing-external-shares` on `cursor/files-sharing-external-shares-e1af` from accept harvest `8a0fb2c`. Five endpoints tested: ExternalShares index/create/destroy/show/update.
 
 Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then **core-login** (session/login/CSRF).
 

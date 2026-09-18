@@ -10683,19 +10683,26 @@ endpoints:
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: json-array
+      content_type: application/json
     errors:
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: json-message
+      content_type: application/json
+    - status: 405
+      shape: json-string
+      content_type: application/json
+    - status: 412
+      shape: json-message
+      content_type: application/json
+  status: parity
+  parity: tested
+  next_path: /apps/files_sharing/api/externalShares
+  next_handler: src/server/files_sharing/external-shares-api.ts
+  parity_test: next/parity/tests/files-sharing-external-shares.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Frontpage JSON over External\Manager pending shares. CSRF on GET unless requesttoken or OCS-APIRequest. Incoming S2S must be on else 405 JSON string. parent is string -1, not remote-OCS null. Map 200 html-or-json and 404 were wrong.
 - id: files_sharing.ExternalShares#create.post
   feature_ids:
   - files_sharing
@@ -10712,19 +10719,28 @@ endpoints:
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: json-empty-array
+      content_type: application/json
     errors:
+    - status: 400
+      shape: empty
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: json-message
+      content_type: application/json
+    - status: 405
+      shape: json-string
+      content_type: application/json
+    - status: 412
+      shape: json-message
+      content_type: application/json
+  status: parity
+  parity: tested
+  next_path: /apps/files_sharing/api/externalShares
+  next_handler: src/server/files_sharing/external-shares-api.ts
+  parity_test: next/parity/tests/files-sharing-external-shares.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: POST collection body id accepts pending share. Always 200 [] even if missing. Missing id TypeError is 400 empty. Map 404 was wrong.
 - id: files_sharing.ExternalShares#destroy.delete
   feature_ids:
   - files_sharing
@@ -10742,19 +10758,26 @@ endpoints:
   response:
     success:
       status: 200
-      shape: html-or-json
+      shape: json-empty-array
+      content_type: application/json
     errors:
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: json-message
+      content_type: application/json
+    - status: 405
+      shape: json-string
+      content_type: application/json
+    - status: 412
+      shape: json-message
+      content_type: application/json
+  status: parity
+  parity: tested
+  next_path: /apps/files_sharing/api/externalShares/{id}
+  next_handler: src/server/files_sharing/external-shares-api.ts
+  parity_test: next/parity/tests/files-sharing-external-shares.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Declines pending share when found. Always 200 [] even if missing. Map 404 was wrong.
 - id: files_sharing.ExternalShares#show
   feature_ids:
   - files_sharing
@@ -10771,20 +10794,28 @@ endpoints:
     body: null
   response:
     success:
-      status: 200
-      shape: html-or-json
+      status: 500
+      shape: empty
     errors:
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: json-message
+      content_type: application/json
+    - status: 405
+      shape: json-string
+      content_type: application/json
+    - status: 412
+      shape: json-message
+      content_type: application/json
+    - status: 500
+      shape: empty
+  status: parity
+  parity: tested
+  next_path: /apps/files_sharing/api/externalShares/{id}
+  next_handler: src/server/files_sharing/external-shares-api.ts
+  parity_test: next/parity/tests/files-sharing-external-shares.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Route exists but controller has no show method. ReflectionMethod failure is 500, not 200 share JSON. Map success 200 html-or-json and 404 were wrong.
 - id: files_sharing.ExternalShares#update.put
   feature_ids:
   - files_sharing
@@ -10801,20 +10832,28 @@ endpoints:
     body: controller-specific
   response:
     success:
-      status: 200
-      shape: html-or-json
+      status: 500
+      shape: empty
     errors:
     - status: 401
-      shape: login-or-json
-    - status: 404
-      shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+      shape: json-message
+      content_type: application/json
+    - status: 405
+      shape: json-string
+      content_type: application/json
+    - status: 412
+      shape: json-message
+      content_type: application/json
+    - status: 500
+      shape: empty
+  status: parity
+  parity: tested
+  next_path: /apps/files_sharing/api/externalShares/{id}
+  next_handler: src/server/files_sharing/external-shares-api.ts
+  parity_test: next/parity/tests/files-sharing-external-shares.parity.test.ts
   waiver_reason: null
   waiver_owner: null
+  notes: Route exists but controller has no update method. ReflectionMethod failure is 500, not 200. Map success 200 html-or-json and 404 were wrong.
 - id: files_sharing.PublicPreview#getPreview
   feature_ids:
   - files_sharing

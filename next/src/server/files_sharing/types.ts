@@ -135,6 +135,26 @@ export interface ExternalShareRecord {
 	accepted: number;
 }
 
+export interface FormattedExternalShare {
+	id: string;
+	parent: string;
+	share_type: number;
+	remote: string;
+	remote_id: string;
+	refresh_token: string;
+	name: string;
+	owner: string;
+	user: string;
+	mountpoint: string;
+	accepted: number;
+	file_id: null;
+	mimetype: null;
+	permissions: null;
+	mtime: null;
+	type: null;
+	item_size: null;
+}
+
 export interface FormattedRemoteShare {
 	id: string;
 	parent: string | null;

@@ -1,4 +1,5 @@
 import { isUserInGroup } from '@/src/server/config/groups';
+import { resetFilesSharingConfig } from './config';
 import {
 	SHARE_STATUS_ACCEPTED,
 	SHARE_STATUS_PENDING,
@@ -13,6 +14,7 @@ const externalShares: ExternalShareRecord[] = [];
 export function resetExternalShareStore(): void {
 	nextExternalShareId = 1;
 	externalShares.length = 0;
+	resetFilesSharingConfig();
 }
 
 export function seedParityExternalShare(input: Omit<ExternalShareRecord, 'id'> & { id?: string }): ExternalShareRecord {

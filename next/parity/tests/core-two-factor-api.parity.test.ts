@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { SESSION_COOKIE } from '@/src/server/auth/cookies';
-import { resetTwoFactorStore } from '@/src/server/two-factor/store';
 import { compareParityResponses, snapshotResponse } from '../compare';
 import { formatParityMismatches, runParityCase } from '../harness';
+import { resetParityAuthStores } from '../helpers/auth';
 import { fetchLegacyMockSnapshot } from '../legacy-mock/adapter';
 import {
 	expireTwoFactorPasswordConfirmation,
@@ -28,8 +28,8 @@ const DISABLE_BODY = {
 };
 
 describe('parity: core two-factor API', () => {
-	afterEach(() => {
-		resetTwoFactorStore();
+	afterEach(async () => {
+		await resetParityAuthStores();
 	});
 
 	it('GET /ocs/v2.php/twofactor/state requires auth (401)', async () => {

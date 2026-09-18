@@ -12,6 +12,8 @@ import {
 } from '../helpers/session';
 import { storeAppPasswordToken } from '@/src/server/ocs/app-password-store';
 
+const PARITY_CLIENT_HOST = 'cloud.example.test';
+
 function normalizeLocation(location: string | null): string | null {
 	if (!location) {
 		return null;
@@ -24,6 +26,35 @@ function normalizeLocation(location: string | null): string | null {
 	} catch {
 		return location;
 	}
+}
+
+function parityClientHeaders(extra: Record<string, string> = {}): Record<string, string> {
+	return {
+		host: PARITY_CLIENT_HOST,
+		'x-forwarded-host': PARITY_CLIENT_HOST,
+		'x-forwarded-proto': 'https',
+		...extra,
+	};
+}
+
+function expectedClientOrigin(headers: Record<string, string> = parityClientHeaders()): string {
+	const host = headers['x-forwarded-host'] ?? headers.host ?? '127.0.0.1:3100';
+	const proto = headers['x-forwarded-proto'] ?? 'http';
+
+	return `${proto}://${host}`;
+}
+
+function expectLocationMatches(
+	location: string | null,
+	expectedOrigin: string,
+	expectedPath: string,
+): void {
+	expect(location).toBeTruthy();
+
+	const url = new URL(location ?? '');
+
+	expect(url.origin).toBe(expectedOrigin);
+	expect(`${url.pathname}${url.search}`).toBe(expectedPath);
 }
 
 function toFetchUrl(baseUrl: string, absoluteOrRelative: string): string {
@@ -186,18 +217,24 @@ describe('parity: core-login-v2-html', () => {
 
 	it('GET /login/v2/flow/{token} valid token redirects to /login/v2/flow (core.ClientFlowLoginV2#landing)', async () => {
 		const env = getParityEnv();
+		const clientHeaders = parityClientHeaders();
+		const expectedOrigin = expectedClientOrigin(clientHeaders);
 		const { loginUrl } = await initLoginFlow(env.newBaseUrl);
 		const legacy = await initLegacyLoginFlow();
 
 		const newResponse = await fetch(toFetchUrl(env.newBaseUrl, loginUrl), {
 			redirect: 'manual',
+			headers: clientHeaders,
 		});
-		const legacyLanding = await fetchLegacyMockSnapshot(legacy.loginPath, { method: 'GET' });
+		const legacyLanding = await fetchLegacyMockSnapshot(legacy.loginPath, {
+			method: 'GET',
+			headers: clientHeaders,
+		});
 
 		expect(newResponse.status).toBe(303);
 		expect(legacyLanding.status).toBe(303);
-		expect(normalizeLocation(newResponse.headers.get('location'))).toBe('/login/v2/flow');
-		expect(normalizeLocation(legacyLanding.headers.location ?? null)).toBe('/login/v2/flow');
+		expectLocationMatches(newResponse.headers.get('location'), expectedOrigin, '/login/v2/flow');
+		expectLocationMatches(legacyLanding.headers.location ?? null, expectedOrigin, '/login/v2/flow');
 	});
 
 	it('GET /login/v2/grant missing state returns 403 HTML when logged in (core.ClientFlowLoginV2#grantPage)', async () => {
@@ -231,14 +268,14 @@ describe('parity: core-login-v2-html', () => {
 
 	it('GET /login/v2/grant unauthenticated returns 303 login redirect (core.ClientFlowLoginV2#grantPage)', async () => {
 		const env = getParityEnv();
+		const clientHeaders = parityClientHeaders({ accept: 'text/html' });
+		const expectedOrigin = expectedClientOrigin(clientHeaders);
 
 		const result = await runParityCase({
 			name: 'login-v2-grant-get-unauth',
 			path: '/login/v2/grant?stateToken=missing',
 			options: {
-				headers: {
-					accept: 'text/html',
-				},
+				headers: clientHeaders,
 			},
 			compare: {
 				contractHeaders: ['location'],
@@ -246,16 +283,21 @@ describe('parity: core-login-v2-html', () => {
 			},
 		});
 
-		const response = await fetch(`${env.newBaseUrl}/login/v2/grant?stateToken=missing`, {
-			redirect: 'manual',
-			headers: {
-				accept: 'text/html',
-			},
-		});
+		const [response, legacy] = await Promise.all([
+			fetch(`${env.newBaseUrl}/login/v2/grant?stateToken=missing`, {
+				redirect: 'manual',
+				headers: clientHeaders,
+			}),
+			fetchLegacyMockSnapshot('/login/v2/grant?stateToken=missing', {
+				headers: clientHeaders,
+			}),
+		]);
 
 		expect(result.mismatches, formatParityMismatches(result.mismatches)).toEqual([]);
 		expect(response.status).toBe(303);
-		expect(normalizeLocation(response.headers.get('location'))).toContain('/login');
+		expect(legacy.status).toBe(303);
+		expectLocationMatches(response.headers.get('location'), expectedOrigin, '/login?redirect_url=%2Flogin%2Fv2%2Fgrant%3FstateToken%3Dmissing');
+		expectLocationMatches(legacy.headers.location ?? null, expectedOrigin, '/login?redirect_url=%2Flogin%2Fv2%2Fgrant%3FstateToken%3Dmissing');
 	});
 
 	it('POST /login/v2/apptoken without CSRF returns 412 (core.ClientFlowLoginV2#apptokenRedirect.post)', async () => {

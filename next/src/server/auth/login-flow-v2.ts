@@ -62,7 +62,7 @@ function acceptsHtml(request: Request): boolean {
 
 function buildLoginRedirect(request: Request, cookieHeaders: string[] = []): Response {
 	const requestUrl = new URL(request.url);
-	const loginUrl = new URL('/login', requestUrl.origin);
+	const loginUrl = new URL('/login', getRequestOrigin(request));
 	loginUrl.searchParams.set('redirect_url', `${requestUrl.pathname}${requestUrl.search}`);
 
 	return redirectResponse(loginUrl.toString(), cookieHeaders);
@@ -100,41 +100,43 @@ function generateStateToken(): string {
 	return token;
 }
 
+/**
+ * PHP builds client-visible URLs from the request host, so the origin cannot come
+ * from `request.url`: Next.js reconstructs that from the address it is bound to and
+ * reports `localhost` whatever the client asked for.
+ */
+function getRequestOrigin(request: Request): string {
+	const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '127.0.0.1:3100';
+	const proto = request.headers.get('x-forwarded-proto') ?? 'http';
+
+	return `${proto}://${host}`;
+}
+
 function getServerPath(request: Request): string {
-	const url = new URL(request.url);
-	const pathname = url.pathname;
+	const { pathname } = new URL(request.url);
+	const origin = getRequestOrigin(request);
 
 	if (pathname.includes('/index.php')) {
-		return `${url.origin}${pathname.slice(0, pathname.indexOf('/index.php'))}`;
+		return `${origin}${pathname.slice(0, pathname.indexOf('/index.php'))}`;
 	}
 
 	if (pathname.includes('/login/v2')) {
-		return `${url.origin}${pathname.slice(0, pathname.indexOf('/login/v2'))}`;
+		return `${origin}${pathname.slice(0, pathname.indexOf('/login/v2'))}`;
 	}
 
-	return url.origin;
+	return origin;
 }
 
 function buildPollEndpoint(request: Request): string {
-	const url = new URL(request.url);
-	url.pathname = '/login/v2/poll';
-	url.search = '';
-
-	return url.toString();
+	return new URL('/login/v2/poll', getRequestOrigin(request)).toString();
 }
 
 function buildLoginLandingUrl(request: Request, loginToken: string): string {
-	const url = new URL(request.url);
-	url.pathname = `/login/v2/flow/${loginToken}`;
-	url.search = '';
-
-	return url.toString();
+	return new URL(`/login/v2/flow/${loginToken}`, getRequestOrigin(request)).toString();
 }
 
 function buildGrantPageUrl(request: Request, stateToken: string, user = '', direct = 0): string {
-	const url = new URL(request.url);
-	url.pathname = '/login/v2/grant';
-	url.search = '';
+	const url = new URL('/login/v2/grant', getRequestOrigin(request));
 
 	if (user) {
 		url.searchParams.set('user', user);
@@ -296,8 +298,7 @@ export function handleLoginFlowV2Landing(
 	resolved.session.loginFlowV2Token = loginToken;
 	updateSession(resolved.session);
 
-	const url = new URL(request.url);
-	url.pathname = '/login/v2/flow';
+	const url = new URL('/login/v2/flow', getRequestOrigin(request));
 
 	if (user) {
 		url.searchParams.set('user', user);

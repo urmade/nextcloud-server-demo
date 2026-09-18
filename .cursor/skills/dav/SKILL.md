@@ -145,9 +145,20 @@ v1 webdav: user filesystem view; Basic + Bearer. v1 caldav/carddav: **Basic only
 
 `DirectController::getUrl(fileId, expirationTime=28800)`. `NoAdminRequired`. Requires `shareApiAllowLinks()`. File must exist in **caller** folder and be a `File`. `expirationTime` in `(0, 86400]`. `BeforeDirectFileDownloadEvent` may forbid. Returns `{url: absolute remote.php/direct/{token}}`. Errors: 403 links disabled / event; 404 missing; 400 expiry or not a file.
 
-### Invitations (public HTML)
+### Invitations (public HTML) — `dav-invitation-html` (`parity: tested`)
 
-`InvitationResponseController`: `PublicPage` + `NoCSRFRequired`. Token row + `expiration ≥ now`. accept/decline → guest templates `schedule-response-success` if iTIP `1.2` else error (+ optional organizer). `options` GET does **not** check DB. POST `partStat` ∈ `ACCEPTED|DECLINED|TENTATIVE`.
+Next.js: `src/server/dav/invitation-html.ts` + `invitation-html-store.ts`; routes `app/apps/dav/invitation/accept|decline|moreOptions/[token]/route.ts`.
+
+`InvitationResponseController`: `#[PublicPage]` + `#[NoCSRFRequired]` + `#[OpenAPI(IGNORE)]`. Map `auth: session` and documented **401/404 are lies** — no login, no JSON 404. Always **200 HTML** guest templates.
+
+| Step | Method | Path | Notes |
+| --- | --- | --- | --- |
+| Accept | GET | `/apps/dav/invitation/accept/{token}` | Token in `calendar_invitations`, `expiration ≥ now`. iTIP status `1.2` → `schedule-response-success`; else `schedule-response-error` (+ optional `organizer` link). Bad/expired token → error template **200**. |
+| Decline | GET | `/apps/dav/invitation/decline/{token}` | Same as accept with `DECLINED`. |
+| Options | GET | `/apps/dav/invitation/moreOptions/{token}` | **No DB lookup** — always **200** `schedule-response-options` even for junk tokens. |
+| More options | POST | same | Body/query `partStat` ∈ `ACCEPTED\|DECLINED\|TENTATIVE`. No CSRF. Bad token or bad `partStat` → error template **200**. |
+
+Parity extras (`next/parity/tests/dav-invitation-html.parity.test.ts`): anon GET accept 200 HTML; junk token 200 error template (not 404); options junk token 200; POST no CSRF still 200. Assert `data-template` markers, not pixels.
 
 ### Out of office — `dav-out-of-office` (`parity: tested`)
 
@@ -276,6 +287,8 @@ src/server/dav/
   ocs-ooo.ts
   cal-ocs.ts
   cal-ocs-store.ts
+  invitation-html.ts
+  invitation-html-store.ts
 app/remote.php/[...path]/route.ts     # method-agnostic
 app/.well-known/caldav/route.ts
 app/.well-known/carddav/route.ts
@@ -301,7 +314,9 @@ First files PROPFIND slice **landed** `bp-dav-xml-normalize` (infoset, ignore pr
 | Cal OCS unauth | upcoming/pending GET | OCS 401/997 |
 | Cal OCS accept/decline anon | federated pending/{id} | OCS 404 null (not 401) |
 | Federated accept wrong id | pending/{id} | OCS 404 null |
-| Invitation bad token | accept | error HTML template |
+| Invitation bad token | accept | error HTML template 200 (not 404) |
+| Invitation options junk token | options | options HTML template 200 |
+| Invitation POST no CSRF | processMoreOptions | 200 HTML |
 | Upload chunk | `dav.Collection#uploads` | MKCOL → PUT parts → MOVE `.file`; wrong uid **403**; see `bp-dav-upload-chunk-assemble` |
 
 Chunked upload may be `parity: waived` only with reason + owner if this slice has no storage. Do not silently skip.

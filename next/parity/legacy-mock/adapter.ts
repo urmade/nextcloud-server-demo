@@ -33,6 +33,7 @@ import { handleDavMock, isDavMockMethod } from './dav';
 import { handleDavDirectMock, isDavDirectMockPath } from './dav-direct';
 import { handleDavOutOfOfficeMock, isDavOutOfOfficeMockPath } from './dav-out-of-office';
 import { handleDavCalOcsMock, isDavCalOcsMockPath } from './dav-cal-ocs';
+import { handleDavInvitationHtmlMock, isDavInvitationHtmlMockPath } from './dav-invitation-html';
 import { handleFilesApiMock, isFilesApiPath, isFilesApiWritePath } from './files';
 import { handleFilesDirectEditingMock, isFilesDirectEditingMockPath } from './files-direct-editing';
 import { handleFilesFilenamesMock, isFilesFilenamesMockPath } from './files-filenames';
@@ -442,6 +443,12 @@ export async function fetchLegacyMockSnapshot(fullPath: string, options: ParityR
 		return davCalOcs;
 	}
 
+	const davInvitationHtml = await handleDavInvitationHtmlMock(pathname, search, options);
+
+	if (davInvitationHtml) {
+		return davInvitationHtml;
+	}
+
 	const filesApi = await handleFilesApiMock(fullPath, options);
 
 	if (filesApi) {
@@ -811,6 +818,10 @@ export function hasLegacyMockFixture(pathname: string, method = 'GET'): boolean 
 	}
 
 	if (isDavCalOcsMockPath(pathname)) {
+		return true;
+	}
+
+	if (isDavInvitationHtmlMockPath(pathname, normalizedMethod)) {
 		return true;
 	}
 

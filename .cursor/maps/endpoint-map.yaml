@@ -5932,11 +5932,11 @@ endpoints:
       shape: login-or-json
     - status: 404
       shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: implemented
+  parity: tested
+  next_path: /apps/dav/invitation/accept/{token}
+  next_handler: src/server/dav/invitation-html.ts
+  parity_test: next/parity/tests/dav-invitation-html.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: dav.invitation_response#decline
@@ -5962,11 +5962,11 @@ endpoints:
       shape: login-or-json
     - status: 404
       shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: implemented
+  parity: tested
+  next_path: /apps/dav/invitation/decline/{token}
+  next_handler: src/server/dav/invitation-html.ts
+  parity_test: next/parity/tests/dav-invitation-html.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: dav.invitation_response#options
@@ -5992,11 +5992,11 @@ endpoints:
       shape: login-or-json
     - status: 404
       shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: implemented
+  parity: tested
+  next_path: /apps/dav/invitation/moreOptions/{token}
+  next_handler: src/server/dav/invitation-html.ts
+  parity_test: next/parity/tests/dav-invitation-html.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: dav.invitation_response#processMoreOptionsResult.post
@@ -6022,11 +6022,11 @@ endpoints:
       shape: login-or-json
     - status: 404
       shape: not-found
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: implemented
+  parity: tested
+  next_path: /apps/dav/invitation/moreOptions/{token}
+  next_handler: src/server/dav/invitation-html.ts
+  parity_test: next/parity/tests/dav-invitation-html.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: dav-direct-get-url

@@ -1,0 +1,43 @@
+{
+  "version": 2,
+  "services": {
+    "PRIVATE_DATA": {
+      "version": 1,
+      "endpoints": {
+        "store": "/ocs/v2.php/privatedata/setattribute",
+        "read": "/ocs/v2.php/privatedata/getattribute",
+        "delete": "/ocs/v2.php/privatedata/deleteattribute"
+      }
+    },
+    "SHARING": {
+      "version": 1,
+      "endpoints": {
+        "share": "/ocs/v2.php/apps/files_sharing/api/v1/shares"
+      }
+    },
+    "FEDERATED_SHARING": {
+      "version": 1,
+      "endpoints": {
+        "share": "/ocs/v2.php/cloud/shares",
+        "webdav": "/public.php/webdav/",
+        "shared-secret": "/ocs/v2.php/cloud/shared-secret",
+        "system-address-book": "/remote.php/dav/addressbooks/system/system/system",
+        "carddav-user": "system"
+      }
+    },
+    "ACTIVITY": {
+      "version": 1,
+      "endpoints": {
+        "list": "/ocs/v2.php/cloud/activity"
+      }
+    },
+    "PROVISIONING": {
+      "version": 1,
+      "endpoints": {
+        "user": "/ocs/v2.php/cloud/users",
+        "groups": "/ocs/v2.php/cloud/groups",
+        "apps": "/ocs/v2.php/cloud/apps"
+      }
+    }
+  }
+}

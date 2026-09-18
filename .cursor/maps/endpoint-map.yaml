@@ -787,16 +787,16 @@ endpoints:
     body: null
   response:
     success:
-      status: 200
-      shape: 302 personal-security
+      status: 303
+      shape: redirect personal-security settings
     errors:
     - status: 404
       shape: not-supported
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /.well-known/change-password
+  next_handler: app/well-known/change-password/route.ts
+  parity_test: next/parity/tests/core-platform.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: core.WellKnown#handle.security-txt
@@ -820,11 +820,11 @@ endpoints:
     errors:
     - status: 404
       shape: not-supported
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /.well-known/security.txt
+  next_handler: app/well-known/security.txt/route.ts
+  parity_test: next/parity/tests/core-platform.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: core-guest_avatar-get-avatar
@@ -1206,11 +1206,11 @@ endpoints:
       content_type: application/json
       shape: service-catalog
     errors: []
-  status: discovered
-  parity: pending
-  next_path: null
-  next_handler: null
-  parity_test: null
+  status: parity
+  parity: tested
+  next_path: /ocs-provider/
+  next_handler: app/ocs-provider/route.ts
+  parity_test: next/parity/tests/core-platform.parity.test.ts
   waiver_reason: null
   waiver_owner: null
 - id: provisioning_api-users-search-by-phone-numbers
@@ -1802,12 +1802,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/core/autocomplete/get
+  next_handler: app/ocs/v2.php/core/autocomplete/get/route.ts
+  parity_test: next/parity/tests/core-platform.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -1936,12 +1936,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/core/navigation/apps
+  next_handler: app/ocs/v2.php/core/navigation/apps/route.ts
+  parity_test: next/parity/tests/core-platform.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -1978,12 +1978,12 @@ endpoints:
           meta: OCSMeta
           data: any
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/core/navigation/settings
+  next_handler: app/ocs/v2.php/core/navigation/settings/route.ts
+  parity_test: next/parity/tests/core-platform.parity.test.ts
   waiver_reason: null
   waiver_owner: null
   notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
@@ -2025,17 +2025,17 @@ endpoints:
       shape:
         ocs:
           meta: OCSMeta
-          data: any
+          data: empty-array
       content_type: application/json
-  status: discovered
-  parity: pending
+  status: parity
+  parity: tested
   ocs_version: both
-  next_path: null
-  next_handler: null
-  parity_test: null
+  next_path: /ocs/v2.php/hovercard/v1/{userId}
+  next_handler: app/ocs/v2.php/hovercard/v1/[userId]/route.ts
+  parity_test: next/parity/tests/core-platform.parity.test.ts
   waiver_reason: null
   waiver_owner: null
-  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical.
+  notes: Identical AppFramework route on ocs/v1.php and ocs/v2.php; v2 path is canonical. 404 uses HTTP 404 with data [].
 - id: core-reference_api-extract
   feature_ids:
   - core

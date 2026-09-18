@@ -26,6 +26,7 @@ async function fetchHttpSnapshot(baseUrl: string, path: string, options: ParityR
 		method: options.method ?? 'GET',
 		headers: options.headers,
 		body: options.body,
+		redirect: 'manual',
 	});
 
 	const rawBody = await response.text();
@@ -37,7 +38,7 @@ async function fetchLegacySnapshot(path: string, options: ParityRequestOptions =
 	const env = getParityEnv();
 
 	if (env.legacyUsesMock && hasLegacyMockFixture(pathOnly(path), options.method ?? 'GET')) {
-		return fetchLegacyMockSnapshot(pathOnly(path), options);
+		return fetchLegacyMockSnapshot(path, options);
 	}
 
 	return fetchHttpSnapshot(env.legacyBaseUrl, path, options);

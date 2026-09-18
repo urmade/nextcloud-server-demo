@@ -1,0 +1,46 @@
+{
+  "ocs": {
+    "meta": {
+      "status": "ok",
+      "statuscode": 200,
+      "message": "OK"
+    },
+    "data": [
+      {
+        "id": "files",
+        "href": "/index.php/apps/files/",
+        "icon": "/apps/files/img/app.svg",
+        "type": "link",
+        "name": "Files",
+        "active": false,
+        "classes": "",
+        "unread": 0,
+        "order": 0,
+        "app": "files"
+      },
+      {
+        "id": "photos",
+        "href": "/index.php/apps/photos/",
+        "icon": "/apps/photos/img/app.svg",
+        "type": "link",
+        "name": "Photos",
+        "active": false,
+        "classes": "",
+        "unread": 0,
+        "order": 1,
+        "app": "photos"
+      },
+      {
+        "id": "logout",
+        "href": "/index.php/logout?requesttoken=mock-token",
+        "icon": "/core/img/actions/logout.svg",
+        "type": "link",
+        "name": "Log out",
+        "active": false,
+        "classes": "",
+        "unread": 0,
+        "order": 100
+      }
+    ]
+  }
+}

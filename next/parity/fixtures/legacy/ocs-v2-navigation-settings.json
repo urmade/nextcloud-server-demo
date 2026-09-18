@@ -1,0 +1,33 @@
+{
+  "ocs": {
+    "meta": {
+      "status": "ok",
+      "statuscode": 200,
+      "message": "OK"
+    },
+    "data": [
+      {
+        "id": "settings",
+        "href": "/index.php/settings/user",
+        "icon": "/core/img/settings.svg",
+        "type": "settings",
+        "name": "Personal settings",
+        "active": false,
+        "classes": "",
+        "unread": 0,
+        "order": 0
+      },
+      {
+        "id": "settings_admin",
+        "href": "/index.php/settings/admin",
+        "icon": "/core/img/settings.svg",
+        "type": "settings",
+        "name": "Administration settings",
+        "active": false,
+        "classes": "",
+        "unread": 0,
+        "order": 1
+      }
+    ]
+  }
+}

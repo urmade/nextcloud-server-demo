@@ -1,0 +1,20 @@
+{
+  "ocs": {
+    "meta": {
+      "status": "ok",
+      "statuscode": 200,
+      "message": "OK"
+    },
+    "data": [
+      {
+        "id": "alice",
+        "label": "Alice A.",
+        "icon": "",
+        "source": "users",
+        "status": "",
+        "subline": "",
+        "shareWithDisplayNameUnique": ""
+      }
+    ]
+  }
+}

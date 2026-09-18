@@ -1,0 +1,14 @@
+{
+  "ocs": {
+    "meta": {
+      "status": "ok",
+      "statuscode": 200,
+      "message": "OK"
+    },
+    "data": {
+      "userId": "admin",
+      "displayName": "Admin",
+      "actions": []
+    }
+  }
+}

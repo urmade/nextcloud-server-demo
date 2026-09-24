@@ -30,6 +30,7 @@ The Next.js app under test is a **separate process** from Vitest. Clearing an in
 - Keep independent HTTP sequences and cookie jars per side.
 - Seed **both** stores when a case depends on process-local state, and seed a **single-use** token once per store. `POST /login/flow` consumes `client.flow.state.token`, so the two sides must each hold their own copy; take the token from the HTTP side (it is minted there) and mirror it into the mock.
 - Drive the new side over **HTTP**, never by importing the handler and calling it in the Vitest process. That shares one session store with the mock, so whichever side runs first consumes the state and the other fails on it. The symptom is a 403 state-token mismatch against a legacy 303.
+- Server-side flags (`needsUpgrade`, `disableWeb`, mandatory 2FA, sharing toggles) must be set via those HTTP `set-*-config` routes. `vi.stubEnv` / mutating Vitest `process.env` never reaches the Next process — the first web-updater parity run went red for that reason.
 
 Existing resets:
 
@@ -48,14 +49,13 @@ Existing resets:
 | DAV invitation HTML tokens | `/api/parity/reset-dav-invitation-html-store` | `resetParityInvitationHtmlStores()` in `dav-invitation-html.parity.test.ts` |
 | DAV birthday calendar setting | `/api/parity/reset-dav-birthday-store` | `resetParityBirthdayStores()` in `dav-birthday.parity.test.ts` |
 | DAV principals store | `/api/parity/reset-dav-principals-store` | `resetParityPrincipalsStores()` in `dav-principals.parity.test.ts` |
-| DAV calendars store | `/api/parity/reset-dav-calendars-store` | `resetParityCalendarsStores()` in `dav-calendars.parity.test.ts`, `dav-legacy-caldav.parity.test.ts`, and `dav-cal-contacts-io.parity.test.ts`; seed via `/api/parity/seed-dav-calendars` |
+| DAV calendars store | `/api/parity/reset-dav-calendars-store` | `resetParityCalendarsStores()` in `dav-calendars.parity.test.ts`, `dav-legacy-caldav.parity.test.ts`, and `dav-cal-contacts-io.parity.test.ts`; seed fixture rows via `/api/parity/seed-dav-calendars` |
 | DAV addressbooks store | `/api/parity/reset-dav-addressbooks-store` | `resetParityAddressBooksStores()` in `dav-addressbooks.parity.test.ts`, `dav-legacy-carddav.parity.test.ts`, and `dav-cal-contacts-io.parity.test.ts`; seed via `/api/parity/seed-dav-addressbooks` |
 | DAV tree-extras store | `/api/parity/reset-dav-tree-extras-store` | `resetParityTreeExtrasStores()` in `dav-tree-extras.parity.test.ts` |
 | DAV example content store | `/api/parity/reset-dav-example-content-store` | `resetParityExampleContentStores()` in `dav-example-content.parity.test.ts` |
-| Provisioning user accounts | `/api/parity/reset-provisioning-store` | `resetParityProvisioningStores()` in `provisioning-self-read.parity.test.ts` and `provisioning-phone-search.parity.test.ts` |
-| Provisioning default phone region | `/api/parity/set-provisioning-config` | `setParityDefaultPhoneRegion(region)` in `provisioning-phone-search.parity.test.ts` |
+| Provisioning user accounts + known-users + config overrides + mail-verify tokens | `/api/parity/reset-provisioning-store` | `resetParityProvisioningStores()` in `provisioning-self-read.parity.test.ts`, `provisioning-phone-search.parity.test.ts`, `provisioning-preferences.parity.test.ts`, `provisioning-mail-verify.parity.test.ts`, and `provisioning-users-list.parity.test.ts` |
 
-`set-files-sharing-config` parity route toggles `incomingServer2ServerShareEnabled` (ExternalShares) and `outgoingServer2ServerShareEnabled` (ShareInfo) on both sides. `set-sharing-v1-config` toggles `sharing.unified_api_enable` on both sides — seed via `seedShareOnBothSides` after enable, or delete/get cases diverge across mock vs HTTP.
+`set-files-sharing-config` parity route toggles `incomingServer2ServerShareEnabled` (ExternalShares) and `outgoingServer2ServerShareEnabled` (ShareInfo) on both sides. `set-sharing-v1-config` toggles `sharing.unified_api_enable` on both sides — seed via `seedShareOnBothSides` after enable, or delete/get cases diverge across mock vs HTTP. `set-provisioning-config` toggles `default_phone_region` and `preferenceFixtureListener` on both sides via `/api/parity/set-provisioning-config`. Mail-verify parity seeds tokens via `/api/parity/seed-mail-verify` and removes fixture emails via `/api/parity/remove-provisioning-email`. Users-list seeds subadmin groups, delegated Users, disabled flag, and lastLogin via `/api/parity/seed-provisioning-users`.
 
 Mutating routes follow the same rules as the resets:
 
@@ -71,6 +71,7 @@ Mutating routes follow the same rules as the resets:
 - Reset only the mock.
 - Leave 2FA/session mutations in a file that runs immediately before `core-auth`.
 - Document the reset route on the product endpoint map.
+- Use `vi.stubEnv` (or Vitest `process.env`) to toggle Next.js server config. The app under test is another process; POST `/api/parity/set-*-config` instead.
 
 ## Suites that must reset auth
 

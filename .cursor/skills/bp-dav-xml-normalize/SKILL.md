@@ -47,6 +47,8 @@ compare: {
 
 Implementation: `parity/compare.ts` calls `normalizeDavXmlInfoset` when `davXmlBody` is set.
 
+Current helper is regex/flat-tag. Enough for files-home PROPFIND and Sabre error bodies. Do not treat it as nested CalDAV/CardDAV multistatus equality — use a real XML parser before those slices.
+
 ## Related
 
 - `parity-testing` — XML row in normalize-before-diff table

@@ -28,7 +28,7 @@ Cross-cutting. PHP Sabre upload home is **not** a second server — it is a pref
 
 - Unauthenticated → **401** Sabre `NotAuthenticated` + `WWW-Authenticate: Basic` (Basic path; Bearer-only may omit challenge — observe PHP).
 - `{userId}` must match authenticated UID → **403 Forbidden** (`Not allowed`). Unlike `files/{otherUid}`, uploads do **not** expose an empty foreign home.
-- `principals/shares/{token}` is allowed in PHP (share owner UID) — defer until a sharing slice needs it.
+- `principals/shares` is **public.php** only (`ServerFactory` prefix). Authenticated `remote.php/dav/uploads/{userId}` is `principals/users` — do not accept a share token as `{userId}` on this map row.
 
 ## v1 assemble (default in parity mock)
 

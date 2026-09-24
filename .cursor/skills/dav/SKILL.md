@@ -271,6 +271,8 @@ Next.js: `src/server/dav/addressbooks.ts` + `addressbooks-store.ts`; addressbook
 
 Parity extras (`next/parity/tests/dav-addressbooks.parity.test.ts`): unauth 401; own book PROPFIND 207; GET vcard 200; system book PROPFIND 207. Reset/seed via `resetParityAddressBooksStores()` → `/api/parity/reset-dav-addressbooks-store` and `/api/parity/seed-dav-addressbooks`.
 
+`middleware.ts` must route GET/HEAD **and** PROPFIND/PUT/REPORT for each new DAV prefix. Calendar GET-only matching left addressbooks PROPFIND on the App Router — first parity run went red for that.
+
 ### Legacy CardDAV — `dav-legacy-carddav` (`parity: tested`)
 
 Next.js: `src/server/dav/auth-legacy-carddav.ts` + legacy path parsing in `addressbooks.ts`; reuses `addressbooks-store`. v1 path `principals/users/{uid}/addressbooks/…` (not `dav/` prefix).
@@ -296,6 +298,21 @@ Next.js: `src/server/dav/cal-contacts-io.ts`; routes `app/ocs/v2.php/calendar/ex
 | Contacts import | POST | `/ocs/v2.php/contacts/import?format=json` | Same NDJSON contract. Default format `'ical'` as written (vcf-only importer → invalid format). Missing book → **400** `{error:…}`. |
 
 Parity extras (`next/parity/tests/dav-cal-contacts-io.parity.test.ts`): unauth 401/997; export missing calendar 400; import missing book 400; export 200 calendar content-type. Reset/seed via `resetParityCalendarsStores()` + `resetParityAddressBooksStores()`.
+
+### Tree extras — `dav-tree-extras` (`parity: tested`)
+
+Next.js: `src/server/dav/tree-extras.ts` + `tree-extras-store.ts`. Middleware must match GET/HEAD **and** PROPFIND/PUT/REPORT on every new prefix.
+
+| Prefix | Notes |
+| --- | --- |
+| `/remote.php/dav/avatars/` | Child `{size}.jpeg\|png`; size `(0,1024]` else **405**. No avatar **404**. GET **200** image. Map 207 is a lie for GET. |
+| `/remote.php/dav/comments/` | Unauth **401**. Types from `CommentsEntityEvent` (typically `files`). Unknown type 404. |
+| `/remote.php/dav/systemtags/` | Numeric id; invisible **404**; bad id **400**. |
+| `/remote.php/dav/systemtags-relations/` | Stock `files` + extras. Object id must exist in user folder for files. |
+| `/remote.php/dav/systemtags-assigned/` | Tags in use under user folder; no folder **403**. |
+| `/remote.php/dav/provisioning/` | `apple-provisioning.mobileconfig`. GET HTTPS **200** `application/xml`; HTTP **200** `text/plain`. Map 207 is a lie for GET. |
+
+DAV nodes only — not HTTP comments/systemtags/core avatars. Reset via `/api/parity/reset-dav-tree-extras-store`.
 
 ### Example content — `dav-example-content` (`parity: tested`)
 

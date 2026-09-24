@@ -14,9 +14,9 @@ alwaysApply: true
 One row per sliceable domain. `feature_id` equals endpoint-map `feature_ids[]` entries.
 First `feature_ids` value on an endpoint owns that row.
 Skill path is created when that slice starts (slice-workflow step 1), except `core-status` which already exists.
-Status is `inventoried` until a slice moves it. Features: 32. Endpoints: 548. `parity: tested`: 232.
+Status is `inventoried` until a slice moves it. Features: 32. Endpoints: 548. `parity: tested`: 300.
 
-Locked implementation: `files-sharing-public-dav` on `cursor/files-sharing-public-dav-e1af` from shareinfo harvest `527bd5c`. Two endpoints tested: dav.Public#tree and dav.Public#legacy-webdav.
+Implementation paused by Tobias until he says resume. Last landed: `provisioning-users-edit` on `cursor/provisioning-users-edit-e1af` at `8419203` (548 / 300). Next slice when resumed: `provisioning-users-groups`. DAV remaining is complete (56/56).
 
 Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then **core-login** (session/login/CSRF).
 
@@ -81,12 +81,12 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
 
 - feature_id: `core`
 - name: Core platform APIs
-- summary: Core HTTP/OCS after login — platform probes + avatars/previews done (slice 2). OCS queue including teams done (slice 13). Remaining: core-misc + HTML surfaces.
+- summary: Core HTTP/OCS after login — leftover YAML done through web-updater (slice 16). Phone-search rehomed to `provisioning_api`.
 - skill: `.cursor/skills/core/SKILL.md`
 - status: in-progress
 - depends_on:
   - `core-login`
-- endpoint_ids: (91)
+- endpoint_ids: (90)
   - `core.WellKnown#handle.change-password`
   - `core.WellKnown#handle.security-txt`
   - `core-guest_avatar-get-avatar`
@@ -100,7 +100,6 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
   - `core-wipe-check-wipe`
   - `core-wipe-wipe-done`
   - `core.ocs-provider#get`
-  - `provisioning_api-users-search-by-phone-numbers`
   - `core-collaboration_resources-search-collections`
   - `core-collaboration_resources-remove-resource`
   - `core-collaboration_resources-list-collection`
@@ -197,12 +196,12 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
 
 - feature_id: `provisioning_api`
 - name: Provisioning
-- summary: OCS users/groups/apps/config.
+- summary: OCS users/groups/apps/config. Self-read through users-lifecycle harvested (22/51).
 - skill: `.cursor/skills/provisioning_api/SKILL.md`
-- status: inventoried
+- status: in-progress
 - depends_on:
   - `core-login`
-- endpoint_ids: (50)
+- endpoint_ids: (51)
   - `provisioning_api.Verification#showVerifyMail`
   - `provisioning_api.Verification#verifyMail.post`
   - `provisioning_api-app_config-get-apps`
@@ -228,6 +227,7 @@ Recommended first slice: **core-status** (`/status.php` + OCS capabilities) then
   - `provisioning_api-groups-get-group-users`
   - `provisioning_api-groups-get-group-users-details`
   - `provisioning_api-users-get-current-user`
+  - `provisioning_api-users-search-by-phone-numbers`
   - `provisioning_api-users-get-enabled-apps`
   - `provisioning_api-users-get-editable-fields`
   - `provisioning_api-users-get-editable-fields-for-user`

@@ -390,6 +390,7 @@ Slice 16:
 | Contacts menu GET teams | `session` — unauthenticated → **401** JSON `{ message }` / 303 login |
 | OCS config / person check / identity proof | `@PublicPage` — unauthenticated **200** (not 401) |
 | OpenMetrics `/metrics` | `@PublicPage` — no session; IP allowlist only |
+- Web updater flags (`NC_NEEDS_DB_UPGRADE`, `NC_PARITY_UPGRADE_DISABLE_WEB`) must be toggled via HTTP `POST /api/parity/set-web-updater-config` (`setParityWebUpdaterConfig`). `vi.stubEnv` never reaches the Next process
 | Web updater `GET /ocs/v2.php/core/update` | `@PublicPage` — no session; SSE stream (map `auth: mixed` lie) |
 
 Unauthenticated OCS calls → v2 HTTP **401**, `ocs.meta.statuscode` **997**, empty `data` (except `@PublicPage` routes above).
@@ -646,8 +647,11 @@ Config:
 - `personCheck` success → `{ person: { personid: login } }`; skip brute-force throttle delay in parity
 - `getIdentityProof` `cloudId` is local uid; unknown → HTTP **404** with `data: ["Account not found"]` (list)
 - `/metrics` outside allowlist → **403** empty body (no JSON); success `application/openmetrics-text; version=1.0.0; charset=utf-8` with fixture family + `# EOF`
+- Web updater flags (`NC_NEEDS_DB_UPGRADE`, `NC_PARITY_UPGRADE_DISABLE_WEB`) must be toggled via HTTP `POST /api/parity/set-web-updater-config` (`setParityWebUpdaterConfig`). `vi.stubEnv` never reaches the Next process
 - Web updater response is **SSE** (`text/event-stream`), not OCS JSON — compare event types, not `ocs.data`
+- Web updater flags (`NC_NEEDS_DB_UPGRADE`, `NC_PARITY_UPGRADE_DISABLE_WEB`) must be toggled via HTTP `POST /api/parity/set-web-updater-config` (`setParityWebUpdaterConfig`). `vi.stubEnv` never reaches the Next process
 - Web updater `!needUpgrade()` → `success` “Preparing update”, `notice` “Already up to date”, `done`, then `__internal__` close
+- Web updater flags (`NC_NEEDS_DB_UPGRADE`, `NC_PARITY_UPGRADE_DISABLE_WEB`) must be toggled via HTTP `POST /api/parity/set-web-updater-config` (`setParityWebUpdaterConfig`). `vi.stubEnv` never reaches the Next process
 - Web updater `upgrade.disable-web` only applies when `needUpgrade()` is true — set `NC_NEEDS_DB_UPGRADE=true` in parity
 - Do not run real `Updater::upgrade()` or assert SQL/repair stream text in parity
 

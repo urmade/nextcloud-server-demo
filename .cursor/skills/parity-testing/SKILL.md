@@ -79,6 +79,8 @@ Add more cases only when the feature skill names extra contract (share permissio
 - Do not substitute unit tests of TS helpers for endpoint parity.
 - Fixtures: no real user PII, no production secrets.
 
+The Next.js server is a **separate process**. `beforeEach` that only clears Vitest/mock Maps will flake in the full suite. Reset server stores via parity-only HTTP (`NC_PARITY_EXAPP`); see `bp-parity-server-store-reset`. Independent cookie jars per side.
+
 `parity_test` path must be runnable in CI.
 
 ## Waivers

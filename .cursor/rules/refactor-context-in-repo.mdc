@@ -1,0 +1,25 @@
+---
+description: Commit Nextcloud refactor project context on the active branch, not only in the agent store.
+globs:
+alwaysApply: true
+---
+
+<!--
+ - SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+ - SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
+# Refactor context lives in git
+
+When you amend refactor project context, land it on the **active branch** in the same change set as the work that motivated it. Do not leave updates only in the Cursor Project agent store.
+
+Commit together with related work (or a dedicated docs commit on that branch):
+
+| Artifact | Repo path |
+| --- | --- |
+| Migration plan, project context, parity target | `docs/refactor/` |
+| Feature map | `.cursor/rules/feature-map.mdc` |
+| Endpoint map | `.cursor/maps/endpoint-map.yaml` |
+| Agent skills | `.cursor/skills/` |
+
+Implementation slices stay **paused** until Tobias says resume. Store-only scratch (`notes.md`, `internal/` harvests, worker transcripts) does not belong in the repo.

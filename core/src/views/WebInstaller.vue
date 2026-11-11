@@ -166,16 +166,6 @@
 						required />
 
 					<NcTextField
-						v-if="config.dbtype === 'oci'"
-						v-model="config.dbtablespace"
-						:label="t('core', 'Database tablespace')"
-						autocapitalize="none"
-						autocomplete="off"
-						data-cy-setup-form-field="dbtablespace"
-						name="dbtablespace"
-						spellcheck="false" />
-
-					<NcTextField
 						v-model="config.dbhost"
 						:helper-text="t('core', 'Please specify the port number along with the host name (e.g., localhost:5432).')"
 						:label="t('core', 'Database host')"

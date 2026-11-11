@@ -59,16 +59,6 @@ class MimeIconProvider implements IMimeIconProvider {
 	}
 
 	private function searchfileName(string $fileName): ?string {
-		// If the file exists in the current enabled legacy
-		// custom theme, let's return it
-		$theme = $this->config->getSystemValue('theme', '');
-		if (!empty($theme)) {
-			$path = "/themes/$theme/core/img/filetypes/$fileName.svg";
-			if (file_exists(\OC::$SERVERROOT . $path)) {
-				return $this->urlGenerator->getAbsoluteURL($path);
-			}
-		}
-
 		// Previously, we used to pass this through Theming
 		// But it was only used to colour icons containing
 		// 0082c9. Since with vue we moved to inline svg icons,

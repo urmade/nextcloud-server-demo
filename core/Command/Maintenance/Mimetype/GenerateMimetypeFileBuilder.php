@@ -41,37 +41,6 @@ class GenerateMimetypeFileBuilder {
 		$files = array_values(array_unique($files));
 		sort($files);
 
-		// Fetch all themes!
-		$themes = [];
-		$dirs = new \DirectoryIterator(\OC::$SERVERROOT . '/themes/');
-		foreach ($dirs as $dir) {
-			//Valid theme dir
-			if ($dir->isFile() || $dir->isDot()) {
-				continue;
-			}
-
-			$theme = $dir->getFilename();
-			$themeDir = $dir->getPath() . '/' . $theme . '/core/img/filetypes/';
-			// Check if this theme has its own filetype icons
-			if (!file_exists($themeDir)) {
-				continue;
-			}
-
-			$themes[$theme] = [];
-			// Fetch all the theme icons!
-			$themeIt = new \DirectoryIterator($themeDir);
-			foreach ($themeIt as $fileInfo) {
-				if ($fileInfo->isFile()) {
-					$file = preg_replace('/.[^.]*$/', '', $fileInfo->getFilename());
-					$themes[$theme][] = $file;
-				}
-			}
-
-			//Remove Duplicates
-			$themes[$theme] = array_values(array_unique($themes[$theme]));
-			sort($themes[$theme]);
-		}
-
 		$namesOutput = '';
 		foreach ($names as $key => $name) {
 			if (str_starts_with($key, '_') || trim($name) === '') {
@@ -93,7 +62,7 @@ class GenerateMimetypeFileBuilder {
 OC.MimeTypeList={
 	aliases: ' . json_encode($aliases, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . ',
 	files: ' . json_encode($files, JSON_PRETTY_PRINT) . ',
-	themes: ' . json_encode($themes, JSON_PRETTY_PRINT) . ',
+	themes: [],
 	names: {' . $namesOutput . '},
 };
 ';

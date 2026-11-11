@@ -67,7 +67,7 @@ abstract class Fetcher {
 	 * @return array{data: list<T>, ETag?: string, timestamp: int, ncversion: string}|array<never, never>
 	 */
 	protected function fetch($ETag, $content, $allowUnstable = false): array {
-		$appstoreEnabled = $this->config->getSystemValueBool('appstoreenabled', true);
+		$appstoreEnabled = $this->config->getSystemValueBool('appstoreenabled', false);
 		if ((int)$this->config->getAppValue('settings', 'appstore-fetcher-lastFailure', '0') > time() - self::RETRY_AFTER_FAILURE_SECONDS) {
 			return [];
 		}
@@ -129,7 +129,7 @@ abstract class Fetcher {
 	 * @return list<T>
 	 */
 	public function get($allowUnstable = false): array {
-		$appstoreEnabled = $this->config->getSystemValueBool('appstoreenabled', true);
+		$appstoreEnabled = $this->config->getSystemValueBool('appstoreenabled', false);
 		$internetAvailable = $this->config->getSystemValueBool('has_internet_connection', true);
 		$isDefaultAppStore = $this->config->getSystemValueString('appstoreurl', self::APP_STORE_URL) === self::APP_STORE_URL;
 

@@ -65,7 +65,7 @@ abstract class FetcherBase extends TestCase {
 				return $default;
 			});
 		$this->config->method('getSystemValueBool')
-			->willReturnArgument(1);
+			->willReturnCallback(fn (string $key, bool $default): bool => $key === 'appstoreenabled' ? true : $default);
 
 		$folder = $this->createMock(ISimpleFolder::class);
 		$file = $this->createMock(ISimpleFile::class);
@@ -108,7 +108,7 @@ abstract class FetcherBase extends TestCase {
 				return $default;
 			});
 		$this->config->method('getSystemValueBool')
-			->willReturnArgument(1);
+			->willReturnCallback(fn (string $key, bool $default): bool => $key === 'appstoreenabled' ? true : $default);
 
 		$folder = $this->createMock(ISimpleFolder::class);
 		$file = $this->createMock(ISimpleFile::class);
@@ -181,7 +181,7 @@ abstract class FetcherBase extends TestCase {
 				}
 			});
 		$this->config->method('getSystemValueBool')
-			->willReturnArgument(1);
+			->willReturnCallback(fn (string $key, bool $default): bool => $key === 'appstoreenabled' ? true : $default);
 
 		$folder = $this->createMock(ISimpleFolder::class);
 		$file = $this->createMock(ISimpleFile::class);
@@ -257,7 +257,7 @@ abstract class FetcherBase extends TestCase {
 				return $default;
 			});
 		$this->config->method('getSystemValueBool')
-			->willReturnArgument(1);
+			->willReturnCallback(fn (string $key, bool $default): bool => $key === 'appstoreenabled' ? true : $default);
 
 		$folder = $this->createMock(ISimpleFolder::class);
 		$file = $this->createMock(ISimpleFile::class);
@@ -330,7 +330,7 @@ abstract class FetcherBase extends TestCase {
 				return $default;
 			});
 		$this->config->method('getSystemValueBool')
-			->willReturnArgument(1);
+			->willReturnCallback(fn (string $key, bool $default): bool => $key === 'appstoreenabled' ? true : $default);
 
 		$folder = $this->createMock(ISimpleFolder::class);
 		$file = $this->createMock(ISimpleFile::class);
@@ -394,7 +394,7 @@ abstract class FetcherBase extends TestCase {
 		$this->config->method('getSystemValueString')
 			->willReturnArgument(1);
 		$this->config->method('getSystemValueBool')
-			->willReturnArgument(1);
+			->willReturnCallback(fn (string $key, bool $default): bool => $key === 'appstoreenabled' ? true : $default);
 
 		$folder = $this->createMock(ISimpleFolder::class);
 		$file = $this->createMock(ISimpleFile::class);
@@ -436,7 +436,7 @@ abstract class FetcherBase extends TestCase {
 				}
 			});
 		$this->config->method('getSystemValueBool')
-			->willReturnArgument(1);
+			->willReturnCallback(fn (string $key, bool $default): bool => $key === 'appstoreenabled' ? true : $default);
 
 		$this->config->method('getAppValue')
 			->willReturnMap([
@@ -521,7 +521,7 @@ abstract class FetcherBase extends TestCase {
 				}
 			});
 		$this->config->method('getSystemValueBool')
-			->willReturnArgument(1);
+			->willReturnCallback(fn (string $key, bool $default): bool => $key === 'appstoreenabled' ? true : $default);
 
 		$this->config->method('getAppValue')
 			->willReturnMap([
@@ -611,7 +611,7 @@ abstract class FetcherBase extends TestCase {
 				}
 			});
 		$this->config->method('getSystemValueBool')
-			->willReturnArgument(1);
+			->willReturnCallback(fn (string $key, bool $default): bool => $key === 'appstoreenabled' ? true : $default);
 
 		$this->config->method('getAppValue')
 			->willReturnMap([

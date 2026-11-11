@@ -137,7 +137,7 @@ class Installer {
 		foreach (\OC::$APPSROOTS as $dir) {
 			if (isset($dir['writable']) && $dir['writable'] === true) {
 				// Check if there is a writable install folder.
-				if ((!is_writable($dir['path']) && $this->config->getSystemValueBool('appstoreenabled', true))
+				if ((!is_writable($dir['path']) && $this->config->getSystemValueBool('appstoreenabled', false))
 					|| !is_readable($dir['path'])
 				) {
 					throw new \RuntimeException(

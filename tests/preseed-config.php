@@ -28,14 +28,6 @@ $CONFIG = [
 	'tempdirectory' => '/dev/shm',
 ];
 
-if (is_dir(OC::$SERVERROOT . '/apps2')) {
-	$CONFIG['apps_paths'][] = [
-		'path' => OC::$SERVERROOT . '/apps2',
-		'url' => '/apps2',
-		'writable' => false,
-	];
-}
-
 if (getenv('OBJECT_STORE') === 's3') {
 	$CONFIG['objectstore'] = [
 		'class' => 'OC\\Files\\ObjectStore\\S3',

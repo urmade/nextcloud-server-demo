@@ -36,7 +36,7 @@ const eventBus = vi.hoisted(() => {
 })
 vi.mock('@nextcloud/event-bus', () => eventBus)
 
-// Stub @nextcloud/router so we don't need a webroot for the moreApps URL.
+// Stub @nextcloud/router so we don't need a webroot for URL generation.
 vi.mock('@nextcloud/router', () => ({
 	generateUrl: (path: string) => path,
 	imagePath: (app: string, file: string) => `/${app}/img/${file}`,
@@ -93,11 +93,8 @@ function fakeActions(count: number): INavigationEntry[] {
 	return ids.slice(0, count).map((id) => makeAction(id))
 }
 
-// AppMenu hides the app store tile when the state is absent, so a default
-// instance has to supply it.
 function stateFor(states: Record<string, unknown>) {
-	const all: Record<string, unknown> = { appStoreLinkShown: true, ...states }
-	return (_app: string, key: string, fallback: unknown) => key in all ? all[key] : fallback
+	return (_app: string, key: string, fallback: unknown) => key in states ? states[key] : fallback
 }
 
 // loadState implementation serving both apps and navigation actions.
@@ -161,51 +158,19 @@ describe('core: AppMenu', () => {
 		expect(wrapper.get('.app-menu__current-app').attributes('aria-label')).toBe('Open apps menu, currently in Files')
 	})
 
-	it('renders one AppItem per app in the list, plus the "App store" tile for non-admins', async () => {
-		const wrapper = mount(AppMenu, { attachTo: document.body })
-		await openPopover(wrapper)
-
-		expect(gridLabels()).toEqual(['Files', 'Mail', 'Calendar', 'App store'])
-	})
-
-	it('omits the "App store" tile when the instance does not offer it', async () => {
-		initialState.loadState.mockImplementation(stateFor({ apps: fakeApps(), appStoreLinkShown: false }))
+	it('renders one AppItem per app in the list', async () => {
 		const wrapper = mount(AppMenu, { attachTo: document.body })
 		await openPopover(wrapper)
 
 		expect(gridLabels()).toEqual(['Files', 'Mail', 'Calendar'])
 	})
 
-	it('keeps the "More apps" tile for admins when the app store link is hidden', async () => {
-		initialState.loadState.mockImplementation(stateFor({ apps: fakeApps(), appStoreLinkShown: false }))
+	it('does not add utility tiles for admins', async () => {
 		auth.getCurrentUser.mockReturnValue({ isAdmin: true })
 		const wrapper = mount(AppMenu, { attachTo: document.body })
 		await openPopover(wrapper)
 
-		expect(gridLabels()).toEqual(['Files', 'Mail', 'Calendar', 'More apps'])
-	})
-
-	it('renders the "More apps" tile when the current user is an admin', async () => {
-		auth.getCurrentUser.mockReturnValue({ isAdmin: true })
-		const wrapper = mount(AppMenu, { attachTo: document.body })
-		await openPopover(wrapper)
-
-		const items = document.querySelectorAll('.app-menu__grid [role="menuitem"]')
-		expect(items).toHaveLength(4)
-		const moreApps = Array.from(items).find((el) => el.textContent?.includes('More apps'))
-		expect(moreApps).toBeTruthy()
-	})
-
-	it('marks the "More apps" tile active on the app management page', async () => {
-		auth.getCurrentUser.mockReturnValue({ isAdmin: true })
-		mockActiveSettingsEntry({ id: 'appstore', name: 'Apps', href: '/settings/apps' })
-		const wrapper = mount(AppMenu, { attachTo: document.body })
-		await openPopover(wrapper)
-
-		const moreApps = Array.from(document.querySelectorAll('[role="menuitem"]'))
-			.find((el) => el.textContent?.includes('More apps'))
-		expect(moreApps?.classList.contains('app-item--active')).toBe(true)
-		expect(moreApps?.getAttribute('aria-current')).toBe('page')
+		expect(gridLabels()).toEqual(['Files', 'Mail', 'Calendar'])
 	})
 
 	it('ArrowRight moves the roving stop from index 0 to index 1 and focuses it', async () => {
@@ -259,14 +224,14 @@ describe('core: AppMenu', () => {
 	})
 
 	it('keeps the own name of settings entries outside the settings app', () => {
-		// On /settings/apps the active entry is the app management one, which
-		// shows "Apps" here and in the account menu, not "Settings".
-		mockActiveSettingsEntry({ id: 'appstore', name: 'Apps', href: '/settings/apps', icon: '/apps/appstore/img/app-dark.svg' })
+		// On /settings/help the active entry is the help one, which shows its
+		// own name here and in the account menu, not "Settings".
+		mockActiveSettingsEntry({ id: 'help', name: 'Help & privacy', href: '/settings/help', icon: '/core/img/help.svg' })
 		const wrapper = mount(AppMenu, { attachTo: document.body })
-		expect(wrapper.find('.app-menu__current-app-name').text()).toBe('Apps')
+		expect(wrapper.find('.app-menu__current-app-name').text()).toBe('Help & privacy')
 		// Its own icon, not the generic cog of the settings sections
 		expect(wrapper.find('.app-menu__current-app-glyph').attributes('style'))
-			.toContain('/apps/appstore/img/app-dark.svg')
+			.toContain('/core/img/help.svg')
 	})
 
 	it('shows the profile page as "Profile" with the generic user icon', () => {

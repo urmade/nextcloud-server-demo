@@ -140,10 +140,7 @@ class URLGenerator implements IURLGenerator {
 			return $key;
 		}
 
-		// Read the selected theme from the config file
-		$theme = \OC_Util::getTheme();
-
-		//if a theme has a png but not an svg always use the png
+		//if a png exists but not an svg always use the png
 		$basename = substr(basename($file), 0, -4);
 
 		try {
@@ -168,22 +165,7 @@ class URLGenerator implements IURLGenerator {
 			}
 		}
 
-		if (file_exists(\OC::$SERVERROOT . "/themes/$theme/apps/$appName/img/$file")) {
-			$path = \OC::$WEBROOT . "/themes/$theme/apps/$appName/img/$file";
-		} elseif (!file_exists(\OC::$SERVERROOT . "/themes/$theme/apps/$appName/img/$basename.svg")
-			&& file_exists(\OC::$SERVERROOT . "/themes/$theme/apps/$appName/img/$basename.png")) {
-			$path = \OC::$WEBROOT . "/themes/$theme/apps/$appName/img/$basename.png";
-		} elseif (!empty($appName) && file_exists(\OC::$SERVERROOT . "/themes/$theme/$appName/img/$file")) {
-			$path = \OC::$WEBROOT . "/themes/$theme/$appName/img/$file";
-		} elseif (!empty($appName) && (!file_exists(\OC::$SERVERROOT . "/themes/$theme/$appName/img/$basename.svg")
-			&& file_exists(\OC::$SERVERROOT . "/themes/$theme/$appName/img/$basename.png"))) {
-			$path = \OC::$WEBROOT . "/themes/$theme/$appName/img/$basename.png";
-		} elseif (file_exists(\OC::$SERVERROOT . "/themes/$theme/core/img/$file")) {
-			$path = \OC::$WEBROOT . "/themes/$theme/core/img/$file";
-		} elseif (!file_exists(\OC::$SERVERROOT . "/themes/$theme/core/img/$basename.svg")
-			&& file_exists(\OC::$SERVERROOT . "/themes/$theme/core/img/$basename.png")) {
-			$path = \OC::$WEBROOT . "/themes/$theme/core/img/$basename.png";
-		} elseif ($themingEnabled && $themingImagePath) {
+		if ($themingEnabled && $themingImagePath) {
 			$path = $themingImagePath;
 		} elseif ($appPath && file_exists($appPath . "/img/$file")) {
 			$path = $this->getAppManager()->getAppWebPath($appName) . "/img/$file";
@@ -199,7 +181,7 @@ class URLGenerator implements IURLGenerator {
 			$path = \OC::$WEBROOT . "/core/img/$file";
 		} elseif (!file_exists(\OC::$SERVERROOT . "/core/img/$basename.svg")
 			&& file_exists(\OC::$SERVERROOT . "/core/img/$basename.png")) {
-			$path = \OC::$WEBROOT . "/themes/$theme/core/img/$basename.png";
+			$path = \OC::$WEBROOT . "/core/img/$basename.png";
 		}
 
 		if ($path !== '') {

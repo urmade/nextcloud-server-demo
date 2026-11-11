@@ -3,7 +3,6 @@
     "activity",
     "admin_audit",
     "app_api",
-    "appstore",
     "bruteforcesettings",
     "circles",
     "cloud_federation_api",
@@ -50,7 +49,6 @@
     "twofactor_backupcodes",
     "twofactor_nextcloud_notification",
     "twofactor_totp",
-    "updatenotification",
     "user_ldap",
     "user_status",
     "viewer",
@@ -61,7 +59,6 @@
   "defaultEnabled": [
     "activity",
     "app_api",
-    "appstore",
     "bruteforcesettings",
     "circles",
     "comments",
@@ -100,14 +97,12 @@
     "text",
     "theming",
     "twofactor_totp",
-    "updatenotification",
     "user_status",
     "viewer",
     "weather_status",
     "webhook_listeners"
   ],
   "alwaysEnabled": [
-    "appstore",
     "cloud_federation_api",
     "dav",
     "federatedfilesharing",

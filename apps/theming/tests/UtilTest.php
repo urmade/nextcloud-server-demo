@@ -194,24 +194,6 @@ class UtilTest extends TestCase {
 		$this->assertEquals($expected, $result);
 	}
 
-	public function testIsAlreadyThemedFalse(): void {
-		$this->config->expects($this->once())
-			->method('getSystemValue')
-			->with('theme', '')
-			->willReturn('');
-		$actual = $this->util->isAlreadyThemed();
-		$this->assertFalse($actual);
-	}
-
-	public function testIsAlreadyThemedTrue(): void {
-		$this->config->expects($this->once())
-			->method('getSystemValue')
-			->with('theme', '')
-			->willReturn('example');
-		$actual = $this->util->isAlreadyThemed();
-		$this->assertTrue($actual);
-	}
-
 	public static function dataIsBackgroundThemed(): array {
 		return [
 			['', false],

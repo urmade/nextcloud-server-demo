@@ -71,7 +71,7 @@ class Update extends Command {
 
 	#[\Override]
 	protected function execute(InputInterface $input, OutputInterface $output): int {
-		$appStoreEnabled = $this->config->getSystemValueBool('appstoreenabled', true);
+		$appStoreEnabled = $this->config->getSystemValueBool('appstoreenabled', false);
 		if ($appStoreEnabled === false) {
 			$output->writeln('App store access is disabled');
 			return 1;

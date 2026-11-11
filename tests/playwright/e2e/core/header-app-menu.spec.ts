@@ -39,24 +39,12 @@ userTest.describe('Header: App menu (waffle launcher) – regular user', () => {
 
 // Admin tests — logged in as the built-in admin user.
 adminTest.describe('Header: App menu (waffle launcher) – admin', () => {
-	adminTest('shows the "More apps" tile for admins', async ({ page }) => {
-		await page.goto('/')
-		const navigationHeader = new NavigationHeaderPage(page)
-		await navigationHeader.openMenu()
-
-		await expect(navigationHeader.popover()).toBeVisible()
-		await expect(navigationHeader.popover().getByRole('menuitem', { name: 'More apps' })).toBeVisible()
-	})
-
 	adminTest('has the correct app navigation items', async ({ page }) => {
 		await page.goto('/')
 		const navigationHeader = new NavigationHeaderPage(page)
 		await expectWaffleMenuContainsApps(navigationHeader, [
 			{ name: 'Files', href: '/apps/files' },
 			{ name: 'Dashboard', href: '/apps/dashboard' },
-			// The app management page is only linked by the "More apps" tile,
-			// the app itself does not add an entry to the menu
-			{ name: 'More apps', href: '/settings/apps' },
 		])
 	})
 })

@@ -66,7 +66,7 @@ abstract class ASettings implements ISettings {
 
 		$this->initialStateService->provideInitialState(
 			'appstoreenabled',
-			$this->config->getSystemValueBool('appstoreenabled', true)
+			$this->config->getSystemValueBool('appstoreenabled', false)
 		);
 
 		$this->initialStateService->provideInitialState(

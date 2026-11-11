@@ -58,7 +58,6 @@ class Install extends Command {
 			->addOption('database-port', null, InputOption::VALUE_REQUIRED, 'Port the database is listening on')
 			->addOption('database-user', null, InputOption::VALUE_REQUIRED, 'Login to connect to the database')
 			->addOption('database-pass', null, InputOption::VALUE_OPTIONAL, 'Password of the database user', null)
-			->addOption('database-table-space', null, InputOption::VALUE_OPTIONAL, 'Table space of the database (oci only)', null)
 			->addOption('database-ssl-mode', null, InputOption::VALUE_REQUIRED, 'Encryption mode for the database connection, e.g. "require" or "verify-full" (pgsql only)')
 			->addOption('database-ssl-ca', null, InputOption::VALUE_REQUIRED, 'Path to the CA certificate the database server is verified against (mysql and pgsql only)')
 			->addOption('database-ssl-cert', null, InputOption::VALUE_REQUIRED, 'Path to the client certificate used to authenticate against the database (mysql and pgsql only)')
@@ -127,12 +126,7 @@ class Install extends Command {
 		$dbPass = $input->getOption('database-pass');
 		$dbName = $input->getOption('database-name');
 		$dbPort = $input->getOption('database-port');
-		if ($db === 'oci') {
-			// an empty hostname needs to be read from the raw parameters
-			$dbHost = $input->getParameterOption('--database-host', '');
-		} else {
-			$dbHost = $input->getOption('database-host');
-		}
+		$dbHost = $input->getOption('database-host');
 		if ($dbPort) {
 			// Append the port to the host so it is the same as in the config (there is no dbport config)
 			$dbHost .= ':' . $dbPort;
@@ -200,9 +194,6 @@ class Install extends Command {
 			'passwordsalt' => $passwordSalt,
 			'secret' => $secret,
 		];
-		if ($db === 'oci') {
-			$options['dbtablespace'] = $input->getParameterOption('--database-table-space', '');
-		}
 		// The database setup translates these into the system config values that configure
 		// an encrypted connection, and rejects the ones it does not support,
 		// see \OC\Setup\AbstractDatabase::getEncryptionConfig()

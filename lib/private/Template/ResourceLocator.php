@@ -30,13 +30,7 @@ abstract class ResourceLocator {
 		];
 		$this->serverroot = \OC::$SERVERROOT;
 
-		$this->theme = $config->getSystemValueString('theme', '');
-
-		if ($this->theme === '') {
-			if (is_dir(\OC::$SERVERROOT . '/themes/default')) {
-				$this->theme = 'default';
-			}
-		}
+		$this->theme = \OC_Util::getTheme();
 	}
 
 	abstract public function doFind(string $resource): void;

@@ -9,10 +9,9 @@ import { expect } from '@playwright/test'
 
 /**
  * The database engines offered by the installation wizard, keyed by their
- * visible (accessible) radio label. `oci` (Oracle) is only offered when the
- * server is configured to allow all databases.
+ * visible (accessible) radio label.
  */
-export type DatabaseName = 'SQLite' | 'MySQL/MariaDB' | 'PostgreSQL' | 'Oracle'
+export type DatabaseName = 'SQLite' | 'MySQL/MariaDB' | 'PostgreSQL'
 
 /** Connection details for a non-SQLite database backend. */
 export interface DatabaseConnection {
@@ -23,12 +22,10 @@ export interface DatabaseConnection {
 }
 
 /**
- * The Nextcloud installation wizard (`core/src/views/Setup.vue`) and the
- * recommended-apps screen shown right after a successful install
- * (`core/src/components/setup/RecommendedApps.vue`).
+ * The Nextcloud installation wizard (`core/src/views/Setup.vue`).
  *
- * Locators are role/label based; the two view containers have no accessible
- * name, so they keep their product-owned `data-cy` hooks.
+ * Locators are role/label based; the form container has no accessible
+ * name, so it keeps its product-owned `data-cy` hook.
  */
 export class SetupPage {
 	constructor(private readonly page: Page) {}
@@ -82,61 +79,13 @@ export class SetupPage {
 
 	/**
 	 * Fill the administration account and submit the wizard, then wait for the
-	 * install to finish and land on the recommended-apps screen.
+	 * install to finish and land on the default page.
 	 */
 	async install(adminUser: string, adminPassword: string): Promise<void> {
 		await this.adminLoginField().fill(adminUser)
 		await this.adminPasswordField().fill(adminPassword)
 		await this.submitButton().click()
 
-		await this.page.waitForURL(/\/core\/apps\/recommended/)
-		await this.recommendedApps().waitFor({ state: 'visible' })
-	}
-
-	// --- Recommended apps screen -------------------------------------------
-
-	recommendedApps(): Locator {
-		return this.page.locator('[data-cy-setup-recommended-apps]')
-	}
-
-	recommendedAppsHeading(): Locator {
-		return this.page.getByRole('heading', { name: 'Recommended apps' })
-	}
-
-	skipButton(): Locator {
-		return this.page.getByRole('button', { name: 'Skip' })
-	}
-
-	installRecommendedButton(): Locator {
-		return this.page.getByRole('button', { name: 'Install recommended apps' })
-	}
-
-	/**
-	 * Install the recommended apps and confirm the per-app password dialog that
-	 * `@nextcloud/password-confirmation` raises for each enable request. The
-	 * enables fire together, so one dialog is shown after another (never stacked):
-	 * confirm each, waiting for the prompt to be consumed — the input clears for
-	 * the next app, or the dialog closes after the last — before looking for the
-	 * next. Confirm up to `appCount`, stopping early if a fresh session needs none.
-	 */
-	async installRecommendedApps(password: string, appCount: number): Promise<void> {
-		await this.installRecommendedButton().click()
-
-		for (let i = 0; i < appCount; i++) {
-			const dialog = this.page.getByRole('dialog', { name: 'Authentication required' })
-			try {
-				await dialog.waitFor({ state: 'visible', timeout: 10_000 })
-			} catch {
-				break
-			}
-
-			const input = dialog.locator('input[type="password"]')
-			await input.fill(password)
-			await dialog.getByRole('button', { name: 'Confirm' }).click()
-
-			// Wait until this prompt is resolved before seeking the next one, so the
-			// same dialog is never confirmed twice.
-			await expect(input).not.toHaveValue(password, { timeout: 10_000 }).catch(() => {})
-		}
+		await this.page.waitForURL(/\/apps\/(dashboard|files)\//)
 	}
 }

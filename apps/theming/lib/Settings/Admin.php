@@ -41,22 +41,14 @@ class Admin implements IDelegatedSettings {
 	 */
 	#[\Override]
 	public function getForm(): TemplateResponse {
-		$themeable = true;
-		$errorMessage = '';
-		$theme = $this->config->getSystemValue('theme', '');
-		if ($theme !== '') {
-			$themeable = false;
-			$errorMessage = $this->l->t('You are already using a custom theme. Theming app settings might be overwritten by that.');
-		}
-
 		$allowedMimeTypes = array_reduce(ThemingController::VALID_UPLOAD_KEYS, function ($carry, $key) {
 			$carry[$key] = $this->imageManager->getSupportedUploadImageFormats($key);
 			return $carry;
 		}, []);
 
 		$this->initialState->provideInitialState('adminThemingInfo', [
-			'isThemeable' => $themeable,
-			'notThemeableErrorMessage' => $errorMessage,
+			'isThemeable' => true,
+			'notThemeableErrorMessage' => '',
 			'defaultBackgroundURL' => $this->urlGenerator->linkTo(Application::APP_ID, 'img/background/' . BackgroundService::DEFAULT_BACKGROUND_IMAGE),
 			'defaultBackgroundColor' => BackgroundService::DEFAULT_BACKGROUND_COLOR,
 			'docUrl' => $this->urlGenerator->linkToDocs('admin-theming'),

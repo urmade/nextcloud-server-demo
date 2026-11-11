@@ -355,23 +355,6 @@ class Factory implements IFactory {
 			}
 		}
 
-		// merge with translations from theme
-		$theme = $this->config->getSystemValueString('theme');
-		if (!empty($theme)) {
-			$themeDir = $this->serverRoot . '/themes/' . $theme . substr($dir, strlen($this->serverRoot));
-
-			if (is_dir($themeDir)) {
-				$files = scandir($themeDir);
-				if ($files !== false) {
-					foreach ($files as $file) {
-						if (str_ends_with($file, '.json') && !str_starts_with($file, 'l10n')) {
-							$available[] = substr($file, 0, -5);
-						}
-					}
-				}
-			}
-		}
-
 		$this->availableLanguages[$key] = $available;
 		$this->cache->set($key, $available, 60);
 		return $available;
@@ -578,15 +561,6 @@ class Factory implements IFactory {
 		) {
 			// load the translations file
 			$languageFiles[] = $transFile;
-		}
-
-		// merge with translations from theme
-		$theme = $this->config->getSystemValueString('theme');
-		if (!empty($theme)) {
-			$transFile = $this->serverRoot . '/themes/' . $theme . substr($transFile, strlen($this->serverRoot));
-			if (file_exists($transFile)) {
-				$languageFiles[] = $transFile;
-			}
 		}
 
 		return $languageFiles;

@@ -47,7 +47,7 @@ class SetupTest extends \Test\TestCase {
 		$this->installer = $this->createMock(Installer::class);
 		$this->eventDispatcher = $this->createMock(IEventDispatcher::class);
 		$this->setupClass = $this->getMockBuilder(Setup::class)
-			->onlyMethods(['class_exists', 'is_callable', 'getAvailableDbDriversForPdo'])
+			->onlyMethods(['class_exists', 'getAvailableDbDriversForPdo'])
 			->setConstructorArgs([$this->config, $this->iniWrapper, $this->l10nFactory, $this->defaults, $this->logger, $this->random, $this->installer, $this->eventDispatcher])
 			->getMock();
 	}
@@ -57,12 +57,8 @@ class SetupTest extends \Test\TestCase {
 			->expects($this->once())
 			->method('getValue')
 			->willReturn(
-				['sqlite', 'mysql', 'oci']
+				['sqlite', 'mysql']
 			);
-		$this->setupClass
-			->expects($this->once())
-			->method('is_callable')
-			->willReturn(false);
 		$this->setupClass
 			->expects($this->any())
 			->method('getAvailableDbDriversForPdo')
@@ -80,12 +76,8 @@ class SetupTest extends \Test\TestCase {
 			->expects($this->once())
 			->method('getValue')
 			->willReturn(
-				['sqlite', 'mysql', 'oci', 'pgsql']
+				['sqlite', 'mysql', 'pgsql']
 			);
-		$this->setupClass
-			->expects($this->any())
-			->method('is_callable')
-			->willReturn(false);
 		$this->setupClass
 			->expects($this->any())
 			->method('getAvailableDbDriversForPdo')
@@ -100,12 +92,8 @@ class SetupTest extends \Test\TestCase {
 			->expects($this->once())
 			->method('getValue')
 			->willReturn(
-				['sqlite', 'mysql', 'pgsql', 'oci']
+				['sqlite', 'mysql', 'pgsql']
 			);
-		$this->setupClass
-			->expects($this->any())
-			->method('is_callable')
-			->willReturn(true);
 		$this->setupClass
 			->expects($this->any())
 			->method('getAvailableDbDriversForPdo')
@@ -115,9 +103,30 @@ class SetupTest extends \Test\TestCase {
 			'sqlite' => 'SQLite',
 			'mysql' => 'MySQL/MariaDB',
 			'pgsql' => 'PostgreSQL',
-			'oci' => 'Oracle'
 		];
 		$this->assertSame($expectedResult, $result);
+	}
+
+	public function testGetSupportedDatabasesIgnoresOracle(): void {
+		$this->config
+			->expects($this->once())
+			->method('getValue')
+			->willReturn(['sqlite', 'oci']);
+		$this->setupClass
+			->method('getAvailableDbDriversForPdo')
+			->willReturn(['sqlite', 'oci']);
+
+		$this->assertSame(['sqlite' => 'SQLite'], $this->setupClass->getSupportedDatabases());
+		$this->assertArrayNotHasKey('oci', $this->setupClass->getSupportedDatabases(true));
+	}
+
+	public function testInstallRejectsOracle(): void {
+		$this->l10n->method('t')->willReturnArgument(0);
+		$this->config->expects($this->never())->method('setValues');
+
+		$errors = $this->setupClass->install(['dbtype' => 'oci']);
+
+		$this->assertSame(['Oracle databases are no longer supported. Please use PostgreSQL.'], $errors);
 	}
 
 	public function testGetSupportedDatabaseException(): void {

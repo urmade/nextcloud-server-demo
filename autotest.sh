@@ -12,7 +12,7 @@ ADMINLOGIN=admin
 BASEDIR=$PWD
 
 PRIMARY_STORAGE_CONFIGS="local swift"
-DBCONFIGS="sqlite mysql mariadb pgsql oci mysqlmb4"
+DBCONFIGS="sqlite mysql mariadb pgsql mysqlmb4"
 
 # $PHP_EXE is run through 'which' and as such e.g. 'php' is usually
 # sufficient. Due to the behaviour of 'which', $PHP_EXE may also be a path
@@ -332,26 +332,6 @@ function execute_tests {
 			dropdb -U "$DATABASEUSER" "$DATABASENAME" || true
 		fi
 	fi
-	if [ "$DB" == "oci" ] ; then
-		echo "Fire up the oracle docker"
-		DOCKER_CONTAINER_ID=$(docker run -d deepdiver/docker-oracle-xe-11g)
-		DATABASEHOST=$(docker_get_ip "$DOCKER_CONTAINER_ID")
-
-		echo "Waiting for Oracle initialization ... "
-
-		# Try to connect to the OCI host via sqlplus to ensure that the connection is already running
-		for i in {1..48}
-		do
-			if sqlplus "autotest/owncloud@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(Host=$DATABASEHOST)(Port=1521))(CONNECT_DATA=(SID=XE)))" < /dev/null | grep 'Connected to'; then
-				break;
-			fi
-			sleep 5
-		done
-
-		DATABASEUSER=autotest
-		DATABASENAME='XE'
-	fi
-
 	# trigger installation
 	echo "Installing ...."
 	"$PHP" ./occ maintenance:install -vvv --database="$_DB" --database-name="$DATABASENAME" --database-host="$DATABASEHOST" --database-user="$DATABASEUSER" --database-pass=owncloud --admin-user="$ADMINLOGIN" --admin-pass=admin --data-dir="$DATADIR"
@@ -447,9 +427,4 @@ fi
 #
 #  - for parallel executor support with EXECUTOR_NUMBER=0:
 #  - createuser -P oc_autotest0 (enter password and enable superuser)
-#
-# NOTES on oci:
-#  - it's a pure nightmare to install Oracle on a Linux-System
-#  - DON'T TRY THIS AT HOME!
-#  - if you really need it: we feel sorry for you
 #

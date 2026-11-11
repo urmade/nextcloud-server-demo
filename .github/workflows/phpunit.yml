@@ -55,45 +55,20 @@ jobs:
               - '**/appinfo/**'
               - '**.php'
 
-  mariadb:
+  pgsql:
     needs: changes
     if: needs.changes.outputs.src != 'false'
-    uses: ./.github/workflows/phpunit-mariadb.yml
+    uses: ./.github/workflows/phpunit-pgsql.yml
 
   memcached:
     needs: changes
     if: needs.changes.outputs.src != 'false'
     uses: ./.github/workflows/phpunit-memcached.yml
 
-  mysql:
-    needs: changes
-    if: needs.changes.outputs.src != 'false'
-    uses: ./.github/workflows/phpunit-mysql.yml
-
-  mysql-sharding:
-    needs: changes
-    if: needs.changes.outputs.src != 'false'
-    uses: ./.github/workflows/phpunit-mysql-sharding.yml
-
   object-store-primary:
     needs: changes
     if: needs.changes.outputs.src != 'false'
     uses: ./.github/workflows/phpunit-object-store-primary.yml
-
-  oci:
-    needs: changes
-    if: needs.changes.outputs.src != 'false'
-    uses: ./.github/workflows/phpunit-oci.yml
-
-  pgsql:
-    needs: changes
-    if: needs.changes.outputs.src != 'false'
-    uses: ./.github/workflows/phpunit-pgsql.yml
-
-  sqlite:
-    needs: changes
-    if: needs.changes.outputs.src != 'false'
-    uses: ./.github/workflows/phpunit-sqlite.yml
 
   nodb:
     needs: changes
@@ -105,11 +80,33 @@ jobs:
     if: needs.changes.outputs.kvstore != 'false'
     uses: ./.github/workflows/phpunit-kvstore.yml
 
+  # MariaDB, MySQL and SQLite are only supported by the PHP runtime. They still run
+  # but do not gate the summary below.
+  mariadb:
+    needs: changes
+    if: needs.changes.outputs.src != 'false'
+    uses: ./.github/workflows/phpunit-mariadb.yml
+
+  mysql:
+    needs: changes
+    if: needs.changes.outputs.src != 'false'
+    uses: ./.github/workflows/phpunit-mysql.yml
+
+  mysql-sharding:
+    needs: changes
+    if: needs.changes.outputs.src != 'false'
+    uses: ./.github/workflows/phpunit-mysql-sharding.yml
+
+  sqlite:
+    needs: changes
+    if: needs.changes.outputs.src != 'false'
+    uses: ./.github/workflows/phpunit-sqlite.yml
+
   summary:
     permissions:
       contents: none
     runs-on: ubuntu-latest-low
-    needs: [changes, mariadb, memcached, mysql, mysql-sharding, object-store-primary, oci, pgsql, sqlite, nodb, kvstore]
+    needs: [changes, pgsql, memcached, object-store-primary, nodb, kvstore]
 
     if: always()
 

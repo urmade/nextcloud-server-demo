@@ -17,7 +17,6 @@ const defaultConfig = Object.freeze({
 	dbuser: '',
 	dbpass: '',
 	dbname: '',
-	dbtablespace: '',
 	dbhost: '',
 	dbtype: '',
 	dbsslmode: '',
@@ -120,14 +119,13 @@ describe('Default setup page', () => {
 		await expect(component.findByLabelText(/Database password/)).resolves.not.toThrow()
 	})
 
-	it('Changes fields from sqlite to mysql then oci', async () => {
+	it('Changes fields from sqlite to mysql then pgsql', async () => {
 		mockInitialState('core', 'config', {
 			...defaultConfig,
 			databases: {
 				sqlite: 'SQLite',
 				mysql: 'MySQL/MariaDB',
 				pgsql: 'PostgreSQL',
-				oci: 'Oracle',
 			},
 		})
 		const component = render(SetupView)
@@ -135,9 +133,9 @@ describe('Default setup page', () => {
 		// SQLite selected
 		await expect(component.findByRole('radio', { name: /SQLite/, checked: true })).resolves.not.toThrow()
 
-		// 4 db toggles
+		// 3 db toggles
 		const dbTypes = component.getByRole('group', { name: 'Database type' })
-		expect(getAllByRole(dbTypes, 'radio')).toHaveLength(4)
+		expect(getAllByRole(dbTypes, 'radio')).toHaveLength(3)
 
 		// but no database config fields
 		await expect(findByRole(dbTypes, 'group', { name: /Database connection/ })).rejects.toThrow()
@@ -149,14 +147,11 @@ describe('Default setup page', () => {
 
 		// now the database config fields are visible
 		await expect(component.findByRole('group', { name: /Database connection/ })).resolves.not.toThrow()
-		// but not the Database tablespace
-		await expect(component.findByRole('textbox', { name: /Database tablespace/ })).rejects.toThrow()
 
-		// Change to Oracle
-		await fireEvent.click(getByRole(dbTypes, 'radio', { name: /Oracle/, checked: false }))
+		// Change to PostgreSQL
+		await fireEvent.click(getByRole(dbTypes, 'radio', { name: /PostgreSQL/, checked: false }))
 
-		// see database config fields are visible and tablespace
-		await expect(component.findByRole('textbox', { name: /Database tablespace/ })).resolves.not.toThrow()
+		// the database config fields stay visible
 		await expect(component.findByRole('group', { name: /Database connection/ })).resolves.not.toThrow()
 	})
 })
@@ -168,11 +163,11 @@ describe('Encrypted database connection', () => {
 		mockInitialState('core', 'links', links)
 	})
 
-	it.each(['sqlite', 'oci'])('Is not offered for %s', async (dbtype) => {
+	it('Is not offered for sqlite', async () => {
 		mockInitialState('core', 'config', {
 			...defaultConfig,
-			dbtype,
-			databases: { sqlite: 'SQLite', mysql: 'MySQL/MariaDB', pgsql: 'PostgreSQL', oci: 'Oracle' },
+			dbtype: 'sqlite',
+			databases: { sqlite: 'SQLite', mysql: 'MySQL/MariaDB', pgsql: 'PostgreSQL' },
 		} as SetupConfig)
 		const component = render(SetupView)
 
@@ -362,9 +357,6 @@ describe('Setup page with autoconfig', () => {
 
 		// Autoconfig info note
 		await expect(component.findByText('Autoconfig file detected')).resolves.not.toThrow()
-
-		// Oracle tablespace is hidden
-		await expect(component.findByRole('textbox', { name: 'Database tablespace' })).rejects.toThrow()
 
 		// Database and storage section is hidden as already set in autoconfig
 		await expect(component.findByText('Storage & database')).resolves.not.toThrow()

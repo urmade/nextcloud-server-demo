@@ -128,7 +128,6 @@ body:
         - "MariaDB"
         - "PostgreSQL"
         - "SQlite"
-        - "Oracle"
         - "Other"
   - type: dropdown
     id: fresh

@@ -2436,7 +2436,6 @@ $CONFIG = [
 	 *  - sqlite (SQLite3)
 	 *  - mysql (MySQL)
 	 *  - pgsql (PostgreSQL)
-	 *  - oci (Oracle)
 	 *
 	 * Defaults to:
 	 *  - sqlite (SQLite3)
@@ -2447,7 +2446,6 @@ $CONFIG = [
 		'sqlite',
 		'mysql',
 		'pgsql',
-		'oci',
 	],
 
 	/**

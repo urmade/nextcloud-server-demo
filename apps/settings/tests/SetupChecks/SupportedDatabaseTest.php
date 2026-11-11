@@ -47,4 +47,15 @@ class SupportedDatabaseTest extends TestCase {
 			$this->assertContains($this->check->run()->getSeverity(), [SetupResult::SUCCESS, SetupResult::INFO]);
 		}
 	}
+
+	public function testOracleIsReportedAsUnsupported(): void {
+		$connection = $this->createMock(IDBConnection::class);
+		$connection->method('getDatabaseProvider')
+			->willReturn(IDBConnection::PLATFORM_ORACLE);
+		$this->l10n->method('t')->willReturnArgument(0);
+
+		$check = new SupportedDatabase($this->l10n, $this->urlGenerator, $connection);
+
+		$this->assertEquals(SetupResult::ERROR, $check->run()->getSeverity());
+	}
 }

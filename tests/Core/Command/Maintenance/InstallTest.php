@@ -40,7 +40,7 @@ class InstallTest extends TestCase {
 			'--admin-pass' => 'admin-password',
 		], $parameters), $this->command->getDefinition());
 
-		return self::invokePrivate($this->command, 'validateInput', [$input, new NullOutput(), ['sqlite', 'mysql', 'pgsql', 'oci']]);
+		return self::invokePrivate($this->command, 'validateInput', [$input, new NullOutput(), ['sqlite', 'mysql', 'pgsql']]);
 	}
 
 	public static function encryptionOptions(): array {
@@ -87,5 +87,16 @@ class InstallTest extends TestCase {
 		]);
 
 		$this->assertSame('/ca.pem', $options['dbsslca']);
+	}
+
+	public function testRejectsOracle(): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('Database <oci> is not supported.');
+
+		$this->validateInput(['--database' => 'oci']);
+	}
+
+	public function testNoTableSpaceOption(): void {
+		$this->assertFalse($this->command->getDefinition()->hasOption('database-table-space'));
 	}
 }

@@ -2381,7 +2381,6 @@ class ComposerStaticInit749170dad3f5e7f9ca158f5a9f04f6a2
         'OC\\SetupCheck\\SetupCheckManager' => __DIR__ . '/../../..' . '/lib/private/SetupCheck/SetupCheckManager.php',
         'OC\\Setup\\AbstractDatabase' => __DIR__ . '/../../..' . '/lib/private/Setup/AbstractDatabase.php',
         'OC\\Setup\\MySQL' => __DIR__ . '/../../..' . '/lib/private/Setup/MySQL.php',
-        'OC\\Setup\\OCI' => __DIR__ . '/../../..' . '/lib/private/Setup/OCI.php',
         'OC\\Setup\\PostgreSQL' => __DIR__ . '/../../..' . '/lib/private/Setup/PostgreSQL.php',
         'OC\\Setup\\Sqlite' => __DIR__ . '/../../..' . '/lib/private/Setup/Sqlite.php',
         'OC\\Share20\\DefaultShareProvider' => __DIR__ . '/../../..' . '/lib/private/Share20/DefaultShareProvider.php',

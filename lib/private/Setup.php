@@ -24,7 +24,6 @@ use OC\Log\Rotate;
 use OC\Preview\BackgroundCleanupJob;
 use OC\Setup\AbstractDatabase;
 use OC\Setup\MySQL;
-use OC\Setup\OCI;
 use OC\Setup\PostgreSQL;
 use OC\Setup\Sqlite;
 use OC\TextProcessing\RemoveOldTasksBackgroundJob;
@@ -78,7 +77,6 @@ class Setup {
 	private const array DB_SETUP_CLASSES = [
 		'mysql' => MySQL::class,
 		'pgsql' => PostgreSQL::class,
-		'oci' => OCI::class,
 		'sqlite' => Sqlite::class,
 		'sqlite3' => Sqlite::class,
 	];
@@ -88,13 +86,6 @@ class Setup {
 	 */
 	protected function class_exists(string $name): bool {
 		return class_exists($name);
-	}
-
-	/**
-	 * Wrapper around the "is_callable" PHP function to be able to mock it
-	 */
-	protected function is_callable(string $name): bool {
-		return is_callable($name);
 	}
 
 	/**
@@ -130,11 +121,6 @@ class Setup {
 				'call' => 'pgsql',
 				'name' => 'PostgreSQL',
 			],
-			'oci' => [
-				'type' => 'function',
-				'call' => 'oci_connect',
-				'name' => 'Oracle',
-			],
 		];
 		if ($allowAllDatabases) {
 			$configuredDatabases = array_keys($availableDatabases);
@@ -150,16 +136,9 @@ class Setup {
 
 		foreach ($configuredDatabases as $database) {
 			if (array_key_exists($database, $availableDatabases)) {
-				$working = false;
-				$type = $availableDatabases[$database]['type'];
 				$call = $availableDatabases[$database]['call'];
 
-				if ($type === 'function') {
-					$working = $this->is_callable($call);
-				} elseif ($type === 'pdo') {
-					$working = in_array($call, $this->getAvailableDbDriversForPdo(), true);
-				}
-				if ($working) {
+				if (in_array($call, $this->getAvailableDbDriversForPdo(), true)) {
 					$supportedDatabases[$database] = $availableDatabases[$database]['name'];
 				}
 			}
@@ -322,6 +301,10 @@ class Setup {
 
 		$error = [];
 		$dbType = $options['dbtype'];
+
+		if ($dbType === 'oci') {
+			return [$l->t('Oracle databases are no longer supported. Please use PostgreSQL.')];
+		}
 
 		$disableAdminUser = (bool)($options['admindisable'] ?? false);
 

@@ -11,7 +11,7 @@ type Error = {
 	hint: string
 }
 
-export type DbType = 'sqlite' | 'mysql' | 'pgsql' | 'oci'
+export type DbType = 'sqlite' | 'mysql' | 'pgsql'
 
 export type SetupConfig = {
 	adminlogin: string
@@ -20,7 +20,6 @@ export type SetupConfig = {
 	dbuser: string
 	dbpass: string
 	dbname: string
-	dbtablespace: string
 	dbhost: string
 	dbtype: DbType | ''
 

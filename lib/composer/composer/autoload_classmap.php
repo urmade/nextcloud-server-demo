@@ -2340,7 +2340,6 @@ return array(
     'OC\\SetupCheck\\SetupCheckManager' => $baseDir . '/lib/private/SetupCheck/SetupCheckManager.php',
     'OC\\Setup\\AbstractDatabase' => $baseDir . '/lib/private/Setup/AbstractDatabase.php',
     'OC\\Setup\\MySQL' => $baseDir . '/lib/private/Setup/MySQL.php',
-    'OC\\Setup\\OCI' => $baseDir . '/lib/private/Setup/OCI.php',
     'OC\\Setup\\PostgreSQL' => $baseDir . '/lib/private/Setup/PostgreSQL.php',
     'OC\\Setup\\Sqlite' => $baseDir . '/lib/private/Setup/Sqlite.php',
     'OC\\Share20\\DefaultShareProvider' => $baseDir . '/lib/private/Share20/DefaultShareProvider.php',

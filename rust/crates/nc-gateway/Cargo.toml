@@ -1,0 +1,49 @@
+# SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+[package]
+name = "nc-gateway"
+description = "Front-door gateway for Nextcloud: pass-through proxy to PHP with a per-route mode table"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lib]
+name = "nc_gateway"
+path = "src/lib.rs"
+
+[[bin]]
+name = "nc-gateway"
+path = "src/main.rs"
+
+[dependencies]
+arc-swap.workspace = true
+axum.workspace = true
+bytes.workspace = true
+clap.workspace = true
+fastrand.workspace = true
+http.workspace = true
+http-body-util.workspace = true
+hyper.workspace = true
+hyper-util.workspace = true
+ipnet.workspace = true
+prometheus.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+toml.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+http-body-util = { workspace = true, features = ["channel"] }
+tempfile.workspace = true
+wiremock.workspace = true
+
+[lints]
+workspace = true

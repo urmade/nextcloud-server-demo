@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Every route asks for Rust. No handler exists yet, so each request must still
+# be answered by PHP, with the fallback counted.
+[[route]]
+id = "all"
+path = "/*"
+mode = "rust"

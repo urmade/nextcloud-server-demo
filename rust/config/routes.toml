@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Route table for nc-gateway (--route-table). The file is checked for changes
+# every second and on SIGHUP; an invalid edit is rejected and the previous
+# table stays active.
+#
+# Modes:
+#   php        served by PHP
+#   shadow     served by PHP; a Rust handler's answer is compared offline
+#   canary:N   N percent of requests are offered to the Rust handler
+#   rust       offered to the Rust handler
+# While a route has no Rust handler, every mode is served by PHP and counted in
+# nc_gateway_requests_total{fallback_reason="no_handler"}.
+#
+# Matching: the most specific path wins (exact, then more literal segments, then
+# longer prefix), then a method restriction, then declaration order. `{name}`
+# matches one segment; a trailing `/*` matches the prefix and everything below.
+# Requests that match no route go to PHP.
+#
+# Global kill switch: `kill_switch = true` below, the --kill-switch flag, or the
+# file named by --kill-switch-file. Any of them forces every route to PHP.
+
+[gateway]
+kill_switch = false
+
+[[route]]
+id = "default"
+path = "/*"
+mode = "php"

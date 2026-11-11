@@ -52,10 +52,14 @@ PORT=$((8080 + $EXECUTOR_NUMBER))
 echo $PORT
 export PORT
 
+# The port PHP listens on. Tests always talk to $PORT, so a gateway can listen
+# there and forward to PHP on a different port.
+PHP_SERVER_PORT=${PHP_SERVER_PORT:-$PORT}
+
 echo "" > "${NC_DATADIR}/nextcloud.log"
 echo "" > phpserver.log
 
-PHP_CLI_SERVER_WORKERS=2 php -S localhost:$PORT -t ../.. &> phpserver.log &
+PHP_CLI_SERVER_WORKERS=2 php -S localhost:$PHP_SERVER_PORT -t ../.. &> phpserver.log &
 PHPPID=$!
 echo $PHPPID
 

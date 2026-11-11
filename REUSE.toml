@@ -76,12 +76,6 @@ SPDX-FileCopyrightText = "2014 ownCloud, Inc."
 SPDX-License-Identifier = "AGPL-3.0-only"
 
 [[annotations]]
-path = ["themes/example/core/img/favicon-touch.png", "themes/example/core/img/favicon-touch.svg", "themes/example/core/img/favicon.ico", "themes/example/core/img/favicon.png", "themes/example/core/img/favicon.svg", "themes/example/core/img/logo-icon.png", "themes/example/core/img/logo-icon.svg", "themes/example/core/img/logo-mail.gif", "themes/example/core/img/logo.png", "themes/example/core/img/logo.svg"]
-precedence = "aggregate"
-SPDX-FileCopyrightText = "2015 ownCloud, Inc., 2016 Nextcloud GmbH and Nextcloud contributors"
-SPDX-License-Identifier = "AGPL-3.0-only"
-
-[[annotations]]
 path = ["tests/docker/mariadb/oc.cnf", "apps/dav/tests/testsuits/caldavtest/data/Resource/CalDAV/reports/put/1.txt", "apps/dav/tests/testsuits/caldavtest/data/Resource/CalDAV/reports/put/2.txt", "apps/dav/tests/testsuits/caldavtest/data/Resource/CalDAV/reports/put/3.txt", "apps/dav/tests/testsuits/caldavtest/data/Resource/CalDAV/reports/put/4.txt", "apps/dav/tests/testsuits/caldavtest/data/Resource/CalDAV/reports/put/5.txt", "apps/dav/tests/testsuits/caldavtest/data/Resource/CalDAV/reports/put/6.txt", "apps/dav/tests/testsuits/caldavtest/data/Resource/CalDAV/sharing/calendars/read-write/5.ics", "apps/dav/tests/testsuits/caldavtest/data/Resource/CalDAV/sharing/calendars/read-write/6.ics", "apps/dav/tests/testsuits/caldavtest/data/Resource/CalDAV/sharing/calendars/read-write/7.ics", "apps/dav/tests/testsuits/caldavtest/data/Resource/CalDAV/sharing/calendars/read-write/8.ics", "apps/dav/tests/testsuits/caldavtest/data/Resource/CalDAV/sharing/calendars/read-write/9.ics", "apps/dav/tests/testsuits/caldavtest/data/Resource/CardDAV/sharing/read-write/6.vcf", "apps/dav/tests/testsuits/caldavtest/data/Resource/CardDAV/sharing/read-write/7.vcf", "apps/dav/tests/testsuits/caldavtest/data/Resource/CardDAV/sharing/read-write/8.vcf", "apps/dav/tests/testsuits/caldavtest/data/Resource/CardDAV/sharing/read-write/9.vcf", "apps/dav/tests/testsuits/caldavtest/data/Resource/CardDAV/vreports/put/1.vcf", "apps/dav/tests/testsuits/caldavtest/data/Resource/CardDAV/vreports/put/2.vcf", "apps/dav/tests/testsuits/caldavtest/data/Resource/CardDAV/vreports/put/3.vcf"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2016 ownCloud, Inc."
@@ -154,7 +148,7 @@ SPDX-FileCopyrightText = "2019 Wikimedia Foundation"
 SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
-path = ["core/js/mimetypelist.js", "core/js/core.json", "themes/example/core/img"]
+path = ["core/js/mimetypelist.js", "core/js/core.json"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2016 ownCloud, Inc., 2016-2024 Nextcloud GmbH and Nextcloud contributors"
 SPDX-License-Identifier = "AGPL-3.0-only"

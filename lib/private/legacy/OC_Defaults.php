@@ -13,8 +13,6 @@ use OCP\ServerVersion;
 use OCP\Util;
 
 class OC_Defaults {
-	private $theme;
-
 	private $defaultEntity;
 	private $defaultName;
 	private $defaultTitle;
@@ -51,27 +49,6 @@ class OC_Defaults {
 		$this->defaultColorPrimary = '#00679e';
 		$this->defaultTextColorPrimary = '#ffffff';
 		$this->defaultProductName = 'Nextcloud';
-
-		$themePath = OC::$SERVERROOT . '/themes/' . OC_Util::getTheme() . '/defaults.php';
-		if (file_exists($themePath)) {
-			// prevent defaults.php from printing output
-			ob_start();
-			require_once $themePath;
-			ob_end_clean();
-			if (class_exists('OC_Theme')) {
-				$this->theme = new OC_Theme();
-			}
-		}
-	}
-
-	/**
-	 * @param string $method
-	 */
-	private function themeExist($method) {
-		if (isset($this->theme) && method_exists($this->theme, $method)) {
-			return true;
-		}
-		return false;
 	}
 
 	/**
@@ -79,11 +56,7 @@ class OC_Defaults {
 	 * @return string URL
 	 */
 	public function getBaseUrl() {
-		if ($this->themeExist('getBaseUrl')) {
-			return $this->theme->getBaseUrl();
-		} else {
-			return $this->defaultBaseUrl;
-		}
+		return $this->defaultBaseUrl;
 	}
 
 	/**
@@ -91,11 +64,7 @@ class OC_Defaults {
 	 * @return string URL
 	 */
 	public function getSyncClientUrl() {
-		if ($this->themeExist('getSyncClientUrl')) {
-			return $this->theme->getSyncClientUrl();
-		} else {
-			return $this->defaultSyncClientUrl;
-		}
+		return $this->defaultSyncClientUrl;
 	}
 
 	/**
@@ -103,11 +72,7 @@ class OC_Defaults {
 	 * @return string URL
 	 */
 	public function getiOSClientUrl() {
-		if ($this->themeExist('getiOSClientUrl')) {
-			return $this->theme->getiOSClientUrl();
-		} else {
-			return $this->defaultiOSClientUrl;
-		}
+		return $this->defaultiOSClientUrl;
 	}
 
 	/**
@@ -115,11 +80,7 @@ class OC_Defaults {
 	 * @return string AppId
 	 */
 	public function getiTunesAppId() {
-		if ($this->themeExist('getiTunesAppId')) {
-			return $this->theme->getiTunesAppId();
-		} else {
-			return $this->defaultiTunesAppId;
-		}
+		return $this->defaultiTunesAppId;
 	}
 
 	/**
@@ -127,11 +88,7 @@ class OC_Defaults {
 	 * @return string URL
 	 */
 	public function getAndroidClientUrl() {
-		if ($this->themeExist('getAndroidClientUrl')) {
-			return $this->theme->getAndroidClientUrl();
-		} else {
-			return $this->defaultAndroidClientUrl;
-		}
+		return $this->defaultAndroidClientUrl;
 	}
 
 	/**
@@ -139,11 +96,7 @@ class OC_Defaults {
 	 * @return string URL
 	 */
 	public function getFDroidClientUrl() {
-		if ($this->themeExist('getFDroidClientUrl')) {
-			return $this->theme->getFDroidClientUrl();
-		} else {
-			return $this->defaultFDroidClientUrl;
-		}
+		return $this->defaultFDroidClientUrl;
 	}
 
 	/**
@@ -151,11 +104,7 @@ class OC_Defaults {
 	 * @return string URL
 	 */
 	public function getDocBaseUrl() {
-		if ($this->themeExist('getDocBaseUrl')) {
-			return $this->theme->getDocBaseUrl();
-		} else {
-			return $this->defaultDocBaseUrl;
-		}
+		return $this->defaultDocBaseUrl;
 	}
 
 	/**
@@ -163,11 +112,7 @@ class OC_Defaults {
 	 * @return string title
 	 */
 	public function getTitle() {
-		if ($this->themeExist('getTitle')) {
-			return $this->theme->getTitle();
-		} else {
-			return $this->defaultTitle;
-		}
+		return $this->defaultTitle;
 	}
 
 	/**
@@ -175,11 +120,7 @@ class OC_Defaults {
 	 * @return string title
 	 */
 	public function getName() {
-		if ($this->themeExist('getName')) {
-			return $this->theme->getName();
-		} else {
-			return $this->defaultName;
-		}
+		return $this->defaultName;
 	}
 
 	/**
@@ -187,11 +128,7 @@ class OC_Defaults {
 	 * @return string title
 	 */
 	public function getHTMLName() {
-		if ($this->themeExist('getHTMLName')) {
-			return $this->theme->getHTMLName();
-		} else {
-			return $this->defaultName;
-		}
+		return $this->defaultName;
 	}
 
 	/**
@@ -199,11 +136,7 @@ class OC_Defaults {
 	 * @return string entity name
 	 */
 	public function getEntity() {
-		if ($this->themeExist('getEntity')) {
-			return $this->theme->getEntity();
-		} else {
-			return $this->defaultEntity;
-		}
+		return $this->defaultEntity;
 	}
 
 	/**
@@ -211,15 +144,11 @@ class OC_Defaults {
 	 * @return string slogan
 	 */
 	public function getSlogan(?string $lang = null) {
-		if ($this->themeExist('getSlogan')) {
-			return $this->theme->getSlogan($lang);
-		} else {
-			if ($this->defaultSlogan === null) {
-				$l10n = Server::get(IFactory::class)->get('lib', $lang);
-				$this->defaultSlogan = $l10n->t('a safe home for all your data');
-			}
-			return $this->defaultSlogan;
+		if ($this->defaultSlogan === null) {
+			$l10n = Server::get(IFactory::class)->get('lib', $lang);
+			$this->defaultSlogan = $l10n->t('a safe home for all your data');
 		}
+		return $this->defaultSlogan;
 	}
 
 	/**
@@ -227,15 +156,9 @@ class OC_Defaults {
 	 * @return string short footer
 	 */
 	public function getShortFooter() {
-		if ($this->themeExist('getShortFooter')) {
-			$footer = $this->theme->getShortFooter();
-		} else {
-			$footer = '<a href="' . $this->getBaseUrl() . '" target="_blank"'
-				. ' rel="noreferrer noopener">' . $this->getEntity() . '</a>'
-				. ' – ' . $this->getSlogan();
-		}
-
-		return $footer;
+		return '<a href="' . $this->getBaseUrl() . '" target="_blank"'
+			. ' rel="noreferrer noopener">' . $this->getEntity() . '</a>'
+			. ' – ' . $this->getSlogan();
 	}
 
 	/**
@@ -243,13 +166,7 @@ class OC_Defaults {
 	 * @return string long footer
 	 */
 	public function getLongFooter() {
-		if ($this->themeExist('getLongFooter')) {
-			$footer = $this->theme->getLongFooter();
-		} else {
-			$footer = $this->getShortFooter();
-		}
-
-		return $footer;
+		return $this->getShortFooter();
 	}
 
 	/**
@@ -257,9 +174,6 @@ class OC_Defaults {
 	 * @return string URL to doc with key
 	 */
 	public function buildDocLinkToKey($key) {
-		if ($this->themeExist('buildDocLinkToKey')) {
-			return $this->theme->buildDocLinkToKey($key);
-		}
 		return $this->getDocBaseUrl() . '/server/' . $this->defaultDocVersion . '/go.php?to=' . $key;
 	}
 
@@ -268,12 +182,6 @@ class OC_Defaults {
 	 * @return string
 	 */
 	public function getColorPrimary() {
-		if ($this->themeExist('getColorPrimary')) {
-			return $this->theme->getColorPrimary();
-		}
-		if ($this->themeExist('getMailHeaderColor')) {
-			return $this->theme->getMailHeaderColor();
-		}
 		return $this->defaultColorPrimary;
 	}
 
@@ -282,9 +190,6 @@ class OC_Defaults {
 	 * @return string
 	 */
 	public function getColorBackground() {
-		if ($this->themeExist('getColorBackground')) {
-			return $this->theme->getColorBackground();
-		}
 		return $this->defaultColorBackground;
 	}
 
@@ -292,9 +197,6 @@ class OC_Defaults {
 	 * @return array scss variables to overwrite
 	 */
 	public function getScssVariables() {
-		if ($this->themeExist('getScssVariables')) {
-			return $this->theme->getScssVariables();
-		}
 		return [];
 	}
 
@@ -309,10 +211,6 @@ class OC_Defaults {
 	 * @return string
 	 */
 	public function getLogo($useSvg = true) {
-		if ($this->themeExist('getLogo')) {
-			return $this->theme->getLogo($useSvg);
-		}
-
 		if ($useSvg) {
 			$logo = Server::get(IURLGenerator::class)->imagePath('core', 'logo/logo.svg');
 		} else {
@@ -328,10 +226,6 @@ class OC_Defaults {
 	 * @return array{content: string, mimeType: string}|null null when unavailable
 	 */
 	public function getLogoImage(): ?array {
-		if ($this->themeExist('getLogoImage')) {
-			return $this->theme->getLogoImage();
-		}
-
 		$content = @file_get_contents(\OC::$SERVERROOT . '/core/img/logo/logo.png');
 		if ($content === false) {
 			return null;
@@ -340,16 +234,10 @@ class OC_Defaults {
 	}
 
 	public function getTextColorPrimary() {
-		if ($this->themeExist('getTextColorPrimary')) {
-			return $this->theme->getTextColorPrimary();
-		}
 		return $this->defaultTextColorPrimary;
 	}
 
 	public function getProductName() {
-		if ($this->themeExist('getProductName')) {
-			return $this->theme->getProductName();
-		}
 		return $this->defaultProductName;
 	}
 }

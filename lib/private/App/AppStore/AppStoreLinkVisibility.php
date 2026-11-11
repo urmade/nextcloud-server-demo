@@ -31,7 +31,7 @@ class AppStoreLinkVisibility {
 	 */
 	public function isShownToUsers(): bool {
 		if (!$this->appConfig->hasKey('core', ConfigLexicon::APPSTORE_LINK_SHOWN)) {
-			if (!$this->config->getSystemValueBool('appstoreenabled', true)) {
+			if (!$this->config->getSystemValueBool('appstoreenabled', false)) {
 				return false;
 			}
 

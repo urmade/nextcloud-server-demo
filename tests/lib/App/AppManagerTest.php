@@ -468,33 +468,92 @@ class AppManagerTest extends TestCase {
 		$this->assertEquals(\OC::$SERVERROOT . '/apps/files', $this->manager->getAppPath('files'));
 	}
 
-	public function testGetAppPathSymlink(): void {
-		$fakeAppDirname = sha1(uniqid('test', true));
-		$fakeAppPath = sys_get_temp_dir() . '/' . $fakeAppDirname;
-		$fakeAppLink = \OC::$SERVERROOT . '/' . $fakeAppDirname;
-
-		mkdir($fakeAppPath);
-		if (symlink($fakeAppPath, $fakeAppLink) === false) {
+	public function testGetAppPathViaSymlinkedBundledRoot(): void {
+		$linkName = sha1(uniqid('test', true));
+		$link = sys_get_temp_dir() . '/' . $linkName;
+		if (symlink(\OC::$SERVERROOT . '/apps', $link) === false) {
 			$this->markTestSkipped('Failed to create symlink');
 		}
 
-		// Use the symlink as the app path
-		\OC::$APPSROOTS[] = [
-			'path' => $fakeAppLink,
-			'url' => \OC::$WEBROOT . '/' . $fakeAppDirname,
+		$originalRoots = \OC::$APPSROOTS;
+		\OC::$APPSROOTS = [[
+			'path' => $link,
+			'url' => '/apps',
 			'writable' => false,
-		];
+		]];
 
-		$fakeTestAppPath = $fakeAppPath . '/' . 'test_test_app';
-		mkdir($fakeTestAppPath);
+		try {
+			$this->assertEquals($link . '/files', $this->manager->getAppPath('files', true));
+			$this->assertContains('files', $this->manager->getAllAppsInAppsFolders());
+		} finally {
+			\OC::$APPSROOTS = $originalRoots;
+			unlink($link);
+		}
+	}
 
-		$generatedAppPath = $this->manager->getAppPath('test_test_app');
+	/**
+	 * @return string the path of a temporary apps root containing one app
+	 */
+	private function createExternalAppsRoot(string $appId): string {
+		$root = sys_get_temp_dir() . '/' . sha1(uniqid('test', true));
+		mkdir($root . '/' . $appId . '/appinfo', 0777, true);
+		file_put_contents($root . '/' . $appId . '/appinfo/info.xml', '<info><id>' . $appId . '</id></info>');
+		return $root;
+	}
 
-		rmdir($fakeTestAppPath);
-		unlink($fakeAppLink);
-		rmdir($fakeAppPath);
+	private function removeExternalAppsRoot(string $root, string $appId): void {
+		unlink($root . '/' . $appId . '/appinfo/info.xml');
+		rmdir($root . '/' . $appId . '/appinfo');
+		rmdir($root . '/' . $appId);
+		rmdir($root);
+	}
 
-		$this->assertEquals($fakeAppLink . '/test_test_app', $generatedAppPath);
+	public function testAppsOutsideBundledRootAreIgnored(): void {
+		$appId = 'test_external_app';
+		$root = $this->createExternalAppsRoot($appId);
+		$originalRoots = \OC::$APPSROOTS;
+		\OC::$APPSROOTS[] = ['path' => $root, 'url' => '/external', 'writable' => true];
+
+		try {
+			$this->assertFalse($this->manager->findAppInDirectories($appId, true));
+			$this->assertNotContains($appId, $this->manager->getAllAppsInAppsFolders());
+			$this->assertContains('files', $this->manager->getAllAppsInAppsFolders());
+			$this->assertNull($this->manager->getAppInfo($appId));
+			$this->assertEquals(\OC::$SERVERROOT . '/apps/files', $this->manager->getAppPath('files', true));
+		} finally {
+			\OC::$APPSROOTS = $originalRoots;
+			$this->removeExternalAppsRoot($root, $appId);
+		}
+	}
+
+	public function testGetAppPathOutsideBundledRootFails(): void {
+		$appId = 'test_external_app';
+		$root = $this->createExternalAppsRoot($appId);
+		$originalRoots = \OC::$APPSROOTS;
+		\OC::$APPSROOTS[] = ['path' => $root, 'url' => '/external', 'writable' => true];
+
+		try {
+			$this->expectException(AppPathNotFoundException::class);
+			$this->manager->getAppPath($appId, true);
+		} finally {
+			\OC::$APPSROOTS = $originalRoots;
+			$this->removeExternalAppsRoot($root, $appId);
+		}
+	}
+
+	public function testEnableAppOutsideBundledRootFails(): void {
+		$appId = 'test_external_app';
+		$root = $this->createExternalAppsRoot($appId);
+		$originalRoots = \OC::$APPSROOTS;
+		\OC::$APPSROOTS[] = ['path' => $root, 'url' => '/external', 'writable' => true];
+
+		try {
+			$this->expectException(AppPathNotFoundException::class);
+			$this->manager->enableApp($appId);
+		} finally {
+			\OC::$APPSROOTS = $originalRoots;
+			$this->removeExternalAppsRoot($root, $appId);
+		}
 	}
 
 	public function testGetAppPathFail(): void {

@@ -60,6 +60,8 @@ class AppDiscoverFetcherTest extends FetcherBase {
 			->willReturnCallback(function ($var, $default) {
 				if ($var === 'has_internet_connection') {
 					return false;
+				} elseif ($var === 'appstoreenabled') {
+					return true;
 				}
 				return $default;
 			});

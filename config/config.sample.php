@@ -1453,11 +1453,12 @@ $CONFIG = [
 	'defaultapp' => 'dashboard,files',
 
 	/**
-	 * When enabled, admins may install apps from the Nextcloud app store.
+	 * The app store is disabled in this distribution. Only the apps shipped in
+	 * the ``apps/`` directory can be enabled.
 	 *
-	 * Defaults to ``true``
+	 * Defaults to ``false``
 	 */
-	'appstoreenabled' => true,
+	'appstoreenabled' => false,
 
 	/**
 	 * Enables the installation of apps from a self-hosted apps store.
@@ -1474,12 +1475,13 @@ $CONFIG = [
 	'appsallowlist' => [],
 
 	/**
-	 * Use the ``apps_paths`` parameter to set the location of the Apps directory,
-	 * which should be scanned for available apps, and where user-specific apps
-	 * should be installed from the Apps store. The ``path`` defines the absolute
-	 * file system path to the app folder. The key ``url`` defines the HTTP Web path
-	 * to that folder, starting from the Nextcloud webroot. The key ``writable``
-	 * indicates if a Web server can write files to that folder.
+	 * Use the ``apps_paths`` parameter to set the location of the Apps directory.
+	 * Only apps located in the ``apps/`` directory of the server root are loaded.
+	 * Apps in any other configured directory are ignored.
+	 * The ``path`` defines the absolute file system path to the app folder.
+	 * The key ``url`` defines the HTTP Web path to that folder, starting from the
+	 * Nextcloud webroot. The key ``writable`` indicates if a Web server can write
+	 * files to that folder.
 	 */
 	'apps_paths' => [
 		[
@@ -2520,14 +2522,6 @@ $CONFIG = [
 	 * Defaults to ``['.filepart', '.part']``
 	 */
 	'forbidden_filename_extensions' => ['.part', '.filepart'],
-
-	/**
-	 * Specify the name of a theme to apply to Nextcloud. Themes are located in
-	 * ``nextcloud/themes/`` by default.
-	 *
-	 * Defaults to the theming app, included since Nextcloud 9.
-	 */
-	'theme' => '',
 
 	/**
 	 * Enforce a specific user theme, disabling user theming settings. Must be a

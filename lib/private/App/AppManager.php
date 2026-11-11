@@ -213,7 +213,7 @@ class AppManager implements IAppManager {
 	public function getAllAppsInAppsFolders(): array {
 		$apps = [];
 
-		foreach (\OC::$APPSROOTS as $apps_dir) {
+		foreach ($this->getBundledAppsRoots() as $apps_dir) {
 			if (!is_readable($apps_dir['path'])) {
 				$this->logger->warning('unable to read app folder : ' . $apps_dir['path'], ['app' => 'core']);
 				continue;
@@ -234,6 +234,27 @@ class AppManager implements IAppManager {
 		}
 
 		return array_values(array_unique($apps));
+	}
+
+	/**
+	 * Only apps that are shipped in the `apps/` directory of the server root
+	 * are supported. Any other configured apps root is ignored.
+	 *
+	 * @return list<array{path: string, url: string, writable?: bool}>
+	 */
+	private function getBundledAppsRoots(): array {
+		$bundledPath = realpath(\OC::$SERVERROOT . '/apps');
+		if ($bundledPath === false) {
+			return [];
+		}
+
+		$roots = [];
+		foreach (\OC::$APPSROOTS as $dir) {
+			if (realpath($dir['path']) === $bundledPath) {
+				$roots[] = $dir;
+			}
+		}
+		return $roots;
 	}
 
 	/**
@@ -815,7 +836,7 @@ class AppManager implements IAppManager {
 		}
 
 		$possibleApps = [];
-		foreach (\OC::$APPSROOTS as $dir) {
+		foreach ($this->getBundledAppsRoots() as $dir) {
 			if (file_exists($dir['path'] . '/' . $appId)) {
 				$possibleApps[] = $dir;
 			}

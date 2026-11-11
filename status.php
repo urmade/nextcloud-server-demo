@@ -24,8 +24,7 @@ try {
 
 	$installed = (bool)$systemConfig->getValue('installed', false);
 	$maintenance = (bool)$systemConfig->getValue('maintenance', false);
-	# see core/lib/private/legacy/defaults.php and core/themes/example/defaults.php
-	# for description and defaults
+	# see core/lib/private/legacy/defaults.php for description and defaults
 	$defaults = new Defaults();
 	$serverVersion = Server::get(ServerVersion::class);
 	$values = [

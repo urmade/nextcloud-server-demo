@@ -321,7 +321,7 @@ class FactoryTest extends TestCase {
 		];
 	}
 
-	public function testFindAvailableLanguagesWithThemes(): void {
+	public function testFindAvailableLanguagesIgnoresThemes(): void {
 		$this->serverRoot .= '/tests/data';
 		$app = 'files';
 
@@ -331,12 +331,11 @@ class FactoryTest extends TestCase {
 			->with($app)
 			->willReturn($this->serverRoot . '/apps/files/l10n/');
 		$this->config
-			->expects(self::once())
+			->expects(self::never())
 			->method('getSystemValueString')
-			->with('theme')
-			->willReturn('abc');
+			->with('theme');
 
-		self::assertEqualsCanonicalizing(['en', 'zz'], $factory->findAvailableLanguages($app));
+		self::assertSame(['en'], $factory->findAvailableLanguages($app));
 	}
 
 	/**

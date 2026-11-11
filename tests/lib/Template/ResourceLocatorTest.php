@@ -27,12 +27,7 @@ class ResourceLocatorTest extends \Test\TestCase {
 		$this->config = $this->createMock(IConfig::class);
 	}
 
-	public function getResourceLocator(string $theme): ResourceLocator&MockObject {
-		$this->config
-			->expects($this->any())
-			->method('getSystemValueString')
-			->with('theme', '')
-			->willReturn($theme);
+	public function getResourceLocator(): ResourceLocator&MockObject {
 		return $this->getMockBuilder(ResourceLocator::class)
 			->onlyMethods(['doFind', 'doFindTheme'])
 			->setConstructorArgs(
@@ -43,35 +38,43 @@ class ResourceLocatorTest extends \Test\TestCase {
 	}
 
 	public function testFind(): void {
-		$locator = $this->getResourceLocator('theme');
+		$locator = $this->getResourceLocator();
 		$locator->expects($this->once())
 			->method('doFind')
-			->with('foo');
-		$locator->expects($this->once())
-			->method('doFindTheme')
 			->with('foo');
 		$locator->find(['foo']);
 	}
 
+	public function testFindIgnoresConfiguredTheme(): void {
+		$this->config
+			->method('getSystemValueString')
+			->with('theme', '')
+			->willReturn('theme');
+		$locator = $this->getResourceLocator();
+		$locator->expects($this->once())
+			->method('doFind')
+			->with('foo');
+		$locator->expects($this->never())
+			->method('doFindTheme');
+		$locator->find(['foo']);
+	}
+
 	public function testFindNotFound(): void {
-		$locator = $this->getResourceLocator('theme',
-			['core' => 'map'], ['3rd' => 'party'], ['foo' => 'bar']);
+		$locator = $this->getResourceLocator();
 		$locator->expects($this->once())
 			->method('doFind')
 			->with('foo')
 			->willThrowException(new ResourceNotFoundException('foo', 'map'));
-		$locator->expects($this->once())
-			->method('doFindTheme')
-			->with('foo')
-			->willThrowException(new ResourceNotFoundException('foo', 'map'));
-		$this->logger->expects($this->exactly(2))
+		$locator->expects($this->never())
+			->method('doFindTheme');
+		$this->logger->expects($this->once())
 			->method('debug')
 			->with($this->stringContains('map/foo'));
 		$locator->find(['foo']);
 	}
 
 	public function testAppendIfExist(): void {
-		$locator = $this->getResourceLocator('theme');
+		$locator = $this->getResourceLocator();
 		$method = new \ReflectionMethod($locator, 'appendIfExist');
 
 		$method->invoke($locator, __DIR__, basename(__FILE__), 'webroot');

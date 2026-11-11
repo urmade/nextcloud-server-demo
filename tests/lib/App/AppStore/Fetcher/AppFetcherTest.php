@@ -1865,7 +1865,7 @@ EJL3BaQAQaASSsvFrcozYxrQG4VzEg==
 			});
 		$this->config
 			->method('getSystemValueBool')
-			->willReturnArgument(1);
+			->willReturnCallback(fn (string $key, bool $default): bool => $key === 'appstoreenabled' ? true : $default);
 
 		$file = $this->createMock(ISimpleFile::class);
 		$folder = $this->createMock(ISimpleFolder::class);
@@ -1961,6 +1961,20 @@ EJL3BaQAQaASSsvFrcozYxrQG4VzEg==
 		$this->assertEquals([], $this->fetcher->get());
 	}
 
+	public function testAppstoreDisabledByDefault(): void {
+		$this->config
+			->method('getSystemValueBool')
+			->willReturnCallback(fn (string $key, bool $default): bool => $key === 'has_internet_connection' ? true : $default);
+		$this->config
+			->method('getSystemValueString')
+			->willReturnCallback(fn (string $key, string $default): string => $default);
+		$this->appData
+			->expects($this->never())
+			->method('getFolder');
+
+		$this->assertEquals([], $this->fetcher->get());
+	}
+
 	public function testNoInternet(): void {
 		$this->config
 			->method('getSystemValueString')
@@ -2002,7 +2016,7 @@ EJL3BaQAQaASSsvFrcozYxrQG4VzEg==
 			});
 		$this->config
 			->method('getSystemValueBool')
-			->willReturnArgument(1);
+			->willReturnCallback(fn (string $key, bool $default): bool => $key === 'appstoreenabled' ? true : $default);
 
 		$file = $this->createMock(ISimpleFile::class);
 		$folder = $this->createMock(ISimpleFolder::class);
@@ -2098,7 +2112,7 @@ EJL3BaQAQaASSsvFrcozYxrQG4VzEg==
 			});
 		$this->config
 			->method('getSystemValueBool')
-			->willReturnArgument(1);
+			->willReturnCallback(fn (string $key, bool $default): bool => $key === 'appstoreenabled' ? true : $default);
 
 		$file = $this->createMock(ISimpleFile::class);
 		$folder = $this->createMock(ISimpleFolder::class);
@@ -2183,7 +2197,7 @@ EJL3BaQAQaASSsvFrcozYxrQG4VzEg==
 			});
 		$this->config
 			->method('getSystemValueBool')
-			->willReturnArgument(1);
+			->willReturnCallback(fn (string $key, bool $default): bool => $key === 'appstoreenabled' ? true : $default);
 
 		$this->config->method('getAppValue')
 			->willReturnMap([

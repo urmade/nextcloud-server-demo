@@ -300,19 +300,6 @@ class Util {
 		return $svg;
 	}
 
-	/**
-	 * Check if a custom theme is set in the server configuration
-	 *
-	 * @return bool
-	 */
-	public function isAlreadyThemed() {
-		$theme = $this->config->getSystemValue('theme', '');
-		if ($theme !== '') {
-			return true;
-		}
-		return false;
-	}
-
 	public function isBackgroundThemed() {
 		$backgroundLogo = $this->config->getAppValue('theming', 'backgroundMime', '');
 		return $backgroundLogo !== '' && $backgroundLogo !== 'backgroundColor';

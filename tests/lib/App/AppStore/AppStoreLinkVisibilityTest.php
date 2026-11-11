@@ -53,7 +53,7 @@ class AppStoreLinkVisibilityTest extends TestCase {
 			->with('core', ConfigLexicon::APPSTORE_LINK_SHOWN)
 			->willReturn($value);
 		$this->config->method('getSystemValueBool')
-			->with('appstoreenabled', true)
+			->with('appstoreenabled', false)
 			->willReturn($appStoreEnabled);
 		$this->registry->method('delegateHasValidSubscription')
 			->willReturn($subscription);

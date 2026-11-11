@@ -630,16 +630,6 @@ class OC_Util {
 	 * @return string The configured legacy theme name, `default` as a fallback if present, or an empty string if there is no active legacy theme.
 	 */
 	public static function getTheme() {
-		$themeName = Server::get(SystemConfig::class)->getValue('theme', '');
-
-		if ($themeName !== '') {
-			return $themeName;
-		}
-
-		if (is_dir(OC::$SERVERROOT . '/themes/default')) {
-			return 'default';
-		}
-
 		return '';
 	}
 

@@ -18,7 +18,6 @@ return (require __DIR__ . '/rector-shared.php')
 		$nextcloudDir . '/build/rector-strict.php',
 		$nextcloudDir . '/core/BackgroundJobs/ExpirePreviewsJob.php',
 		$nextcloudDir . '/lib/public/IContainer.php',
-		$nextcloudDir . '/apps/appstore',
 		$nextcloudDir . '/apps/dav/lib/Connector/Sabre/Node.php',
 		$nextcloudDir . '/apps/files_versions/lib/Versions/IMetadataVersion.php',
 		$nextcloudDir . '/lib/private/Settings/AuthorizedGroup.php',

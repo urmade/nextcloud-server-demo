@@ -608,7 +608,6 @@ class AppManagerTest extends TestCase {
 		$this->appConfig->setValue('test2', 'enabled', 'no');
 		$this->appConfig->setValue('test3', 'enabled', '["foo"]');
 		$apps = [
-			'appstore',
 			'cloud_federation_api',
 			'dav',
 			'federatedfilesharing',
@@ -641,7 +640,6 @@ class AppManagerTest extends TestCase {
 		$this->appConfig->setValue('test3', 'enabled', '["foo"]');
 		$this->appConfig->setValue('test4', 'enabled', '["asd"]');
 		$enabled = [
-			'appstore',
 			'cloud_federation_api',
 			'dav',
 			'federatedfilesharing',
@@ -680,7 +678,6 @@ class AppManagerTest extends TestCase {
 			->getMock();
 
 		$appInfos = [
-			'appstore' => ['id' => 'appstore'],
 			'cloud_federation_api' => ['id' => 'cloud_federation_api'],
 			'dav' => ['id' => 'dav'],
 			'files' => ['id' => 'files'],
@@ -744,7 +741,6 @@ class AppManagerTest extends TestCase {
 			->getMock();
 
 		$appInfos = [
-			'appstore' => ['id' => 'appstore'],
 			'cloud_federation_api' => ['id' => 'cloud_federation_api'],
 			'dav' => ['id' => 'dav'],
 			'files' => ['id' => 'files'],
@@ -795,7 +791,6 @@ class AppManagerTest extends TestCase {
 		$this->appConfig->setValue('test3', 'enabled', '["foo"]');
 		$this->appConfig->setValue('test4', 'enabled', '["asd"]');
 		$enabled = [
-			'appstore',
 			'cloud_federation_api',
 			'dav',
 			'federatedfilesharing',

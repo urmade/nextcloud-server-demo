@@ -124,7 +124,7 @@ class SetupController {
 			return;
 		}
 
-		header('Location: ' . Server::get(IURLGenerator::class)->getAbsoluteURL('index.php/core/apps/recommended'));
+		header('Location: ' . Server::get(IURLGenerator::class)->linkToDefaultPageUrl());
 		exit();
 	}
 

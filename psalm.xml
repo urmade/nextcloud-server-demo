@@ -27,7 +27,6 @@
 	</plugins>
 	<projectFiles>
 		<directory name="apps/admin_audit"/>
-		<directory name="apps/appstore"/>
 		<directory name="apps/cloud_federation_api"/>
 		<directory name="apps/comments"/>
 		<directory name="apps/contactsinteraction"/>
@@ -53,7 +52,6 @@
 		<directory name="apps/testing"/>
 		<directory name="apps/theming"/>
 		<directory name="apps/twofactor_backupcodes"/>
-		<directory name="apps/updatenotification"/>
 		<directory name="apps/user_ldap"/>
 		<directory name="apps/user_status"/>
 		<directory name="apps/weather_status"/>
@@ -93,7 +91,6 @@
 			<directory name="apps/systemtags/tests"/>
 			<directory name="apps/theming/tests"/>
 			<directory name="apps/twofactor_backupcodes/tests"/>
-			<directory name="apps/updatenotification/tests"/>
 			<directory name="apps/user_ldap/tests"/>
 			<directory name="apps/user_status/tests"/>
 			<directory name="apps/webhook_listeners/tests"/>

@@ -79,12 +79,12 @@ class AppsEnableTest extends TestCase {
 			[['admin_audit'], ['admin'], 1, "admin_audit can't be enabled for groups"],
 			[['comments'], ['admin'], 1, "comments can't be enabled for groups"],
 
-			[['updatenotification'], ['admin'], 0, 'updatenotification ' . self::VERSION_REGEX . ' enabled for groups: admin'],
-			[['updatenotification', 'dashboard'], ['admin'], 0, 'updatenotification ' . self::VERSION_REGEX . " enabled for groups: admin\ndashboard " . self::VERSION_REGEX . ' enabled for groups: admin'],
+			[['weather_status'], ['admin'], 0, 'weather_status ' . self::VERSION_REGEX . ' enabled for groups: admin'],
+			[['weather_status', 'dashboard'], ['admin'], 0, 'weather_status ' . self::VERSION_REGEX . " enabled for groups: admin\ndashboard " . self::VERSION_REGEX . ' enabled for groups: admin'],
 
-			[['updatenotification'], ['admin', 'invalid_group'], 0, 'updatenotification ' . self::VERSION_REGEX . ' enabled for groups: admin'],
-			[['updatenotification', 'dashboard'], ['admin', 'invalid_group'], 0, 'updatenotification ' . self::VERSION_REGEX . " enabled for groups: admin\ndashboard " . self::VERSION_REGEX . ' enabled for groups: admin'],
-			[['updatenotification', 'dashboard', 'invalid_app'], ['admin', 'invalid_group'], 1, 'updatenotification ' . self::VERSION_REGEX . " enabled for groups: admin\ndashboard " . self::VERSION_REGEX . " enabled for groups: admin\nCould not download app invalid_app"],
+			[['weather_status'], ['admin', 'invalid_group'], 0, 'weather_status ' . self::VERSION_REGEX . ' enabled for groups: admin'],
+			[['weather_status', 'dashboard'], ['admin', 'invalid_group'], 0, 'weather_status ' . self::VERSION_REGEX . " enabled for groups: admin\ndashboard " . self::VERSION_REGEX . ' enabled for groups: admin'],
+			[['weather_status', 'dashboard', 'invalid_app'], ['admin', 'invalid_group'], 1, 'weather_status ' . self::VERSION_REGEX . " enabled for groups: admin\ndashboard " . self::VERSION_REGEX . " enabled for groups: admin\nCould not download app invalid_app"],
 		];
 	}
 }

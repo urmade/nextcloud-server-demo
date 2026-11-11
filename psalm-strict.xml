@@ -36,7 +36,6 @@
 		<file name="lib/private/Share20/ShareHelper.php"/>
 		<file name="lib/public/Share/IShareHelper.php"/>
 		<file name="lib/public/SystemTag/Events/*.php"/>
-		<directory name="apps/appstore/lib" />
 		<directory name="lib/public/Interaction"/>
 		<directory name="tests/lib/Interaction"/>
 		<file name="apps/files/lib/Listener/RestrictInteractionListener.php"/>
@@ -72,8 +71,6 @@
 		<ignoreFiles>
 			<!-- Circles internals are used -->
 			<file name="core/Sharing/Recipient/TeamShareRecipientType.php"/>
-			<!-- Missing types of the AppFetcher and the OC_Apps class for return types -->
-			<file name="apps/appstore/lib/Controller/ApiController.php" />
 			<!-- ... -->
 			<directory name="apps/**/composer"/>
 			<directory name="lib/composer"/>

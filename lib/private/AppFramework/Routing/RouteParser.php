@@ -17,7 +17,6 @@ class RouteParser {
 	private $controllerNameCache = [];
 
 	private const array rootUrlApps = [
-		'appstore',
 		'cloud_federation_api',
 		'core',
 		'files_sharing_raw',

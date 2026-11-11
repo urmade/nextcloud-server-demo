@@ -11,7 +11,6 @@ declare(strict_types=1);
 namespace OC;
 
 use bantu\IniGetWrapper\IniGetWrapper;
-use OC\App\AppStore\AppStoreLinkVisibility;
 use OC\AppFramework\Http\Request;
 use OC\Authentication\Token\IProvider;
 use OC\Core\AppInfo\Application;
@@ -84,7 +83,6 @@ class TemplateLayout {
 				$this->initialState->provideInitialState('core', 'active-app', $this->navigationManager->getActiveEntry());
 				$this->initialState->provideInitialState('core', 'apps', array_values($this->navigationManager->getAll()));
 				$this->initialState->provideInitialState('core', 'navigationActions', array_values($this->navigationManager->getAll(INavigationManager::TYPE_ACTION)));
-				$this->initialState->provideInitialState('core', 'appStoreLinkShown', Server::get(AppStoreLinkVisibility::class)->isShownToUsers());
 
 				$this->initialState->provideInitialState('unified-search', 'min-search-length', $this->appConfig->getValueInt(Application::APP_ID, ConfigLexicon::UNIFIED_SEARCH_MIN_SEARCH_LENGTH));
 				if ($this->config->getSystemValueBool('unified_search.enabled', false) || !$this->config->getSystemValueBool('enable_non-accessible_features', true)) {

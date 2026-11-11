@@ -75,8 +75,6 @@
 						:key="item.id"
 						ref="items"
 						:app="item"
-						:outlined="item.id === 'more-apps' || item.id === 'app-store'"
-						:new-tab="item.id === 'app-store'"
 						:tabindex="i === focusedIndex ? 0 : -1" />
 				</div>
 				<AppMenuActions
@@ -91,11 +89,10 @@
 <script lang="ts">
 import type { INavigationEntry } from '../types/navigation.d.ts'
 
-import { getCurrentUser } from '@nextcloud/auth'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { loadState } from '@nextcloud/initial-state'
 import { isRTL, n, t } from '@nextcloud/l10n'
-import { generateUrl, imagePath } from '@nextcloud/router'
+import { imagePath } from '@nextcloud/router'
 import { defineComponent, ref } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcPopover from '@nextcloud/vue/components/NcPopover'
@@ -113,9 +110,6 @@ const SETTINGS_SECTION_IDS = new Set(['settings_personal', 'settings_administrat
 // The profile entry is named "View profile" for the account menu, which is an
 // action rather than a page name. The header shows where you are instead.
 const PROFILE_ID = 'profile'
-
-// Entry of the app management page, the target of the "More apps" tile.
-const APP_MANAGEMENT_ID = 'appstore'
 
 // Pause before hover opens the menu: the trigger sits in the corner, which
 // cursors cross on the way elsewhere.
@@ -153,9 +147,6 @@ export default defineComponent({
 			appList,
 			navigationActions,
 			settingsList,
-			// Fail closed: a missing state must not leak the link.
-			appStoreLinkShown: loadState<boolean>('core', 'appStoreLinkShown', false),
-			isAdmin: getCurrentUser()?.isAdmin ?? false,
 			// Roving tabindex: only this tile has tabindex=0; arrow keys move it.
 			focusedIndex: 0,
 			// Which button opened the menu, so focus returns to it.
@@ -168,31 +159,6 @@ export default defineComponent({
 			// Grace window where a trigger click does not close the menu.
 			suppressCloseClick: false,
 			suppressClickTimer: null as ReturnType<typeof setTimeout> | null,
-			// Synthetic tile appended to the grid: admins jump to the local
-			// app management page; everyone else lands on apps.nextcloud.com
-			// (external, opens in a new tab via the per-tile newTab flag).
-			moreAppsEntry: {
-				id: 'more-apps',
-				active: false,
-				order: Number.MAX_SAFE_INTEGER,
-				href: generateUrl('/settings/apps'),
-				icon: imagePath('core', 'actions/add.svg'),
-				type: 'link',
-				name: t('core', 'More apps'),
-				unread: 0,
-			} as INavigationEntry,
-
-			appStoreEntry: {
-				id: 'app-store',
-				active: false,
-				order: Number.MAX_SAFE_INTEGER,
-				href: 'https://apps.nextcloud.com/',
-				icon: imagePath('core', 'actions/add.svg'),
-				type: 'link',
-				name: t('core', 'App store'),
-				unread: 0,
-			} as INavigationEntry,
-
 			// `placement: bottom-start` swaps the anchor edge under RTL but the
 			// skidding sign isn't auto-mirrored, so we flip it here. Snapshot
 			// at init: Nextcloud's language doesn't change at runtime.
@@ -253,18 +219,9 @@ export default defineComponent({
 				: t('core', 'Open apps menu')
 		},
 
-		// Stable-ordered list that focusedIndex indexes into. The trailing
-		// utility tile is "More apps" (local app management) for admins and
-		// "App store" (apps.nextcloud.com) for everyone else when
-		// appstore_link_shown allows it.
+		// Stable-ordered list that focusedIndex indexes into.
 		gridItems(): INavigationEntry[] {
-			const tail: INavigationEntry[] = []
-			if (this.isAdmin) {
-				tail.push({ ...this.moreAppsEntry, active: this.currentApp?.id === APP_MANAGEMENT_ID })
-			} else if (this.appStoreLinkShown) {
-				tail.push(this.appStoreEntry)
-			}
-			return [...this.appList, ...tail]
+			return this.appList
 		},
 	},
 

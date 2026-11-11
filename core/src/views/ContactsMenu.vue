@@ -5,7 +5,6 @@
 
 <script setup lang="ts">
 import { mdiAccountGroupOutline, mdiContacts, mdiMagnify } from '@mdi/js'
-import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 import { getBuilder } from '@nextcloud/browser-storage'
 import { t } from '@nextcloud/l10n'
@@ -28,9 +27,7 @@ const storage = getBuilder('core:contacts')
 	.clearOnLogout(true)
 	.build()
 
-const user = getCurrentUser()!
 const contactsAppURL = generateUrl('/apps/contacts')
-const contactsAppMgmtURL = generateUrl('/settings/apps/social/contacts')
 
 const contactsMenuInput = ref<HTMLInputElement>()
 
@@ -231,11 +228,6 @@ const userTeams: ITeam[] = []
 				<div v-if="contactsAppEnabled" class="contactsmenu__menu__content__footer">
 					<NcButton variant="tertiary" :href="contactsAppURL">
 						{{ t('core', 'Show all contacts') }}
-					</NcButton>
-				</div>
-				<div v-else-if="user.isAdmin" class="contactsmenu__menu__content__footer">
-					<NcButton variant="tertiary" :href="contactsAppMgmtURL">
-						{{ t('core', 'Install the Contacts app') }}
 					</NcButton>
 				</div>
 			</div>

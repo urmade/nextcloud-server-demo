@@ -2970,14 +2970,6 @@
       <code><![CDATA[getUserValue]]></code>
     </DeprecatedMethod>
   </file>
-  <file src="core/Controller/RecommendedAppsController.php">
-    <DeprecatedInterface>
-      <code><![CDATA[private]]></code>
-    </DeprecatedInterface>
-    <DeprecatedMethod>
-      <code><![CDATA[provideInitialState]]></code>
-    </DeprecatedMethod>
-  </file>
   <file src="core/Controller/SetupController.php">
     <DeprecatedInterface>
       <code><![CDATA[protected]]></code>

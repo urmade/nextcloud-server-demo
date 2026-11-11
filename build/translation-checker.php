@@ -19,7 +19,6 @@ $untranslatedApps = [
 ];
 
 $txConfigAppMap = [
-	'appstore' => 'appstore-shipped-with-server',
 	'dashboard' => 'dashboard-shipped-with-server',
 	'encryption' => 'files_encryption',
 	'settings' => 'settings-1',
